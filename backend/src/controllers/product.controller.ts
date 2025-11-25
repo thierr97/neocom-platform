@@ -1,0 +1,350 @@
+import { Response } from 'express';
+import prisma from '../config/database';
+import { AuthRequest } from '../middleware/auth';
+
+export const getProducts = async (req: AuthRequest, res: Response) => {
+  try {
+    const { status, category, search, isVisible, isFeatured } = req.query;
+
+    const where: any = {};
+
+    if (status) where.status = status;
+    if (category) where.categoryId = category;
+    if (isVisible !== undefined) where.isVisible = isVisible === 'true';
+    if (isFeatured !== undefined) where.isFeatured = isFeatured === 'true';
+
+    if (search) {
+      where.OR = [
+        { name: { contains: search as string, mode: 'insensitive' } },
+        { sku: { contains: search as string, mode: 'insensitive' } },
+        { barcode: { contains: search as string, mode: 'insensitive' } },
+      ];
+    }
+
+    const products = await prisma.product.findMany({
+      where,
+      include: {
+        category: true,
+        supplier: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json({
+      success: true,
+      products,
+    });
+  } catch (error: any) {
+    console.error('Error in getProducts:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des produits',
+      error: error.message,
+    });
+  }
+};
+
+export const getProductById = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const product = await prisma.product.findUnique({
+      where: { id },
+      include: {
+        category: true,
+        supplier: true,
+        orderItems: {
+          include: {
+            order: {
+              select: {
+                id: true,
+                number: true,
+                status: true,
+                createdAt: true,
+                customer: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    companyName: true,
+                    type: true,
+                  },
+                },
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        },
+        quoteItems: {
+          include: {
+            quote: {
+              select: {
+                id: true,
+                number: true,
+                status: true,
+                createdAt: true,
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+        },
+        stockMovements: {
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        },
+      },
+    });
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Produit non trouvé',
+      });
+    }
+
+    // Calculate statistics
+    const totalSold = await prisma.orderItem.aggregate({
+      where: {
+        productId: id,
+        order: {
+          status: {
+            in: ['CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED'],
+          },
+        },
+      },
+      _sum: {
+        quantity: true,
+      },
+    });
+
+    const totalRevenue = await prisma.orderItem.aggregate({
+      where: {
+        productId: id,
+        order: {
+          status: {
+            in: ['CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED'],
+          },
+        },
+      },
+      _sum: {
+        total: true,
+      },
+    });
+
+    res.json({
+      success: true,
+      product,
+      stats: {
+        totalSold: totalSold._sum.quantity || 0,
+        totalRevenue: totalRevenue._sum.total || 0,
+        totalOrders: product.orderItems.length,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error in getProductById:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération du produit',
+      error: error.message,
+    });
+  }
+};
+
+export const createProduct = async (req: AuthRequest, res: Response) => {
+  try {
+    const data = req.body;
+
+    const product = await prisma.product.create({
+      data,
+      include: {
+        category: true,
+        supplier: true,
+      },
+    });
+
+    // Log activity
+    await prisma.activity.create({
+      data: {
+        type: 'PRODUCT_CREATED',
+        description: `Nouveau produit créé: ${product.name}`,
+        userId: req.user!.userId,
+      },
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Produit créé avec succès',
+      product,
+    });
+  } catch (error: any) {
+    console.error('Error in createProduct:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la création du produit',
+      error: error.message,
+    });
+  }
+};
+
+export const updateProduct = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const data = req.body;
+
+    const product = await prisma.product.update({
+      where: { id },
+      data,
+      include: {
+        category: true,
+        supplier: true,
+      },
+    });
+
+    // Log activity
+    await prisma.activity.create({
+      data: {
+        type: 'PRODUCT_UPDATED',
+        description: `Produit mis à jour: ${product.name}`,
+        userId: req.user!.userId,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: 'Produit mis à jour',
+      product,
+    });
+  } catch (error: any) {
+    console.error('Error in updateProduct:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la mise à jour du produit',
+      error: error.message,
+    });
+  }
+};
+
+export const deleteProduct = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    await prisma.product.delete({ where: { id } });
+
+    res.json({
+      success: true,
+      message: 'Produit supprimé',
+    });
+  } catch (error: any) {
+    console.error('Error in deleteProduct:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la suppression du produit',
+      error: error.message,
+    });
+  }
+};
+
+export const getCategories = async (req: AuthRequest, res: Response) => {
+  try {
+    const categories = await prisma.category.findMany({
+      include: {
+        _count: {
+          select: {
+            products: true,
+          },
+        },
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    res.json({
+      success: true,
+      categories,
+    });
+  } catch (error: any) {
+    console.error('Error in getCategories:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des catégories',
+      error: error.message,
+    });
+  }
+};
+
+export const createCategory = async (req: AuthRequest, res: Response) => {
+  try {
+    const data = req.body;
+
+    const category = await prisma.category.create({
+      data,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Catégorie créée avec succès',
+      category,
+    });
+  } catch (error: any) {
+    console.error('Error in createCategory:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la création de la catégorie',
+      error: error.message,
+    });
+  }
+};
+
+export const toggleProductVisibility = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    // Get current product
+    const currentProduct = await prisma.product.findUnique({
+      where: { id },
+      select: { isVisible: true, name: true },
+    });
+
+    if (!currentProduct) {
+      return res.status(404).json({
+        success: false,
+        message: 'Produit non trouvé',
+      });
+    }
+
+    // Toggle visibility
+    const product = await prisma.product.update({
+      where: { id },
+      data: {
+        isVisible: !currentProduct.isVisible,
+      },
+      include: {
+        category: true,
+        supplier: true,
+      },
+    });
+
+    // Log activity
+    await prisma.activity.create({
+      data: {
+        type: 'PRODUCT_UPDATED',
+        description: `Produit ${product.isVisible ? 'rendu visible' : 'masqué'}: ${product.name}`,
+        userId: req.user!.userId,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: `Produit ${product.isVisible ? 'rendu visible' : 'masqué'} avec succès`,
+      product,
+    });
+  } catch (error: any) {
+    console.error('Error in toggleProductVisibility:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors du changement de visibilité',
+      error: error.message,
+    });
+  }
+};
