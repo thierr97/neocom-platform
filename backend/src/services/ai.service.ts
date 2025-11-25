@@ -52,7 +52,7 @@ export class AIService {
     // Get all active products
     const allProducts = await prisma.product.findMany({
       where: {
-        isActive: true,
+        status: 'ACTIVE',
         stock: { gt: 0 },
       },
       include: {
@@ -161,7 +161,7 @@ export class AIService {
     const similarProducts = await prisma.product.findMany({
       where: {
         id: { not: productId },
-        isActive: true,
+        status: 'ACTIVE',
         stock: { gt: 0 },
         OR: [
           // Same category

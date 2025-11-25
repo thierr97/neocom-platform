@@ -1,8 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken, TokenPayload } from '../utils/jwt';
 
+// Explicitly define AuthRequest with all Express Request properties
 export interface AuthRequest extends Request {
   user?: TokenPayload;
+  body: any;
+  query: any;
+  params: any;
+  headers: any;
 }
 
 export const authenticateToken = (
