@@ -53,15 +53,26 @@ app.use('/api/', limiter);
 
 // CORS configuration
 const corsOptions = {
-  origin: [
-    process.env.FRONTEND_URL || 'http://localhost:3000',
-    'http://localhost:3001',
-    'http://localhost:3002',
-    'http://localhost:3003',
-    process.env.MOBILE_APP_URL || 'exp://localhost:19000',
-    'http://localhost:19006', // Expo web
-    'http://localhost:8081', // React Native
-  ],
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    const allowedOrigins = [
+      process.env.FRONTEND_URL || 'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:3002',
+      'http://localhost:3003',
+      process.env.MOBILE_APP_URL || 'exp://localhost:19000',
+      'http://localhost:19006', // Expo web
+      'http://localhost:8081', // React Native
+    ];
+
+    // Allow Vercel preview deployments
+    if (origin && (origin.endsWith('.vercel.app') || origin.endsWith('neoserv.fr'))) {
+      callback(null, true);
+    } else if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   optionsSuccessStatus: 200,
 };
