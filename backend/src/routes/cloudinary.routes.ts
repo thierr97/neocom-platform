@@ -251,14 +251,13 @@ router.post(
             continue;
           }
 
-          // Mettre à jour les images du produit
-          await prisma.product.update({
-            where: { id: product.id },
-            data: {
-              images: imageUrls,
-              thumbnail: imageUrls[0] || null,
-            },
-          });
+          // Mettre à jour les images du produit (utiliser raw SQL pour éviter les problèmes de schema)
+          await prisma.$executeRaw`
+            UPDATE products
+            SET images = ${imageUrls}::text[],
+                thumbnail = ${imageUrls[0] || null}
+            WHERE id = ${product.id}
+          `;
 
           results.success++;
 
