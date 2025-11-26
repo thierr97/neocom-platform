@@ -242,6 +242,7 @@ router.post(
           // Trouver le produit par SKU
           const product = await prisma.product.findFirst({
             where: { sku: sku },
+            select: { id: true },
           });
 
           if (!product) {
