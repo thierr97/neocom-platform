@@ -4,6 +4,7 @@ import multer from 'multer';
 import cloudinary from '../config/cloudinary';
 import { AuthRequest } from '../middleware/auth';
 import { Response } from 'express';
+import prisma from '../config/database';
 
 const router = Router();
 
@@ -202,6 +203,95 @@ router.delete(
       res.status(500).json({
         success: false,
         message: 'Erreur lors de la suppression de l\'image',
+        error: error.message,
+      });
+    }
+  }
+);
+
+// Associer les images Cloudinary aux produits depuis un fichier de mapping
+router.post(
+  '/sync-product-images',
+  authenticateToken,
+  requireRole('ADMIN'),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { mapping } = req.body;
+
+      if (!mapping || typeof mapping !== 'object') {
+        return res.status(400).json({
+          success: false,
+          message: 'Mapping requis (objet SKU -> URLs[])',
+        });
+      }
+
+      const results = {
+        success: 0,
+        failed: 0,
+        notFound: [] as string[],
+        errors: [] as any[],
+      };
+
+      const skus = Object.keys(mapping);
+      console.log(`🔄 Début de la synchronisation de ${skus.length} SKUs...`);
+
+      for (const sku of skus) {
+        try {
+          const imageUrls = mapping[sku];
+
+          // Trouver le produit par SKU
+          const product = await prisma.product.findFirst({
+            where: { sku: sku },
+          });
+
+          if (!product) {
+            results.notFound.push(sku);
+            results.failed++;
+            continue;
+          }
+
+          // Mettre à jour les images du produit
+          await prisma.product.update({
+            where: { id: product.id },
+            data: {
+              images: imageUrls,
+              thumbnail: imageUrls[0] || null,
+            },
+          });
+
+          results.success++;
+
+          // Log tous les 100 produits
+          if (results.success % 100 === 0) {
+            console.log(`✓ ${results.success} produits mis à jour...`);
+          }
+        } catch (error: any) {
+          results.failed++;
+          results.errors.push({
+            sku,
+            error: error.message,
+          });
+        }
+      }
+
+      console.log(`✅ Synchronisation terminée: ${results.success} succès, ${results.failed} échecs`);
+
+      res.json({
+        success: true,
+        message: `Synchronisation terminée`,
+        data: {
+          total: skus.length,
+          success: results.success,
+          failed: results.failed,
+          notFound: results.notFound.slice(0, 10), // Limiter à 10 SKUs non trouvés
+          errors: results.errors.slice(0, 10), // Limiter à 10 erreurs
+        },
+      });
+    } catch (error: any) {
+      console.error('Erreur synchronisation images:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur lors de la synchronisation des images',
         error: error.message,
       });
     }
