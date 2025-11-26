@@ -1,8 +1,7 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../config/database';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // Route pour mettre à jour les emails @neocom vers @neoserv
 router.post('/update-emails-to-neoserv', async (req, res) => {
