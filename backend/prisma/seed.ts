@@ -10,13 +10,13 @@ async function main() {
   const adminPassword = await hashPassword(process.env.ADMIN_PASSWORD || 'Admin123!');
 
   const admin = await prisma.user.upsert({
-    where: { email: process.env.ADMIN_EMAIL || 'admin@neocom.com' },
+    where: { email: process.env.ADMIN_EMAIL || 'admin@neoserv.com' },
     update: {},
     create: {
-      email: process.env.ADMIN_EMAIL || 'admin@neocom.com',
+      email: process.env.ADMIN_EMAIL || 'admin@neoserv.com',
       password: adminPassword,
       firstName: 'Admin',
-      lastName: 'NEOCOM',
+      lastName: 'NEOSERV',
       role: 'ADMIN',
       status: 'ACTIVE',
     },
@@ -28,10 +28,10 @@ async function main() {
   const commercialPassword = await hashPassword('Commercial123!');
 
   const commercial = await prisma.user.upsert({
-    where: { email: 'commercial@neocom.com' },
+    where: { email: 'commercial@neoserv.com' },
     update: {},
     create: {
-      email: 'commercial@neocom.com',
+      email: 'commercial@neoserv.com',
       password: commercialPassword,
       firstName: 'Jean',
       lastName: 'Dupont',
@@ -193,7 +193,7 @@ async function main() {
     update: {},
     create: {
       key: 'company_name',
-      value: 'NEOCOM',
+      value: 'NEOSERV',
       type: 'string',
     },
   });
@@ -203,7 +203,7 @@ async function main() {
     update: {},
     create: {
       key: 'company_email',
-      value: 'contact@neocom.com',
+      value: 'contact@neoserv.com',
       type: 'string',
     },
   });
@@ -221,8 +221,8 @@ async function main() {
   console.log('✅ Paramètres système créés');
 
   console.log('\n✨ Seed terminé avec succès!\n');
-  console.log('📧 Admin: admin@neocom.com / Admin123!');
-  console.log('📧 Commercial: commercial@neocom.com / Commercial123!\n');
+  console.log('📧 Admin: admin@neoserv.com / Admin123!');
+  console.log('📧 Commercial: commercial@neoserv.com / Commercial123!\n');
 }
 
 main()

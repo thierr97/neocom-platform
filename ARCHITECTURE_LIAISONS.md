@@ -1,8 +1,8 @@
-# Architecture et Liaisons - Plateforme NEOCOM
+# Architecture et Liaisons - Plateforme NEOSERV
 
 ## 📋 Vue d'Ensemble
 
-La plateforme NEOCOM est un système e-commerce B2B intégré avec 4 composants principaux :
+La plateforme NEOSERV est un système e-commerce B2B intégré avec 4 composants principaux :
 
 1. **🛒 Boutique (Shop)** - Accès public, commandes en ligne
 2. **👤 Espace Client** - Portal authentifié pour clients
@@ -15,7 +15,7 @@ La plateforme NEOCOM est un système e-commerce B2B intégré avec 4 composants 
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    PLATEFORME NEOCOM                             │
+│                    PLATEFORME NEOSERV                             │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
@@ -49,7 +49,7 @@ La plateforme NEOCOM est un système e-commerce B2B intégré avec 4 composants 
 
 ```json
 {
-  "email": "commercial@neocom.com",
+  "email": "commercial@neoserv.com",
   "password": "motdepasse"
 }
 ```
@@ -58,7 +58,7 @@ La plateforme NEOCOM est un système e-commerce B2B intégré avec 4 composants 
 ```json
 {
   "userId": "uuid",
-  "email": "commercial@neocom.com",
+  "email": "commercial@neoserv.com",
   "role": "COMMERCIAL" // ou "ADMIN"
 }
 ```
@@ -107,7 +107,7 @@ model Order {
   id              String
   number          String    // CMD-xxxxx
   customerId      String    // Lié au Customer
-  userId          String    // Commercial OU "public@neocom.com"
+  userId          String    // Commercial OU "public@neoserv.com"
 
   // Statuts
   status          OrderStatus       // PENDING → CONFIRMED → SHIPPED → DELIVERED
@@ -131,7 +131,7 @@ model Order {
 
 | Critère | Commande Shop | Commande Back-office |
 |---------|---------------|---------------------|
-| userId | `"public@neocom.com"` | ID du commercial |
+| userId | `"public@neoserv.com"` | ID du commercial |
 | Création | `POST /api/shop/orders` | `POST /api/orders` |
 | Customer | Auto-créé si besoin | Sélectionné par commercial |
 | Auth | ❌ Aucune | ✅ JWT User |
@@ -170,7 +170,7 @@ model Customer {
 
 **Points clés**:
 - Email **unique** → Même client peut commander via Shop ET avoir un commercial
-- `userId` → Shop met `"public@neocom.com"`, Back-office met ID du commercial
+- `userId` → Shop met `"public@neoserv.com"`, Back-office met ID du commercial
 - Un Customer peut avoir des commandes des 2 sources
 
 ---
@@ -185,9 +185,9 @@ model Customer {
    ├─ Checkout: entre email + adresse
    └─ POST /api/shop/orders
         ├─ Cherche Customer par email
-        ├─ Si n'existe pas → Créer avec userId="public@neocom.com"
+        ├─ Si n'existe pas → Créer avec userId="public@neoserv.com"
         ├─ Créer Order:
-        │   ├─ userId = "public@neocom.com"
+        │   ├─ userId = "public@neoserv.com"
         │   ├─ status = PENDING
         │   ├─ paymentStatus = PENDING
         │   └─ items = articles du panier
@@ -387,7 +387,7 @@ Customer.email (unique)
 
 ```
 Order table unique
-├─ Shop orders (userId="public@neocom.com")
+├─ Shop orders (userId="public@neoserv.com")
 ├─ Back-office orders (userId=commercial_id)
 └─ Client voit TOUTES ses commandes via /api/client/orders
 ```
@@ -399,7 +399,7 @@ Customer table unique
 ├─ Créé automatiquement via Shop
 ├─ OU créé manuellement par commercial
 ├─ Peut avoir commandes des 2 sources
-└─ userId = commercial responsable (ou "public@neocom.com")
+└─ userId = commercial responsable (ou "public@neoserv.com")
 ```
 
 ### 4. Facturation Optionnelle
@@ -452,7 +452,7 @@ Invoice (optionnelle)
 
 ```
 Client fait 2 commandes:
-├─ 1 via Shop (userId="public@neocom.com")
+├─ 1 via Shop (userId="public@neoserv.com")
 └─ 1 via Commercial (userId=commercial_id)
 
 Dans /client/orders:
@@ -563,7 +563,7 @@ async function assignCommercialToCustomer(customerId: string) {
     orderBy: { orders: { _count: 'asc' } } // Moins chargé
   });
 
-  return commercial?.id || 'public@neocom.com';
+  return commercial?.id || 'public@neoserv.com';
 }
 ```
 
@@ -580,4 +580,4 @@ io.to(`commercial-${commercialId}`).emit('new-order', order);
 
 **Date**: 21 novembre 2024
 **Version**: 2.0.0
-**Auteur**: NEOCOM Platform
+**Auteur**: NEOSERV Platform

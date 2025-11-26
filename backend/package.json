@@ -1,7 +1,7 @@
 {
-  "name": "neocom-backend",
+  "name": "neoserv-backend",
   "version": "1.0.0",
-  "description": "NEOCOM - Plateforme complète de gestion commerciale API",
+  "description": "NEOSERV - Plateforme complète de gestion commerciale API",
   "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon src/index.ts",
@@ -13,12 +13,12 @@
     "seed": "ts-node prisma/seed.ts"
   },
   "keywords": [
-    "neocom",
+    "neoserv",
     "ecommerce",
     "crm",
     "invoicing"
   ],
-  "author": "NEOCOM Team",
+  "author": "NEOSERV Team",
   "license": "MIT",
   "dependencies": {
     "@prisma/client": "^5.22.0",
@@ -38,6 +38,7 @@
     "axios": "^1.6.2",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.8.0",
     "cors": "^2.8.5",
     "csv-parser": "^3.2.0",
     "dotenv": "^16.3.1",

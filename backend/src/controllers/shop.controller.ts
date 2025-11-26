@@ -200,14 +200,14 @@ export const createPublicOrder = async (req: Request, res: Response) => {
       // Create new customer
       // Find or create a default user for public orders
       let publicUser = await prisma.user.findFirst({
-        where: { email: 'public@neocom.com' },
+        where: { email: 'public@neoserv.com' },
       });
 
       if (!publicUser) {
         // Create public user if doesn't exist
         publicUser = await prisma.user.create({
           data: {
-            email: 'public@neocom.com',
+            email: 'public@neoserv.com',
             password: 'public', // Will be hashed, not used for login
             role: 'CLIENT',
             firstName: 'Public',
@@ -285,7 +285,7 @@ export const createPublicOrder = async (req: Request, res: Response) => {
 
     // Get public user for the order
     const publicUser = await prisma.user.findFirst({
-      where: { email: 'public@neocom.com' },
+      where: { email: 'public@neoserv.com' },
     });
 
     // Create order

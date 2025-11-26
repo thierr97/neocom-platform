@@ -61,7 +61,7 @@ export default function LoginScreen({ navigation }: any) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.content}>
-        <Text style={styles.logo}>NEOCOM</Text>
+        <Text style={styles.logo}>NEOSERV</Text>
         <Text style={styles.subtitle}>Application mobile</Text>
 
         <View style={styles.form}>

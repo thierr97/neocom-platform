@@ -1,8 +1,8 @@
-# 💰 GUIDE COMPLET DU MODULE COMPTABILITÉ - NEOCOM
+# 💰 GUIDE COMPLET DU MODULE COMPTABILITÉ - NEOSERV
 
 ## 📋 Vue d'ensemble
 
-Le module comptabilité de NEOCOM est un système complet de gestion comptable conforme au **Plan Comptable Général (PCG) français**. Il permet de gérer l'ensemble de votre comptabilité, de la saisie des écritures à la génération des rapports financiers.
+Le module comptabilité de NEOSERV est un système complet de gestion comptable conforme au **Plan Comptable Général (PCG) français**. Il permet de gérer l'ensemble de votre comptabilité, de la saisie des écritures à la génération des rapports financiers.
 
 ---
 

@@ -1,17 +1,17 @@
-# Guide de Test - Boutique en Ligne NEOCOM
+# Guide de Test - Boutique en Ligne NEOSERV
 
 ## Démarrage Rapide
 
 ### 1. Démarrer le Backend
 ```bash
-cd /Users/thierrycyrillefrancillette/neocom-platform/backend
+cd /Users/thierrycyrillefrancillette/neoserv-platform/backend
 npm run dev
 ```
 **URL**: http://localhost:4000
 
 ### 2. Démarrer le Frontend
 ```bash
-cd /Users/thierrycyrillefrancillette/neocom-platform/frontend
+cd /Users/thierrycyrillefrancillette/neoserv-platform/frontend
 npm run dev
 ```
 **URL**: http://localhost:3000
@@ -165,7 +165,7 @@ npm run dev
    curl -X POST http://localhost:4000/api/auth/login \
      -H "Content-Type: application/json" \
      -d '{
-       "email": "admin@neocom.com",
+       "email": "admin@neoserv.com",
        "password": "Admin123!"
      }'
    ```
@@ -370,7 +370,7 @@ npm run dev
 ```bash
 curl -X POST http://localhost:4000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@neocom.com","password":"Admin123!"}'
+  -d '{"email":"admin@neoserv.com","password":"Admin123!"}'
 ```
 
 ### Lister Avis (Admin)

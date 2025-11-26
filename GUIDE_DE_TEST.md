@@ -1,4 +1,4 @@
-# 🧪 GUIDE DE TEST COMPLET - PLATEFORME NEOCOM
+# 🧪 GUIDE DE TEST COMPLET - PLATEFORME NEOSERV
 
 ## 📋 Table des matières
 1. [Préparation de l'environnement](#1-préparation-de-lenvironnement)
@@ -17,14 +17,14 @@
 ### 1.1 Backend
 
 ```bash
-cd /Users/thierrycyrillefrancillette/neocom-platform/backend
+cd /Users/thierrycyrillefrancillette/neoserv-platform/backend
 
 # Installer les dépendances
 npm install
 
 # Configurer la base de données
 # Créer le fichier .env avec:
-DATABASE_URL="postgresql://user:password@localhost:5432/neocom"
+DATABASE_URL="postgresql://user:password@localhost:5432/neoserv"
 JWT_SECRET="votre-secret-jwt-super-securise"
 PORT=4000
 NODE_ENV=development
@@ -51,7 +51,7 @@ npm run dev
 ### 1.2 Frontend
 
 ```bash
-cd /Users/thierrycyrillefrancillette/neocom-platform/frontend
+cd /Users/thierrycyrillefrancillette/neoserv-platform/frontend
 
 # Installer les dépendances
 npm install
@@ -68,7 +68,7 @@ npm run dev
 ### 1.3 Application Mobile
 
 ```bash
-cd /Users/thierrycyrillefrancillette/neocom-platform/mobile
+cd /Users/thierrycyrillefrancillette/neoserv-platform/mobile
 
 # Installer les dépendances
 npm install
@@ -98,7 +98,7 @@ curl http://localhost:4000/health
 ```json
 {
   "success": true,
-  "message": "NEOCOM API est en ligne",
+  "message": "NEOSERV API est en ligne",
   "timestamp": "2024-01-XX..."
 }
 ```
@@ -110,10 +110,10 @@ curl http://localhost:4000/health
 curl -X POST http://localhost:4000/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "admin@neocom.com",
+    "email": "admin@neoserv.com",
     "password": "Admin123!",
     "firstName": "Admin",
-    "lastName": "NEOCOM",
+    "lastName": "NEOSERV",
     "role": "ADMIN"
   }'
 ```
@@ -123,7 +123,7 @@ curl -X POST http://localhost:4000/api/auth/register \
 curl -X POST http://localhost:4000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "admin@neocom.com",
+    "email": "admin@neoserv.com",
     "password": "Admin123!"
   }'
 ```
@@ -135,7 +135,7 @@ curl -X POST http://localhost:4000/api/auth/login \
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "user": {
     "id": "...",
-    "email": "admin@neocom.com",
+    "email": "admin@neoserv.com",
     "role": "ADMIN"
   }
 }
@@ -261,7 +261,7 @@ curl -H "Authorization: Bearer $TOKEN" \
 
 1. Ouvrir http://localhost:3000
 2. Entrer les identifiants:
-   - Email: admin@neocom.com
+   - Email: admin@neoserv.com
    - Password: Admin123!
 3. Cliquer sur "Se connecter"
 
@@ -1046,7 +1046,7 @@ Si vous trouvez des bugs pendant les tests:
 
 ## 🎉 Félicitations!
 
-Si tous les tests passent, votre plateforme NEOCOM est **opérationnelle** et prête pour:
+Si tous les tests passent, votre plateforme NEOSERV est **opérationnelle** et prête pour:
 - ✅ Démonstration client
 - ✅ Tests utilisateurs
 - ✅ Mise en production (après config env production)

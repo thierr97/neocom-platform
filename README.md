@@ -1,4 +1,4 @@
-# NEOCOM - Plateforme Complète de Gestion Commerciale
+# NEOSERV - Plateforme Complète de Gestion Commerciale
 
 Plateforme de gestion commerciale moderne avec CRM, facturation, commandes, e-commerce et application mobile.
 
@@ -18,7 +18,7 @@ Plateforme de gestion commerciale moderne avec CRM, facturation, commandes, e-co
 ## 📁 Structure du Projet
 
 ```
-neocom-platform/
+neoserv-platform/
 ├── backend/              # API Node.js + Express + TypeScript
 │   ├── src/
 │   │   ├── controllers/  # Contrôleurs (auth, customer, product, order)
@@ -86,11 +86,11 @@ cd backend
 npm install
 
 # Créer la base de données
-createdb neocom_db
+createdb neoserv_db
 
 # Configurer .env (déjà créé)
-# DATABASE_URL="postgresql://user@localhost:5432/neocom_db"
-# JWT_SECRET=neocom-super-secret-jwt-key-2025
+# DATABASE_URL="postgresql://user@localhost:5432/neoserv_db"
+# JWT_SECRET=neoserv-super-secret-jwt-key-2025
 
 # Générer le client Prisma
 npx prisma generate
@@ -129,11 +129,11 @@ npm run dev
 ## 👤 Comptes de Démonstration
 
 ### Admin
-- Email: `admin@neocom.com`
+- Email: `admin@neoserv.com`
 - Password: `Admin123!`
 
 ### Commercial
-- Email: `commercial@neocom.com`
+- Email: `commercial@neoserv.com`
 - Password: `Commercial123!`
 
 ## 📡 API Endpoints
@@ -290,5 +290,5 @@ MIT
 
 ---
 
-**NEOCOM** - Plateforme de Gestion Commerciale Moderne
+**NEOSERV** - Plateforme de Gestion Commerciale Moderne
 Version 1.0.0 - 2025

@@ -3,7 +3,7 @@
 ## Modification effectuée le 24 novembre 2025
 
 ### 🎯 Objectif
-Ajouter plusieurs champs de téléphone optionnels lors de la création et modification de clients dans le système NEOCOM.
+Ajouter plusieurs champs de téléphone optionnels lors de la création et modification de clients dans le système NEOSERV.
 
 ---
 
@@ -202,4 +202,4 @@ WhatsApp: +33 6 12 34 56 78
 
 **Auteur** : Claude Code
 **Date** : 24 novembre 2025
-**Version NEOCOM** : 2.0.0
+**Version NEOSERV** : 2.0.0

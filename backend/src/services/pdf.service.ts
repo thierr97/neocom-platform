@@ -115,13 +115,13 @@ interface Invoice {
 
 // Configuration de l'entreprise (à personnaliser)
 const COMPANY_INFO: Company = {
-  name: 'NEOCOM',
+  name: 'NEOSERV',
   address: '123 Avenue des Champs-Élysées',
   city: 'Paris',
   zipCode: '75008',
   country: 'France',
   phone: '+33 1 23 45 67 89',
-  email: 'contact@neocom.fr',
+  email: 'contact@neoserv.fr',
   siret: '123 456 789 00012',
   vatNumber: 'FR12345678900',
 };

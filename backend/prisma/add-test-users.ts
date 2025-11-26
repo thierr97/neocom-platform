@@ -10,10 +10,10 @@ async function main() {
   const deliveryPassword = await hashPassword('Livreur123!');
 
   const delivery = await prisma.user.upsert({
-    where: { email: 'livreur@neocom.com' },
+    where: { email: 'livreur@neoserv.com' },
     update: {},
     create: {
-      email: 'livreur@neocom.com',
+      email: 'livreur@neoserv.com',
       password: deliveryPassword,
       firstName: 'Marc',
       lastName: 'Livraison',
@@ -29,10 +29,10 @@ async function main() {
   const accountantPassword = await hashPassword('Comptable123!');
 
   const accountant = await prisma.user.upsert({
-    where: { email: 'comptable@neocom.com' },
+    where: { email: 'comptable@neoserv.com' },
     update: {},
     create: {
-      email: 'comptable@neocom.com',
+      email: 'comptable@neoserv.com',
       password: accountantPassword,
       firstName: 'Marie',
       lastName: 'Comptabilité',
@@ -45,8 +45,8 @@ async function main() {
   console.log('✅ Comptable créé:', accountant.email);
 
   console.log('\n✨ Utilisateurs de test créés avec succès!\n');
-  console.log('📧 Livreur: livreur@neocom.com / Livreur123!');
-  console.log('📧 Comptable: comptable@neocom.com / Comptable123!\n');
+  console.log('📧 Livreur: livreur@neoserv.com / Livreur123!');
+  console.log('📧 Comptable: comptable@neoserv.com / Comptable123!\n');
 }
 
 main()

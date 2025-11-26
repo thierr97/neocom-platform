@@ -2,7 +2,7 @@
 
 ## Résumé des Améliorations
 
-Toutes les améliorations suivantes ont été appliquées avec succès à la boutique en ligne NEOCOM.
+Toutes les améliorations suivantes ont été appliquées avec succès à la boutique en ligne NEOSERV.
 
 ---
 

@@ -1,6 +1,6 @@
-# Guide de Déploiement NEOCOM Platform
+# Guide de Déploiement NEOSERV Platform
 
-Ce guide vous accompagne pour mettre en ligne votre plateforme NEOCOM.
+Ce guide vous accompagne pour mettre en ligne votre plateforme NEOSERV.
 
 ## 🎯 Architecture de Déploiement
 
@@ -18,7 +18,7 @@ Ce guide vous accompagne pour mettre en ligne votre plateforme NEOCOM.
 1. Dans Railway, cliquez sur "New Project"
 2. Sélectionnez "Deploy from GitHub repo"
 3. Autorisez Railway à accéder à vos repos GitHub
-4. Sélectionnez le repo `neocom-platform`
+4. Sélectionnez le repo `neoserv-platform`
 5. Railway détectera automatiquement le projet
 
 ### 1.3 Ajouter PostgreSQL
@@ -55,7 +55,7 @@ SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=votre@email.com
 SMTP_PASS=votre_mot_de_passe
-EMAIL_FROM=noreply@neocom.com
+EMAIL_FROM=noreply@neoserv.com
 </env>
 ```
 
@@ -68,7 +68,7 @@ Railway détectera automatiquement le `railway.json`, mais vous pouvez vérifier
 ### 1.6 Déployer
 1. Cliquez sur "Deploy" dans Railway
 2. Attendez que le build se termine (2-3 minutes)
-3. Notez l'URL de votre API (ex: `https://neocom-backend.up.railway.app`)
+3. Notez l'URL de votre API (ex: `https://neoserv-backend.up.railway.app`)
 
 ### 1.7 Seed la base de données
 Une fois déployé, allez dans l'onglet "Deployments" > "View Logs" et exécutez:
@@ -83,7 +83,7 @@ npx ts-node prisma/seed-accounting.ts
 2. Créez un fichier `.env.production`:
 
 ```bash
-cd /Users/thierrycyrillefrancillette/neocom-platform/frontend
+cd /Users/thierrycyrillefrancillette/neoserv-platform/frontend
 ```
 
 Créez `.env.production`:
@@ -103,7 +103,7 @@ vercel login
 
 ### 2.4 Déployer
 ```bash
-cd /Users/thierrycyrillefrancillette/neocom-platform/frontend
+cd /Users/thierrycyrillefrancillette/neoserv-platform/frontend
 vercel --prod
 ```
 
@@ -111,7 +111,7 @@ Suivez les instructions:
 - **Set up and deploy**: Yes
 - **Which scope**: Votre compte
 - **Link to existing project**: No
-- **Project name**: neocom-platform
+- **Project name**: neoserv-platform
 - **Directory**: ./
 - **Override settings**: No
 
@@ -208,4 +208,4 @@ Pour toute question:
 
 ---
 
-**Félicitations! 🎉 Votre plateforme NEOCOM est maintenant en ligne!**
+**Félicitations! 🎉 Votre plateforme NEOSERV est maintenant en ligne!**

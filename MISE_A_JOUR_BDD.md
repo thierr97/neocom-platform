@@ -17,7 +17,7 @@ Le schéma a déjà été modifié dans `backend/prisma/schema.prisma` avec:
 ### 2. Appliquer la migration
 
 ```bash
-cd /Users/thierrycyrillefrancillette/neocom-platform/backend
+cd /Users/thierrycyrillefrancillette/neoserv-platform/backend
 
 # Générer le client Prisma avec le nouveau schéma
 npx prisma generate
@@ -232,4 +232,4 @@ Pour gérer les avis depuis l'admin, vous pouvez créer une page dédiée:
 
 **Date de création**: 21 novembre 2024
 **Version**: 1.0.0
-**Auteur**: NEOCOM Platform
+**Auteur**: NEOSERV Platform

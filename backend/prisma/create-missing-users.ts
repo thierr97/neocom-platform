@@ -10,14 +10,14 @@ async function main() {
   const deliveryPassword = await hashPassword('Delivery123!');
 
   const delivery = await prisma.user.upsert({
-    where: { email: 'delivery@neocom.com' },
+    where: { email: 'delivery@neoserv.com' },
     update: {
       password: deliveryPassword,
       role: 'DELIVERY',
       status: 'ACTIVE',
     },
     create: {
-      email: 'delivery@neocom.com',
+      email: 'delivery@neoserv.com',
       password: deliveryPassword,
       firstName: 'Marc',
       lastName: 'Livraison',
@@ -33,14 +33,14 @@ async function main() {
   const accountantPassword = await hashPassword('Accountant123!');
 
   const accountant = await prisma.user.upsert({
-    where: { email: 'accountant@neocom.com' },
+    where: { email: 'accountant@neoserv.com' },
     update: {
       password: accountantPassword,
       role: 'ACCOUNTANT',
       status: 'ACTIVE',
     },
     create: {
-      email: 'accountant@neocom.com',
+      email: 'accountant@neoserv.com',
       password: accountantPassword,
       firstName: 'Marie',
       lastName: 'Comptabilité',
@@ -56,14 +56,14 @@ async function main() {
   const clientPassword = await hashPassword('Client123!');
 
   const client = await prisma.user.upsert({
-    where: { email: 'client@neocom.com' },
+    where: { email: 'client@neoserv.com' },
     update: {
       password: clientPassword,
       role: 'CLIENT',
       status: 'ACTIVE',
     },
     create: {
-      email: 'client@neocom.com',
+      email: 'client@neoserv.com',
       password: clientPassword,
       firstName: 'Sophie',
       lastName: 'Martin',
@@ -76,11 +76,11 @@ async function main() {
   console.log('✅ Client créé:', client.email);
 
   console.log('\n✨ Tous les utilisateurs de test sont prêts!\n');
-  console.log('📧 Admin: admin@neocom.com / Admin123!');
-  console.log('📧 Commercial: commercial@neocom.com / Commercial123!');
-  console.log('📧 Delivery: delivery@neocom.com / Delivery123!');
-  console.log('📧 Accountant: accountant@neocom.com / Accountant123!');
-  console.log('📧 Client: client@neocom.com / Client123!\n');
+  console.log('📧 Admin: admin@neoserv.com / Admin123!');
+  console.log('📧 Commercial: commercial@neoserv.com / Commercial123!');
+  console.log('📧 Delivery: delivery@neoserv.com / Delivery123!');
+  console.log('📧 Accountant: accountant@neoserv.com / Accountant123!');
+  console.log('📧 Client: client@neoserv.com / Client123!\n');
 }
 
 main()

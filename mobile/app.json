@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "NEOCOM Mobile",
-    "slug": "neocom-mobile",
+    "name": "NEOSERV Mobile",
+    "slug": "neoserv-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,7 +16,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.neocom.mobile",
+      "bundleIdentifier": "com.neoserv.mobile",
       "infoPlist": {
         "NSCameraUsageDescription": "Cette application nécessite l'accès à la caméra pour scanner les codes-barres des produits.",
         "NSLocationWhenInUseUsageDescription": "Cette application nécessite l'accès à votre localisation pour enregistrer vos visites clients."
@@ -27,7 +27,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#2563eb"
       },
-      "package": "com.neocom.mobile",
+      "package": "com.neoserv.mobile",
       "permissions": [
         "CAMERA",
         "ACCESS_FINE_LOCATION",
@@ -41,19 +41,19 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Permettre à NEOCOM d'accéder à votre caméra pour scanner les codes-barres."
+          "cameraPermission": "Permettre à NEOSERV d'accéder à votre caméra pour scanner les codes-barres."
         }
       ],
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Permettre à NEOCOM d'accéder à votre localisation pour enregistrer vos visites clients."
+          "locationAlwaysAndWhenInUsePermission": "Permettre à NEOSERV d'accéder à votre localisation pour enregistrer vos visites clients."
         }
       ]
     ],
     "extra": {
       "eas": {
-        "projectId": "neocom-mobile"
+        "projectId": "neoserv-mobile"
       }
     }
   }

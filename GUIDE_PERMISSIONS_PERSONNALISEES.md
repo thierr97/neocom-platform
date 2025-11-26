@@ -1,9 +1,9 @@
 # 🔐 Guide du Système de Permissions Personnalisées
 
-## Pour les Administrateurs NEOCOM
+## Pour les Administrateurs NEOSERV
 
 **Date de création** : 24 novembre 2025
-**Version NEOCOM** : 2.0.0
+**Version NEOSERV** : 2.0.0
 
 ---
 
@@ -28,7 +28,7 @@ Le système de permissions personnalisées permet aux administrateurs de contrô
 ## 🎯 Accès au système de permissions
 
 1. **Connexion** : Connectez-vous en tant qu'administrateur
-   - Email : `admin@neocom.com`
+   - Email : `admin@neoserv.com`
    - Mot de passe : `Admin123!`
 
 2. **Navigation** : Allez dans **"👤 Gestion Utilisateurs"**
@@ -376,8 +376,8 @@ if (hasPermission('customers')) {
 **Vérification** :
 ```bash
 # Vérifier les permissions en base de données
-psql neocom_db
-SELECT id, email, permissions FROM users WHERE email = 'commercial@neocom.com';
+psql neoserv_db
+SELECT id, email, permissions FROM users WHERE email = 'commercial@neoserv.com';
 ```
 
 ---
@@ -537,7 +537,7 @@ Avant de gérer les permissions, assurez-vous de comprendre :
 ---
 
 **Dernière mise à jour** : 24 novembre 2025
-**Version NEOCOM** : 2.0.0
+**Version NEOSERV** : 2.0.0
 **Auteur** : Claude Code
 
 ---

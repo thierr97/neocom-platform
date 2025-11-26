@@ -1,4 +1,4 @@
-# 🚀 Guide de Démarrage Rapide - NEOCOM
+# 🚀 Guide de Démarrage Rapide - NEOSERV
 
 ## Correction des Erreurs TypeScript
 
@@ -39,7 +39,7 @@ Si le backend ne démarre pas à cause d'erreurs TypeScript, voici la solution l
 ### Ensuite, Redémarrer
 
 ```bash
-cd /Users/thierrycyrillefrancillette/neocom-platform/backend
+cd /Users/thierrycyrillefrancillette/neoserv-platform/backend
 
 # Arrêter le serveur (Ctrl+C dans le terminal)
 # Puis relancer:
@@ -53,16 +53,16 @@ Le serveur devrait maintenant démarrer sur `http://localhost:4000`
 ### 1. Backend
 
 ```bash
-cd /Users/thierrycyrillefrancillette/neocom-platform/backend
+cd /Users/thierrycyrillefrancillette/neoserv-platform/backend
 
 # Si pas encore fait: installer les dépendances
 npm install
 
 # Vérifier que la BDD existe
-psql -l | grep neocom_db
+psql -l | grep neoserv_db
 
 # Si elle n'existe pas:
-createdb neocom_db
+createdb neoserv_db
 
 # Générer Prisma client
 npx prisma generate
@@ -80,7 +80,7 @@ npm run dev
 **Le backend devrait afficher:**
 ```
 ✅ Base de données connectée
-🚀 NEOCOM API démarrée sur le port 4000
+🚀 NEOSERV API démarrée sur le port 4000
 📍 URL: http://localhost:4000
 🏥 Health check: http://localhost:4000/health
 🌍 Environnement: development
@@ -91,7 +91,7 @@ npm run dev
 Dans un nouveau terminal:
 
 ```bash
-cd /Users/thierrycyrillefrancillette/neocom-platform/frontend
+cd /Users/thierrycyrillefrancillette/neoserv-platform/frontend
 
 # Installer les dépendances
 npm install
@@ -114,7 +114,7 @@ Ouvrez votre navigateur:
 - Backend Health: http://localhost:4000/health
 
 **Connexion:**
-- Email: `admin@neocom.com`
+- Email: `admin@neoserv.com`
 - Password: `Admin123!`
 
 ## 🔧 Vérifier que tout fonctionne
@@ -126,7 +126,7 @@ Ouvrez votre navigateur:
 curl http://localhost:4000/health
 
 # Devrait retourner:
-# {"success":true,"message":"NEOCOM API est en ligne","timestamp":"..."}
+# {"success":true,"message":"NEOSERV API est en ligne","timestamp":"..."}
 ```
 
 ### Test API Login
@@ -134,7 +134,7 @@ curl http://localhost:4000/health
 ```bash
 curl -X POST http://localhost:4000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@neocom.com","password":"Admin123!"}'
+  -d '{"email":"admin@neoserv.com","password":"Admin123!"}'
 
 # Devrait retourner un token JWT
 ```
@@ -174,10 +174,10 @@ Si vous voulez recommencer:
 
 ```bash
 # Supprimer la base
-dropdb neocom_db
+dropdb neoserv_db
 
 # Recréer
-createdb neocom_db
+createdb neoserv_db
 
 # Relancer les migrations
 cd backend
@@ -203,12 +203,12 @@ npm run build
 ### Comptes Créés par le Seed
 
 1. **Admin**
-   - Email: admin@neocom.com
+   - Email: admin@neoserv.com
    - Password: Admin123!
    - Rôle: ADMIN
 
 2. **Commercial**
-   - Email: commercial@neocom.com
+   - Email: commercial@neoserv.com
    - Password: Commercial123!
    - Rôle: COMMERCIAL
 

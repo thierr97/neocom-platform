@@ -91,7 +91,7 @@ app.use('/uploads', express.static('uploads'));
 app.get('/health', (req: Request, res: Response) => {
   res.json({
     success: true,
-    message: 'NEOCOM API est en ligne',
+    message: 'NEOSERV API est en ligne',
     timestamp: new Date().toISOString(),
   });
 });
@@ -148,7 +148,7 @@ const startServer = async () => {
     console.log('✅ Base de données connectée');
 
     app.listen(PORT, () => {
-      console.log(`🚀 NEOCOM API démarrée sur le port ${PORT}`);
+      console.log(`🚀 NEOSERV API démarrée sur le port ${PORT}`);
       console.log(`📍 URL: http://localhost:${PORT}`);
       console.log(`🏥 Health check: http://localhost:${PORT}/health`);
       console.log(`🌍 Environnement: ${process.env.NODE_ENV || 'development'}`);

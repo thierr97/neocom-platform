@@ -1,6 +1,6 @@
 # 👑 Guide de Gestion des Rôles et Utilisateurs
 
-## Pour les Administrateurs NEOCOM
+## Pour les Administrateurs NEOSERV
 
 ---
 
@@ -11,7 +11,7 @@
 **Connexion requise** : Administrateur uniquement
 
 ```
-Email : admin@neocom.com
+Email : admin@neoserv.com
 Mot de passe : Admin123!
 ```
 
@@ -340,7 +340,7 @@ Cliquez sur les boutons en haut de la page :
 
 1. **Partager les identifiants admin**
    - Chaque admin doit avoir son propre compte
-   - Ne partagez jamais `admin@neocom.com`
+   - Ne partagez jamais `admin@neoserv.com`
 
 2. **Donner accès admin "par facilité"**
    - Si quelqu'un a besoin d'un accès, créez le rôle approprié
@@ -362,7 +362,7 @@ Pour toute question sur la gestion des rôles :
 
 - **Documentation technique** : `/ARCHITECTURE_LIAISONS.md`
 - **Identifiants de test** : `/IDENTIFIANTS_TEST.md`
-- **Support** : support@neocom.com
+- **Support** : support@neoserv.com
 
 ---
 
@@ -382,5 +382,5 @@ Avant de gérer les utilisateurs, assurez-vous de comprendre :
 ---
 
 **Dernière mise à jour** : 24 novembre 2025
-**Version NEOCOM** : 2.0.0
+**Version NEOSERV** : 2.0.0
 **Auteur** : Claude Code

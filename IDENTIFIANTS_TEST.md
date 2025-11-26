@@ -1,4 +1,4 @@
-# 🔐 Identifiants de Test NEOCOM Platform
+# 🔐 Identifiants de Test NEOSERV Platform
 
 ## 📍 Accès à la Plateforme
 
@@ -16,7 +16,7 @@
 **URL de connexion** : http://localhost:3000/login?role=admin
 
 ```
-Email    : admin@neocom.com
+Email    : admin@neoserv.com
 Mot de passe : Admin123!
 ```
 
@@ -37,7 +37,7 @@ Mot de passe : Admin123!
 **URL de connexion** : http://localhost:3000/login?role=commercial
 
 ```
-Email    : commercial@neocom.com
+Email    : commercial@neoserv.com
 Mot de passe : Commercial123!
 ```
 
@@ -58,7 +58,7 @@ Mot de passe : Commercial123!
 **URL de connexion** : http://localhost:3000/login?role=delivery
 
 ```
-Email    : livreur@neocom.com
+Email    : livreur@neoserv.com
 Mot de passe : Livreur123!
 ```
 
@@ -79,7 +79,7 @@ Mot de passe : Livreur123!
 **URL de connexion** : http://localhost:3000/login?role=accountant
 
 ```
-Email    : comptable@neocom.com
+Email    : comptable@neoserv.com
 Mot de passe : Comptable123!
 ```
 
@@ -137,27 +137,27 @@ Code envoyé par email (simulation)
 
 ### Scénario 1 : Test Admin Complet
 1. Aller sur http://localhost:3000/login?role=admin
-2. Se connecter avec `admin@neocom.com` / `Admin123!`
+2. Se connecter avec `admin@neoserv.com` / `Admin123!`
 3. Explorer toutes les sections du dashboard
 4. Tester la gestion des permissions (à venir)
 
 ### Scénario 2 : Test Commercial
 1. Aller sur http://localhost:3000/login?role=commercial
-2. Se connecter avec `commercial@neocom.com` / `Commercial123!`
+2. Se connecter avec `commercial@neoserv.com` / `Commercial123!`
 3. Créer un nouveau client
 4. Créer un devis pour ce client
 5. Convertir le devis en commande
 
 ### Scénario 3 : Test Livreur
 1. Aller sur http://localhost:3000/login?role=delivery
-2. Se connecter avec `livreur@neocom.com` / `Livreur123!`
+2. Se connecter avec `livreur@neoserv.com` / `Livreur123!`
 3. Voir les commandes à livrer
 4. Mettre à jour le statut de livraison
 5. Scanner un code-barres (si disponible)
 
 ### Scénario 4 : Test Comptable
 1. Aller sur http://localhost:3000/login?role=accountant
-2. Se connecter avec `comptable@neocom.com` / `Comptable123!`
+2. Se connecter avec `comptable@neoserv.com` / `Comptable123!`
 3. Consulter les factures
 4. Générer un rapport comptable
 5. Exporter les données
@@ -183,7 +183,7 @@ Code envoyé par email (simulation)
 Pour réinitialiser la base de données avec les données de test :
 
 ```bash
-cd /Users/thierrycyrillefrancillette/neocom-platform/backend
+cd /Users/thierrycyrillefrancillette/neoserv-platform/backend
 npx prisma migrate reset
 npm run seed
 npx ts-node prisma/add-test-users.ts
@@ -197,7 +197,7 @@ npx ts-node prisma/add-test-users.ts
 
 Les commerciaux peuvent utiliser :
 ```
-Email    : commercial@neocom.com
+Email    : commercial@neoserv.com
 Mot de passe : Commercial123!
 ```
 
@@ -231,7 +231,7 @@ Mot de passe : Commercial123!
 ## 📞 Support
 
 Pour toute question ou problème :
-- Email : support@neocom.com
+- Email : support@neoserv.com
 - Documentation : /ARCHITECTURE_LIAISONS.md
 
 ---

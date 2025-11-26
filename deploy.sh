@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Script de déploiement NEOCOM Platform
+# Script de déploiement NEOSERV Platform
 # Ce script vous guide à travers le processus de déploiement
 
-echo "🚀 NEOCOM Platform - Script de Déploiement"
+echo "🚀 NEOSERV Platform - Script de Déploiement"
 echo "=========================================="
 echo ""
 
@@ -12,7 +12,7 @@ if [ ! -d ".git" ]; then
     echo "❌ Git n'est pas initialisé. Initialisation..."
     git init
     git add .
-    git commit -m "Initial commit - NEOCOM Platform"
+    git commit -m "Initial commit - NEOSERV Platform"
     echo "✅ Git initialisé"
 fi
 

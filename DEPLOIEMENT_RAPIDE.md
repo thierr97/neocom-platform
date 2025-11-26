@@ -1,4 +1,4 @@
-# 🚀 Guide de Déploiement Rapide - NEOCOM Platform
+# 🚀 Guide de Déploiement Rapide - NEOSERV Platform
 
 ## ⏱️ Temps estimé: 15-20 minutes
 
@@ -9,17 +9,17 @@
 ### 1.1 Créer un dépôt GitHub
 1. Allez sur [github.com](https://github.com)
 2. Cliquez sur "New repository"
-3. Nom: `neocom-platform`
+3. Nom: `neoserv-platform`
 4. **Cochez "Public"** (ou Private si vous préférez)
 5. **NE PAS** initialiser avec README
 6. Cliquez "Create repository"
 
 ### 1.2 Pousser votre code
 ```bash
-cd /Users/thierrycyrillefrancillette/neocom-platform
+cd /Users/thierrycyrillefrancillette/neoserv-platform
 
 # Ajoutez l'origine GitHub (remplacez VOTRE_USERNAME)
-git remote add origin https://github.com/VOTRE_USERNAME/neocom-platform.git
+git remote add origin https://github.com/VOTRE_USERNAME/neoserv-platform.git
 
 # Poussez votre code
 git push -u origin master
@@ -39,7 +39,7 @@ git push -u origin master
 ### 2.2 Créer un nouveau projet
 1. Cliquez "New Project"
 2. Sélectionnez "Deploy from GitHub repo"
-3. Choisissez `neocom-platform`
+3. Choisissez `neoserv-platform`
 4. Railway commencera automatiquement le déploiement
 
 ### 2.3 Ajouter PostgreSQL
@@ -101,7 +101,7 @@ Suivez les instructions (vérifiez votre email)
 
 ### 3.3 Créer le fichier .env.production
 ```bash
-cd /Users/thierrycyrillefrancillette/neocom-platform/frontend
+cd /Users/thierrycyrillefrancillette/neoserv-platform/frontend
 
 # Créez le fichier avec votre URL Railway
 cat > .env.production << 'EOF'
@@ -120,12 +120,12 @@ Répondez aux questions:
 - Set up and deploy: **Yes**
 - Which scope: **Votre compte**
 - Link to existing project: **No**
-- Project name: **neocom-platform** (ou laissez par défaut)
+- Project name: **neoserv-platform** (ou laissez par défaut)
 - In which directory is your code located: **./**
 - Want to override settings: **No**
 
 ### 3.5 Noter l'URL du frontend
-Vercel affichera: `✅ Production: https://neocom-platform-xxx.vercel.app`
+Vercel affichera: `✅ Production: https://neoserv-platform-xxx.vercel.app`
 
 **Notez cette URL!**
 
@@ -139,7 +139,7 @@ Vercel affichera: `✅ Production: https://neocom-platform-xxx.vercel.app`
 1. Retournez sur Railway
 2. Allez dans Variables
 3. Modifiez `FRONTEND_URL` avec votre URL Vercel
-4. Exemple: `FRONTEND_URL=https://neocom-platform-xxx.vercel.app`
+4. Exemple: `FRONTEND_URL=https://neoserv-platform-xxx.vercel.app`
 
 ### 4.2 Seed la base de données
 Sur Railway:
@@ -250,4 +250,4 @@ Une fois déployé:
 
 **Besoin d'aide?** Consultez `DEPLOYMENT.md` pour le guide détaillé.
 
-**Bravo! 🎊 Votre plateforme NEOCOM est en ligne!**
+**Bravo! 🎊 Votre plateforme NEOSERV est en ligne!**

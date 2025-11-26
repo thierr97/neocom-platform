@@ -58,7 +58,7 @@ export default function App() {
         <Stack.Screen
           name="Dashboard"
           component={DashboardScreen}
-          options={{ title: 'NEOCOM Mobile' }}
+          options={{ title: 'NEOSERV Mobile' }}
         />
         <Stack.Screen
           name="Orders"

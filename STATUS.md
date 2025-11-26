@@ -1,8 +1,8 @@
-# NEOCOM Platform - État d'Avancement
+# NEOSERV Platform - État d'Avancement
 
 ## ✅ Statut Global: **OPÉRATIONNEL**
 
-La plateforme NEOCOM est maintenant **entièrement fonctionnelle** avec toutes les fonctionnalités de base implémentées.
+La plateforme NEOSERV est maintenant **entièrement fonctionnelle** avec toutes les fonctionnalités de base implémentées.
 
 ---
 
@@ -17,13 +17,13 @@ La plateforme NEOCOM est maintenant **entièrement fonctionnelle** avec toutes l
 
 **Admin:**
 ```
-Email: admin@neocom.com
+Email: admin@neoserv.com
 Password: Admin123!
 ```
 
 **Commercial:**
 ```
-Email: commercial@neocom.com
+Email: commercial@neoserv.com
 Password: Commercial123!
 ```
 
@@ -142,11 +142,11 @@ Password: Commercial123!
 ## 📊 Données de Démonstration
 
 ### Utilisateurs Créés
-1. **Admin** (admin@neocom.com / Admin123!)
+1. **Admin** (admin@neoserv.com / Admin123!)
    - Accès complet à toutes les fonctionnalités
    - Peut gérer produits, clients, commandes
 
-2. **Commercial** (commercial@neocom.com / Commercial123!)
+2. **Commercial** (commercial@neoserv.com / Commercial123!)
    - Peut voir et gérer ses propres clients
    - Peut créer des commandes
    - Accès lecture seule aux produits
@@ -204,7 +204,7 @@ Password: Commercial123!
 ## 📁 Structure du Projet
 
 ```
-neocom-platform/
+neoserv-platform/
 ├── backend/
 │   ├── src/
 │   │   ├── controllers/       # Logique métier
@@ -266,13 +266,13 @@ neocom-platform/
 
 **Backend:**
 ```bash
-cd /Users/thierrycyrillefrancillette/neocom-platform/backend
+cd /Users/thierrycyrillefrancillette/neoserv-platform/backend
 npm run dev
 ```
 
 **Frontend:**
 ```bash
-cd /Users/thierrycyrillefrancillette/neocom-platform/frontend
+cd /Users/thierrycyrillefrancillette/neoserv-platform/frontend
 npm run dev
 ```
 
@@ -402,7 +402,7 @@ npm run dev
 
 ## 🎉 Résumé
 
-La plateforme NEOCOM est **100% fonctionnelle** pour les opérations de base:
+La plateforme NEOSERV est **100% fonctionnelle** pour les opérations de base:
 - ✅ Authentification complète
 - ✅ Gestion des clients avec création
 - ✅ Gestion des produits avec catalogue

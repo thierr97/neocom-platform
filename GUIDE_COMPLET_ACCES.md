@@ -1,8 +1,8 @@
-# 🔐 GUIDE COMPLET DES ACCÈS - NEOCOM PLATFORM
+# 🔐 GUIDE COMPLET DES ACCÈS - NEOSERV PLATFORM
 
 ## 📋 Vue d'ensemble du système d'accès
 
-Le système NEOCOM dispose de **3 niveaux de contrôle d'accès** :
+Le système NEOSERV dispose de **3 niveaux de contrôle d'accès** :
 1. **Rôles** : Définissent le type d'utilisateur (Admin, Commercial, etc.)
 2. **Permissions granulaires** : 14 sections configurables par utilisateur
 3. **Statut de connexion** : Suivi en temps réel de la présence
@@ -23,7 +23,7 @@ Le système NEOCOM dispose de **3 niveaux de contrôle d'accès** :
 
 **Identifiants test** :
 ```
-Email: admin@neocom.com
+Email: admin@neoserv.com
 Mot de passe: Admin123!
 ```
 
@@ -45,7 +45,7 @@ Mot de passe: Admin123!
 
 **Identifiants test** :
 ```
-Email: commercial@neocom.com
+Email: commercial@neoserv.com
 Mot de passe: Commercial123!
 ```
 
@@ -66,7 +66,7 @@ Mot de passe: Commercial123!
 
 **Identifiants test** :
 ```
-Email: delivery@neocom.com
+Email: delivery@neoserv.com
 Mot de passe: Delivery123!
 ```
 
@@ -88,7 +88,7 @@ Mot de passe: Delivery123!
 
 **Identifiants test** :
 ```
-Email: accountant@neocom.com
+Email: accountant@neoserv.com
 Mot de passe: Accountant123!
 ```
 
@@ -109,7 +109,7 @@ Mot de passe: Accountant123!
 
 **Identifiants test** :
 ```
-Email: client@neocom.com
+Email: client@neoserv.com
 Mot de passe: Client123!
 ```
 
@@ -468,7 +468,7 @@ Utilisez les identifiants test fournis ci-dessus pour tester chaque rôle.
 
 ### 2. Créer un nouvel utilisateur
 
-1. Connectez-vous en tant qu'Admin : `admin@neocom.com`
+1. Connectez-vous en tant qu'Admin : `admin@neoserv.com`
 2. Allez sur : `http://localhost:3000/dashboard/users`
 3. Cliquez sur "Créer un utilisateur"
 4. Remplissez le formulaire
