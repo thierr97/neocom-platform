@@ -31,6 +31,7 @@ import clientRoutes from './routes/client.routes';
 // import aiRoutes from './routes/ai.routes';  // Temporairement désactivé
 import reviewRoutes from './routes/review.routes';
 import migrationRoutes from './routes/migration.routes';
+import cloudinaryRoutes from './routes/cloudinary.routes';
 
 // Load environment variables
 dotenv.config();
@@ -123,6 +124,7 @@ app.use('/api/client', clientRoutes);
 // app.use('/api/ai', aiRoutes);  // Temporairement désactivé
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/migration', migrationRoutes);
+app.use('/api/cloudinary', cloudinaryRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
