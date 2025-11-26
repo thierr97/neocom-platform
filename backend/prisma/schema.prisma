@@ -215,6 +215,12 @@ enum ProductStatus {
   OUT_OF_STOCK
 }
 
+enum AvailabilityStatus {
+  AVAILABLE      // Disponible (vert)
+  UNAVAILABLE    // Non disponible (rouge)
+  INCOMING       // En cours d'arrivage (jaune)
+}
+
 model Category {
   id          String    @id @default(uuid())
   name        String
@@ -253,6 +259,7 @@ model Product {
 
   // Status
   status          ProductStatus   @default(ACTIVE)
+  availabilityStatus AvailabilityStatus @default(AVAILABLE)
   isVisible       Boolean         @default(true)
   isFeatured      Boolean         @default(false)
 
