@@ -194,15 +194,15 @@ export const importProducts = async (req: Request, res: Response) => {
         const productData: any = {
           sku: row[mapping.sku],
           name: row[mapping.name],
-          description: row[mapping.description],
+          description: row[mapping.description] || '',
           price: parseFloat(row[mapping.price]),
           costPrice: row[mapping.costPrice] ? parseFloat(row[mapping.costPrice]) : undefined,
           compareAtPrice: row[mapping.compareAtPrice] ? parseFloat(row[mapping.compareAtPrice]) : undefined,
           stock: row[mapping.stock] ? parseInt(row[mapping.stock]) : 0,
           minStock: row[mapping.minStock] ? parseInt(row[mapping.minStock]) : undefined,
           maxStock: row[mapping.maxStock] ? parseInt(row[mapping.maxStock]) : undefined,
-          status: row[mapping.status] || 'ACTIVE',
-          isVisible: row[mapping.isVisible] === 'true' || row[mapping.isVisible] === '1',
+          status: row[mapping.status] || 'AVAILABLE',
+          isVisible: row[mapping.isVisible] ? (row[mapping.isVisible] === 'true' || row[mapping.isVisible] === '1') : true,
           isFeatured: row[mapping.isFeatured] === 'true' || row[mapping.isFeatured] === '1',
           barcode: row[mapping.barcode],
           weight: row[mapping.weight] ? parseFloat(row[mapping.weight]) : undefined,
@@ -210,7 +210,7 @@ export const importProducts = async (req: Request, res: Response) => {
           height: row[mapping.height] ? parseFloat(row[mapping.height]) : undefined,
           length: row[mapping.length] ? parseFloat(row[mapping.length]) : undefined,
           tags: row[mapping.tags] ? row[mapping.tags].split(';') : [],
-          images: row[mapping.images] ? row[mapping.images].split(';') : [],
+          images: row[mapping.images] ? row[mapping.images].split(';').filter((img: string) => img.trim()) : [],
         };
 
         // Handle category
