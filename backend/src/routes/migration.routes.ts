@@ -106,4 +106,52 @@ router.get('/check-emails', async (req, res) => {
   }
 });
 
+// Route pour ajouter la colonne availabilityStatus
+router.post('/add-availability-status', async (req, res) => {
+  try {
+    const { secret } = req.body;
+    const MIGRATION_SECRET = process.env.MIGRATION_SECRET || 'neoserv-migration-2024';
+
+    if (secret !== MIGRATION_SECRET) {
+      return res.status(401).json({
+        error: 'Secret invalide',
+        message: 'Envoyez le secret dans le body: { "secret": "neoserv-migration-2024" }'
+      });
+    }
+
+    console.log('🔄 Ajout de la colonne availabilityStatus...');
+
+    // Créer le type ENUM s'il n'existe pas
+    await prisma.$executeRaw`
+      DO $$ BEGIN
+        CREATE TYPE "AvailabilityStatus" AS ENUM ('AVAILABLE', 'OUT_OF_STOCK', 'COMING_SOON', 'DISCONTINUED');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `;
+
+    // Ajouter la colonne avec une valeur par défaut
+    await prisma.$executeRaw`
+      ALTER TABLE products
+      ADD COLUMN IF NOT EXISTS "availabilityStatus" "AvailabilityStatus" DEFAULT 'AVAILABLE';
+    `;
+
+    // Compter les produits
+    const count = await prisma.$queryRaw`SELECT COUNT(*) as count FROM products`;
+
+    res.json({
+      success: true,
+      message: '✅ Colonne availabilityStatus ajoutée avec succès',
+      productCount: count[0].count
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur:', error);
+    res.status(500).json({
+      error: 'Erreur lors de la migration',
+      details: error.message
+    });
+  }
+});
+
 export default router;
