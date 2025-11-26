@@ -137,12 +137,12 @@ router.post('/add-availability-status', async (req, res) => {
     `;
 
     // Compter les produits
-    const count = await prisma.$queryRaw`SELECT COUNT(*) as count FROM products`;
+    const result: any = await prisma.$queryRaw`SELECT COUNT(*)::int as count FROM products`;
 
     res.json({
       success: true,
       message: '✅ Colonne availabilityStatus ajoutée avec succès',
-      productCount: count[0].count
+      productCount: result[0]?.count || 0
     });
 
   } catch (error) {
