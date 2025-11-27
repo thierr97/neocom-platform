@@ -549,4 +549,55 @@ router.post('/add-free-stock-images', async (req, res) => {
   }
 });
 
+/**
+ * Route pour voir les derniers produits traités avec images Unsplash
+ */
+router.get('/check-last-products', async (req, res) => {
+  try {
+    // Récupérer les 10 produits récemment mis à jour avec images
+    const products = await prisma.product.findMany({
+      where: {
+        images: {
+          isEmpty: false
+        }
+      },
+      select: {
+        id: true,
+        sku: true,
+        name: true,
+        images: true,
+        updatedAt: true
+      },
+      orderBy: {
+        updatedAt: 'desc'
+      },
+      take: 10
+    });
+
+    // Filtrer ceux qui ont des images Unsplash
+    const productsWithUnsplash = products
+      .map(p => ({
+        sku: p.sku,
+        name: p.name,
+        totalImages: p.images.length,
+        unsplashImages: p.images.filter(img => img.includes('unsplash')).length,
+        updatedAt: p.updatedAt
+      }))
+      .filter(p => p.unsplashImages > 0);
+
+    res.json({
+      success: true,
+      productsCount: productsWithUnsplash.length,
+      products: productsWithUnsplash
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur:', error);
+    res.status(500).json({
+      error: 'Erreur lors de la récupération des produits',
+      details: error.message
+    });
+  }
+});
+
 export default router;
