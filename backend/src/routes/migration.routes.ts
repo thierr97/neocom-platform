@@ -193,4 +193,103 @@ router.post('/add-search-terms', async (req, res) => {
   }
 });
 
+// Route pour générer les termes de recherche
+router.post('/generate-search-terms', async (req, res) => {
+  try {
+    const { secret } = req.body;
+    const MIGRATION_SECRET = process.env.MIGRATION_SECRET || 'neoserv-migration-2024';
+
+    if (secret !== MIGRATION_SECRET) {
+      return res.status(401).json({
+        error: 'Secret invalide',
+        message: 'Envoyez le secret dans le body: { "secret": "neoserv-migration-2024" }'
+      });
+    }
+
+    console.log('🔍 Génération des termes de recherche...');
+
+    // Dictionnaire de synonymes (version simplifié)
+    const synonyms: Record<string, string[]> = {
+      'valise': ['bagage', 'sac', 'bagagerie', 'trolley'],
+      'bagage': ['valise', 'sac'],
+      'cadenas': ['serrure', 'securite'],
+      'balance': ['pese', 'mesure'],
+      'tapis': ['paillasson'],
+      'noir': ['black', 'fonce'],
+      'blanc': ['white', 'clair'],
+      'bleu': ['blue']
+    };
+
+    // Fonction pour normaliser
+    const normalize = (text: string) => text.toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .trim();
+
+    // Récupérer les produits
+    const products = await prisma.product.findMany({
+      select: { id: true, name: true, sku: true, description: true, tags: true }
+    });
+
+    let updated = 0;
+
+    for (const product of products) {
+      const terms = new Set<string>();
+
+      // Mots du nom
+      const nameWords = normalize(product.name).split(' ').filter(w => w.length > 2);
+      nameWords.forEach(word => {
+        terms.add(word);
+        if (synonyms[word]) {
+          synonyms[word].forEach(syn => terms.add(syn));
+        }
+      });
+
+      // Mots de la description
+      if (product.description) {
+        const descWords = normalize(product.description).split(' ').filter(w => w.length > 2);
+        descWords.slice(0, 10).forEach(word => terms.add(word));
+      }
+
+      // SKU
+      if (product.sku) {
+        terms.add(normalize(product.sku));
+      }
+
+      // Tags
+      if (product.tags && product.tags.length > 0) {
+        product.tags.forEach((tag: string) => terms.add(normalize(tag)));
+      }
+
+      const searchTerms = Array.from(terms).filter(t => t.length > 2);
+
+      await prisma.$executeRaw`
+        UPDATE products
+        SET "searchTerms" = ${searchTerms}::text[]
+        WHERE id = ${product.id}
+      `;
+
+      updated++;
+
+      if (updated % 100 === 0) {
+        console.log(`✓ ${updated}/${products.length} produits traités...`);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `✅ ${updated} produits mis à jour avec leurs termes de recherche`,
+      productCount: updated
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur:', error);
+    res.status(500).json({
+      error: 'Erreur lors de la génération des termes',
+      details: error.message
+    });
+  }
+});
+
 export default router;
