@@ -1,9 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 
-const TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0MWFlNjQxZS0wMWRkLTRiYjMtYTdhMy1iMzc1OTQ5YjdlOWYiLCJlbWFpbCI6ImFkbWluQG5lb3NlcnYuY29tIiwicm9sZSI6IkFETUlOIiwiaWF0IjoxNzY0MTk5Nzk5LCJleHAiOjE3NjQyMDA2OTl9.xuoZI3zFr7BjITj2Hc__26sniFL8xDFAWVo5if5LCTU';
+const TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0MWFlNjQxZS0wMWRkLTRiYjMtYTdhMy1iMzc1OTQ5YjdlOWYiLCJlbWFpbCI6ImFkbWluQG5lb3NlcnYuY29tIiwicm9sZSI6IkFETUlOIiwiaWF0IjoxNzY0MjAyMjY3LCJleHAiOjE3NjQyMDMxNjd9.nIJQzBZFssqxZTO1dP0XDCRpc6u8dpXYUM78Dyz2ITc';
 const API_URL = 'https://neocom-backend.onrender.com/api/cloudinary/sync-product-images';
-const MAPPING_FILE = path.join(__dirname, 'sku-to-cloudinary-urls.json');
+const MAPPING_FILE = path.join(__dirname, 'optimized-urls-mapping.json');
 const BATCH_SIZE = 100; // Envoyer 100 SKUs à la fois
 
 async function syncBatch(batchMapping) {
