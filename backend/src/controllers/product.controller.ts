@@ -2,6 +2,17 @@ import { Response } from 'express';
 import prisma from '../config/database';
 import { AuthRequest } from '../middleware/auth';
 
+// Fonction pour normaliser le texte de recherche
+function normalizeSearchText(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Enlever les accents
+    .replace(/[^a-z0-9\s]/g, ' ') // Garder seulement lettres et chiffres
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export const getProducts = async (req: AuthRequest, res: Response) => {
   try {
     const { status, category, search, isVisible, isFeatured } = req.query;
@@ -14,10 +25,21 @@ export const getProducts = async (req: AuthRequest, res: Response) => {
     if (isFeatured !== undefined) where.isFeatured = isFeatured === 'true';
 
     if (search) {
+      // Normaliser le terme de recherche
+      const normalizedSearch = normalizeSearchText(search as string);
+      const searchWords = normalizedSearch.split(' ').filter(w => w.length > 2);
+
       where.OR = [
+        // Recherche classique dans le nom, SKU et barcode
         { name: { contains: search as string, mode: 'insensitive' } },
         { sku: { contains: search as string, mode: 'insensitive' } },
         { barcode: { contains: search as string, mode: 'insensitive' } },
+        // Recherche intelligente dans les termes lexicaux
+        ...searchWords.map(word => ({
+          searchTerms: {
+            hasSome: [word]
+          }
+        }))
       ];
     }
 

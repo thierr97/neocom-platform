@@ -297,6 +297,9 @@ model Product {
   // Tags
   tags            String[]
 
+  // Champ lexical pour recherche intelligente
+  searchTerms     String[]        @default([])
+
   // Metadata
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt

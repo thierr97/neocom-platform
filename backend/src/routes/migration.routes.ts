@@ -154,4 +154,43 @@ router.post('/add-availability-status', async (req, res) => {
   }
 });
 
+// Route pour ajouter le champ searchTerms et générer les termes
+router.post('/add-search-terms', async (req, res) => {
+  try {
+    const { secret } = req.body;
+    const MIGRATION_SECRET = process.env.MIGRATION_SECRET || 'neoserv-migration-2024';
+
+    if (secret !== MIGRATION_SECRET) {
+      return res.status(401).json({
+        error: 'Secret invalide',
+        message: 'Envoyez le secret dans le body: { "secret": "neoserv-migration-2024" }'
+      });
+    }
+
+    console.log('🔄 Ajout de la colonne searchTerms...');
+
+    // Ajouter la colonne searchTerms
+    await prisma.$executeRaw`
+      ALTER TABLE products
+      ADD COLUMN IF NOT EXISTS "searchTerms" text[] DEFAULT ARRAY[]::text[];
+    `;
+
+    const result: any = await prisma.$queryRaw`SELECT COUNT(*)::int as count FROM products`;
+
+    res.json({
+      success: true,
+      message: '✅ Colonne searchTerms ajoutée avec succès',
+      productCount: result[0]?.count || 0,
+      note: 'Exécutez maintenant: npx ts-node generate-search-terms.ts pour générer les termes'
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur:', error);
+    res.status(500).json({
+      error: 'Erreur lors de la migration',
+      details: error.message
+    });
+  }
+});
+
 export default router;
