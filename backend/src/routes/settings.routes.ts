@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import { AuthRequest, authenticate, requireRole } from '../middleware/auth.middleware';
+import { AuthRequest, authenticateToken, requireRole } from '../middleware/auth';
 import prisma from '../config/database';
 
 const router = Router();
@@ -45,7 +45,7 @@ router.get('/company', async (req: AuthRequest, res: Response) => {
  * PUT /api/settings/company
  * Met à jour les informations de l'entreprise (Admin seulement)
  */
-router.put('/company', authenticate, requireRole('ADMIN'), async (req: AuthRequest, res: Response) => {
+router.put('/company', authenticateToken, requireRole('ADMIN'), async (req: AuthRequest, res: Response) => {
   try {
     const updates = req.body;
 
