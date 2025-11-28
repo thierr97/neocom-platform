@@ -550,6 +550,88 @@ router.post('/add-free-stock-images', async (req, res) => {
 });
 
 /**
+ * Route pour initialiser les informations de l'entreprise SARL NEOSERV
+ */
+router.post('/init-company-settings', async (req, res) => {
+  try {
+    const { secret } = req.body;
+    const MIGRATION_SECRET = process.env.MIGRATION_SECRET || 'neoserv-migration-2024';
+
+    if (secret !== MIGRATION_SECRET) {
+      return res.status(401).json({
+        error: 'Secret invalide',
+        message: 'Envoyez le secret dans le body: { "secret": "neoserv-migration-2024" }'
+      });
+    }
+
+    console.log('🏢 Initialisation des informations de l\'entreprise...');
+
+    const companyData = {
+      name: 'SARL NEOSERV',
+      legalForm: 'SARL',
+      siret: 'À COMPLÉTER',
+      vatNumber: 'À COMPLÉTER',
+      address: 'À COMPLÉTER',
+      addressLine2: '',
+      postalCode: '97100',
+      city: 'À COMPLÉTER',
+      country: 'France',
+      region: 'Guadeloupe',
+      phone: 'À COMPLÉTER',
+      mobile: '',
+      email: 'contact@neoserv.com',
+      website: 'https://neoserv.fr',
+      capital: 'À COMPLÉTER',
+      rcs: 'À COMPLÉTER',
+      description: 'Commerce de produits de bagagerie et accessoires de voyage'
+    };
+
+    let created = 0;
+    let updated = 0;
+
+    for (const [key, value] of Object.entries(companyData)) {
+      const existing = await prisma.settings.findUnique({
+        where: { key: `company_${key}` }
+      });
+
+      if (existing) {
+        await prisma.settings.update({
+          where: { key: `company_${key}` },
+          data: { value: String(value) }
+        });
+        updated++;
+      } else {
+        await prisma.settings.create({
+          data: {
+            key: `company_${key}`,
+            value: String(value),
+            type: 'string'
+          }
+        });
+        created++;
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `✅ Informations de l'entreprise initialisées`,
+      stats: {
+        created,
+        updated,
+        total: created + updated
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur:', error);
+    res.status(500).json({
+      error: 'Erreur lors de l\'initialisation',
+      details: error.message
+    });
+  }
+});
+
+/**
  * Route pour voir les derniers produits traités avec images Unsplash
  */
 router.get('/check-last-products', async (req, res) => {
