@@ -318,6 +318,96 @@ export const createCategory = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const updateCategory = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const data = req.body;
+
+    const category = await prisma.category.update({
+      where: { id },
+      data,
+      include: {
+        parent: true,
+        children: true,
+        _count: {
+          select: {
+            products: true,
+          },
+        },
+      },
+    });
+
+    res.json({
+      success: true,
+      message: 'Catégorie modifiée avec succès',
+      category,
+    });
+  } catch (error: any) {
+    console.error('Error in updateCategory:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la modification de la catégorie',
+      error: error.message,
+    });
+  }
+};
+
+export const deleteCategory = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    // Vérifier si la catégorie a des produits liés
+    const category = await prisma.category.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: {
+            products: true,
+            children: true,
+          },
+        },
+      },
+    });
+
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        message: 'Catégorie non trouvée',
+      });
+    }
+
+    if (category._count.products > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Impossible de supprimer cette catégorie car ${category._count.products} produit(s) y sont associés`,
+      });
+    }
+
+    if (category._count.children > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Impossible de supprimer cette catégorie car elle contient ${category._count.children} sous-catégorie(s)`,
+      });
+    }
+
+    await prisma.category.delete({
+      where: { id },
+    });
+
+    res.json({
+      success: true,
+      message: 'Catégorie supprimée avec succès',
+    });
+  } catch (error: any) {
+    console.error('Error in deleteCategory:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la suppression de la catégorie',
+      error: error.message,
+    });
+  }
+};
+
 export const toggleProductVisibility = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;

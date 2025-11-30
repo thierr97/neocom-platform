@@ -17,5 +17,7 @@ router.patch('/:id/toggle-visibility', requireRole('ADMIN'), productController.t
 // Categories
 router.get('/categories/all', productController.getCategories);
 router.post('/categories', requireRole('ADMIN'), productController.createCategory);
+router.put('/categories/:id', requireRole('ADMIN'), productController.updateCategory);
+router.delete('/categories/:id', requireRole('ADMIN'), productController.deleteCategory);
 
 export default router;
