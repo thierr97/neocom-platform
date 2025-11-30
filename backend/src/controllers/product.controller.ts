@@ -15,12 +15,12 @@ function normalizeSearchText(text: string): string {
 
 export const getProducts = async (req: AuthRequest, res: Response) => {
   try {
-    const { status, category, search, isVisible, isFeatured } = req.query;
+    const { status, category, categoryId, search, isVisible, isFeatured } = req.query;
 
     const where: any = {};
 
     if (status) where.status = status;
-    if (category) where.categoryId = category;
+    if (category || categoryId) where.categoryId = category || categoryId;
     if (isVisible !== undefined) where.isVisible = isVisible === 'true';
     if (isFeatured !== undefined) where.isFeatured = isFeatured === 'true';
 
