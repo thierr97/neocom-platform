@@ -11,8 +11,9 @@ router.get('/', productController.getProducts);
 router.get('/:id', productController.getProductById);
 router.post('/', requireRole('ADMIN'), productController.createProduct);
 router.put('/:id', requireRole('ADMIN'), productController.updateProduct);
-router.delete('/:id', requireRole('ADMIN'), productController.deleteProduct);
 router.patch('/:id/toggle-visibility', requireRole('ADMIN'), productController.toggleProductVisibility);
+router.patch('/:id', requireRole('ADMIN'), productController.patchProduct);
+router.delete('/:id', requireRole('ADMIN'), productController.deleteProduct);
 
 // Categories
 router.get('/categories/all', productController.getCategories);

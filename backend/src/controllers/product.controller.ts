@@ -248,6 +248,57 @@ export const updateProduct = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const patchProduct = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const data = req.body;
+
+    // Vérifier que le produit existe
+    const existingProduct = await prisma.product.findUnique({
+      where: { id },
+    });
+
+    if (!existingProduct) {
+      return res.status(404).json({
+        success: false,
+        message: 'Produit non trouvé',
+      });
+    }
+
+    // Mise à jour partielle
+    const product = await prisma.product.update({
+      where: { id },
+      data,
+      include: {
+        category: true,
+        supplier: true,
+      },
+    });
+
+    // Log activity
+    await prisma.activity.create({
+      data: {
+        type: 'PRODUCT_UPDATED',
+        description: `Produit mis à jour (PATCH): ${product.name}`,
+        userId: req.user!.userId,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: 'Produit mis à jour',
+      product,
+    });
+  } catch (error: any) {
+    console.error('Error in patchProduct:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la mise à jour du produit',
+      error: error.message,
+    });
+  }
+};
+
 export const deleteProduct = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
