@@ -23,7 +23,26 @@ export const getPublicProducts = async (req: Request, res: Response) => {
 
     // Filter by category
     if (category) {
-      where.categoryId = category;
+      // Vérifier si c'est une catégorie parente
+      const selectedCategory = await prisma.category.findUnique({
+        where: { id: category as string },
+        include: {
+          children: true, // Récupérer les sous-catégories
+        },
+      });
+
+      if (selectedCategory) {
+        if (selectedCategory.children && selectedCategory.children.length > 0) {
+          // C'est une catégorie parente : inclure tous les produits des sous-catégories
+          const childrenIds = selectedCategory.children.map(child => child.id);
+          where.categoryId = {
+            in: childrenIds,
+          };
+        } else {
+          // C'est une sous-catégorie : filtrer normalement
+          where.categoryId = category;
+        }
+      }
     }
 
     // Filter featured products
