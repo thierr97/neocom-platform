@@ -26,62 +26,62 @@ enum UserStatus {
 }
 
 model User {
-  id            String      @id @default(uuid())
-  email         String      @unique
-  password      String
-  firstName     String?
-  lastName      String?
-  phone         String?
-  avatar        String?
-  role          UserRole    @default(CLIENT)
-  status        UserStatus  @default(ACTIVE)
-  permissions   Json?       // Section-level permissions: {"dashboard": true, "customers": false, ...}
+  id          String     @id @default(uuid())
+  email       String     @unique
+  password    String
+  firstName   String?
+  lastName    String?
+  phone       String?
+  avatar      String?
+  role        UserRole   @default(CLIENT)
+  status      UserStatus @default(ACTIVE)
+  permissions Json? // Section-level permissions: {"dashboard": true, "customers": false, ...}
 
   // Horaires de travail (informatifs)
-  workStartTime String?     // Format "09:00"
-  workEndTime   String?     // Format "18:00"
-  workDays      String[]    @default([]) // ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
-  timezone      String?     @default("Europe/Paris")
+  workStartTime String? // Format "09:00"
+  workEndTime   String? // Format "18:00"
+  workDays      String[] @default([]) // ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+  timezone      String?  @default("Europe/Paris")
 
   // Tracking de connexion
-  isOnline      Boolean     @default(false)
-  lastSeenAt    DateTime?
+  isOnline         Boolean   @default(false)
+  lastSeenAt       DateTime?
   currentSessionId String?
 
   // Relations
-  customers     Customer[]  @relation("UserCustomers")
-  orders        Order[]
-  quotes        Quote[]
-  invoices      Invoice[]
-  gpsTrackings  GpsTracking[]
-  activities    Activity[]
-  importHistory ImportHistory[]
+  customers       Customer[]       @relation("UserCustomers")
+  orders          Order[]
+  quotes          Quote[]
+  invoices        Invoice[]
+  gpsTrackings    GpsTracking[]
+  activities      Activity[]
+  importHistory   ImportHistory[]
   userPermissions UserPermission[]
-  connectionLogs ConnectionLog[]
+  connectionLogs  ConnectionLog[]
 
   // Metadata
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  lastLoginAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  lastLoginAt DateTime?
 
   @@map("users")
 }
 
 // Historique des connexions
 model ConnectionLog {
-  id          String    @id @default(uuid())
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sessionId   String    @unique
-  loginAt     DateTime  @default(now())
-  logoutAt    DateTime?
-  ipAddress   String?
-  userAgent   String?
-  duration    Int?      // Durée en secondes
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId String    @unique
+  loginAt   DateTime  @default(now())
+  logoutAt  DateTime?
+  ipAddress String?
+  userAgent String?
+  duration  Int? // Durée en secondes
 
-  @@map("connection_logs")
   @@index([userId])
   @@index([loginAt])
+  @@map("connection_logs")
 }
 
 // ========================================
@@ -101,52 +101,52 @@ enum CustomerStatus {
 }
 
 model Customer {
-  id              String          @id @default(uuid())
-  type            CustomerType    @default(INDIVIDUAL)
-  status          CustomerStatus  @default(PROSPECT)
+  id     String         @id @default(uuid())
+  type   CustomerType   @default(INDIVIDUAL)
+  status CustomerStatus @default(PROSPECT)
 
   // Individual fields
-  firstName       String?
-  lastName        String?
+  firstName String?
+  lastName  String?
 
   // Company fields
-  companyName     String?
-  siret           String?
-  vatNumber       String?
+  companyName String?
+  siret       String?
+  vatNumber   String?
 
   // Contact
-  email           String          @unique
-  phone           String?
-  mobile          String?
-  phone2          String?         // Téléphone secondaire
-  fax             String?
-  whatsapp        String?
+  email    String  @unique
+  phone    String?
+  mobile   String?
+  phone2   String? // Téléphone secondaire
+  fax      String?
+  whatsapp String?
 
   // Address
-  address         String?
-  addressLine2    String?
-  city            String?
-  postalCode      String?
-  country         String?         @default("France")
+  address      String?
+  addressLine2 String?
+  city         String?
+  postalCode   String?
+  country      String? @default("France")
 
   // Commercial
-  userId          String
-  user            User            @relation("UserCustomers", fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation("UserCustomers", fields: [userId], references: [id], onDelete: Cascade)
 
   // Relations
-  orders          Order[]
-  quotes          Quote[]
-  invoices        Invoice[]
-  activities      Activity[]
-  reviews         Review[]
+  orders     Order[]
+  quotes     Quote[]
+  invoices   Invoice[]
+  activities Activity[]
+  reviews    Review[]
 
   // Notes & Tags
-  notes           String?
-  tags            String[]
+  notes String?
+  tags  String[]
 
   // Metadata
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("customers")
 }
@@ -162,45 +162,45 @@ enum SupplierStatus {
 }
 
 model Supplier {
-  id              String          @id @default(uuid())
+  id String @id @default(uuid())
 
   // Company Info
-  companyName     String
-  contactPerson   String?
-  siret           String?
-  vatNumber       String?
+  companyName   String
+  contactPerson String?
+  siret         String?
+  vatNumber     String?
 
   // Contact
-  email           String          @unique
-  phone           String?
-  mobile          String?
-  website         String?
+  email   String  @unique
+  phone   String?
+  mobile  String?
+  website String?
 
   // Address
-  address         String?
-  addressLine2    String?
-  city            String?
-  postalCode      String?
-  country         String?         @default("France")
+  address      String?
+  addressLine2 String?
+  city         String?
+  postalCode   String?
+  country      String? @default("France")
 
   // Status
-  status          SupplierStatus  @default(ACTIVE)
+  status SupplierStatus @default(ACTIVE)
 
   // Payment Terms
-  paymentTerms    String?         // e.g., "30 jours fin de mois"
-  paymentMethod   String?         // e.g., "Virement", "Chèque"
+  paymentTerms  String? // e.g., "30 jours fin de mois"
+  paymentMethod String? // e.g., "Virement", "Chèque"
 
   // Relations
-  products        Product[]
+  products         Product[]
   purchaseInvoices PurchaseInvoice[]
 
   // Notes
-  notes           String?
-  tags            String[]
+  notes String?
+  tags  String[]
 
   // Metadata
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("suppliers")
 }
@@ -216,78 +216,78 @@ enum ProductStatus {
 }
 
 enum AvailabilityStatus {
-  AVAILABLE      // Disponible (vert)
-  UNAVAILABLE    // Non disponible (rouge)
-  INCOMING       // En cours d'arrivage (jaune)
+  AVAILABLE // Disponible (vert)
+  UNAVAILABLE // Non disponible (rouge)
+  INCOMING // En cours d'arrivage (jaune)
 }
 
 model Category {
-  id          String    @id @default(uuid())
+  id          String     @id @default(uuid())
   name        String
-  slug        String    @unique
+  slug        String     @unique
   description String?
   image       String?
   parentId    String?
-  parent      Category? @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  parent      Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
   children    Category[] @relation("CategoryHierarchy")
   products    Product[]
 
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("categories")
 }
 
 model Product {
-  id              String          @id @default(uuid())
-  sku             String          @unique
-  barcode         String?         @unique
-  name            String
-  slug            String          @unique
-  description     String?
+  id               String  @id @default(uuid())
+  sku              String  @unique
+  barcode          String? @unique
+  name             String
+  slug             String  @unique
+  description      String?
   shortDescription String?
 
   // Pricing
-  price           Float
-  costPrice       Float?
-  compareAtPrice  Float?
+  price          Float
+  costPrice      Float?
+  compareAtPrice Float?
 
   // Stock
-  stock           Int             @default(0)
-  minStock        Int?            @default(5)
-  maxStock        Int?
+  stock    Int  @default(0)
+  minStock Int? @default(5)
+  maxStock Int?
 
   // Status
-  status          ProductStatus   @default(ACTIVE)
+  status             ProductStatus      @default(ACTIVE)
   availabilityStatus AvailabilityStatus @default(AVAILABLE)
-  isVisible       Boolean         @default(true)
-  isFeatured      Boolean         @default(false)
+  isVisible          Boolean            @default(true)
+  isFeatured         Boolean            @default(false)
 
   // Media
-  images          String[]
-  thumbnail       String?
+  images    String[]
+  thumbnail String?
 
-  // Category
-  categoryId      String?
-  category        Category?       @relation(fields: [categoryId], references: [id])
+  // Category (OBLIGATOIRE - un produit doit toujours avoir une catégorie)
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
 
   // Supplier
-  supplierId      String?
-  supplier        Supplier?       @relation(fields: [supplierId], references: [id])
+  supplierId String?
+  supplier   Supplier? @relation(fields: [supplierId], references: [id])
 
   // Dimensions & Shipping
-  weight          Float?
-  width           Float?
-  height          Float?
-  length          Float?
+  weight Float?
+  width  Float?
+  height Float?
+  length Float?
 
   // Relations
-  orderItems            OrderItem[]
-  quoteItems            QuoteItem[]
-  invoiceItems          InvoiceItem[]
-  purchaseInvoiceItems  PurchaseInvoiceItem[]
-  stockMovements        StockMovement[]
-  reviews               Review[]
+  orderItems           OrderItem[]
+  quoteItems           QuoteItem[]
+  invoiceItems         InvoiceItem[]
+  purchaseInvoiceItems PurchaseInvoiceItem[]
+  stockMovements       StockMovement[]
+  reviews              Review[]
 
   // SEO
   metaTitle       String?
@@ -295,14 +295,14 @@ model Product {
   metaKeywords    String[]
 
   // Tags
-  tags            String[]
+  tags String[]
 
   // Champ lexical pour recherche intelligente
-  searchTerms     String[]        @default([])
+  searchTerms String[] @default([])
 
   // Metadata
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("products")
 }
@@ -320,68 +320,68 @@ enum QuoteStatus {
 }
 
 model Quote {
-  id              String        @id @default(uuid())
-  number          String        @unique
+  id     String @id @default(uuid())
+  number String @unique
 
   // Customer
-  customerId      String
-  customer        Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   // Commercial
-  userId          String
-  user            User          @relation(fields: [userId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
   // Status
-  status          QuoteStatus   @default(DRAFT)
+  status QuoteStatus @default(DRAFT)
 
   // Items
-  items           QuoteItem[]
+  items QuoteItem[]
 
   // Amounts
-  subtotal        Float         @default(0)
-  taxAmount       Float         @default(0)
-  discount        Float         @default(0)
-  total           Float         @default(0)
+  subtotal  Float @default(0)
+  taxAmount Float @default(0)
+  discount  Float @default(0)
+  total     Float @default(0)
 
   // Dates
-  validUntil      DateTime?
-  sentAt          DateTime?
-  acceptedAt      DateTime?
+  validUntil DateTime?
+  sentAt     DateTime?
+  acceptedAt DateTime?
 
   // Notes
   notes           String?
   termsConditions String?
 
   // PDF
-  pdfUrl          String?
+  pdfUrl String?
 
   // GPS Location when created
-  gpsLatitude     Float?
-  gpsLongitude    Float?
-  gpsAddress      String?
+  gpsLatitude  Float?
+  gpsLongitude Float?
+  gpsAddress   String?
 
   // Metadata
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("quotes")
 }
 
 model QuoteItem {
-  id          String   @id @default(uuid())
-  quoteId     String
-  quote       Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  id      String @id @default(uuid())
+  quoteId String
+  quote   Quote  @relation(fields: [quoteId], references: [id], onDelete: Cascade)
 
-  productId   String
-  product     Product  @relation(fields: [productId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
 
-  quantity    Int
-  unitPrice   Float
-  taxRate     Float    @default(20)
-  discount    Float    @default(0)
-  total       Float
+  quantity  Int
+  unitPrice Float
+  taxRate   Float @default(20)
+  discount  Float @default(0)
+  total     Float
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@map("quote_items")
 }
@@ -408,83 +408,83 @@ enum PaymentStatus {
 }
 
 model Order {
-  id              String          @id @default(uuid())
-  number          String          @unique
+  id     String @id @default(uuid())
+  number String @unique
 
   // Customer
-  customerId      String
-  customer        Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   // Commercial
-  userId          String
-  user            User            @relation(fields: [userId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
   // Status
-  status          OrderStatus     @default(PENDING)
-  paymentStatus   PaymentStatus   @default(PENDING)
+  status        OrderStatus   @default(PENDING)
+  paymentStatus PaymentStatus @default(PENDING)
 
   // Items
-  items           OrderItem[]
+  items OrderItem[]
 
   // Amounts
-  subtotal        Float           @default(0)
-  taxAmount       Float           @default(0)
-  shippingCost    Float           @default(0)
-  discount        Float           @default(0)
-  total           Float           @default(0)
+  subtotal     Float @default(0)
+  taxAmount    Float @default(0)
+  shippingCost Float @default(0)
+  discount     Float @default(0)
+  total        Float @default(0)
 
   // Shipping Address
-  shippingAddress     String?
-  shippingCity        String?
-  shippingPostalCode  String?
-  shippingCountry     String?
+  shippingAddress    String?
+  shippingCity       String?
+  shippingPostalCode String?
+  shippingCountry    String?
 
   // Notes
-  notes           String?
-  customerNote    String?
+  notes        String?
+  customerNote String?
 
   // Payments
-  payments        Payment[]
+  payments Payment[]
 
   // Invoice
-  invoice         Invoice?
+  invoice Invoice?
 
   // PDF Documents
-  orderPdfUrl     String?
-  deliveryNotePdfUrl  String?
+  orderPdfUrl        String?
+  deliveryNotePdfUrl String?
 
   // GPS Location
-  gpsLatitude     Float?
-  gpsLongitude    Float?
-  gpsAddress      String?
+  gpsLatitude  Float?
+  gpsLongitude Float?
+  gpsAddress   String?
 
   // Dates
-  confirmedAt     DateTime?
-  shippedAt       DateTime?
-  deliveredAt     DateTime?
+  confirmedAt DateTime?
+  shippedAt   DateTime?
+  deliveredAt DateTime?
 
   // Metadata
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("orders")
 }
 
 model OrderItem {
-  id          String   @id @default(uuid())
-  orderId     String
-  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  id      String @id @default(uuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  productId   String
-  product     Product  @relation(fields: [productId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
 
-  quantity    Int
-  unitPrice   Float
-  taxRate     Float    @default(20)
-  discount    Float    @default(0)
-  total       Float
+  quantity  Int
+  unitPrice Float
+  taxRate   Float @default(20)
+  discount  Float @default(0)
+  total     Float
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@map("order_items")
 }
@@ -502,76 +502,76 @@ enum InvoiceStatus {
 }
 
 model Invoice {
-  id              String          @id @default(uuid())
-  number          String          @unique
+  id     String @id @default(uuid())
+  number String @unique
 
   // Customer
-  customerId      String
-  customer        Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   // Commercial
-  userId          String
-  user            User            @relation(fields: [userId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
   // Order
-  orderId         String?         @unique
-  order           Order?          @relation(fields: [orderId], references: [id])
+  orderId String? @unique
+  order   Order?  @relation(fields: [orderId], references: [id])
 
   // Status
-  status          InvoiceStatus   @default(DRAFT)
+  status InvoiceStatus @default(DRAFT)
 
   // Items
-  items           InvoiceItem[]
+  items InvoiceItem[]
 
   // Amounts
-  subtotal        Float           @default(0)
-  tax             Float           @default(0)
-  taxAmount       Float           @default(0)
-  discount        Float           @default(0)
-  total           Float           @default(0)
-  paidAmount      Float           @default(0)
+  subtotal   Float @default(0)
+  tax        Float @default(0)
+  taxAmount  Float @default(0)
+  discount   Float @default(0)
+  total      Float @default(0)
+  paidAmount Float @default(0)
 
   // Accounting
-  accountingEntryId String?                 @unique
+  accountingEntryId String?          @unique
   accountingEntry   AccountingEntry? @relation(fields: [accountingEntryId], references: [id])
 
   // Dates
-  issueDate       DateTime        @default(now())
-  dueDate         DateTime?
-  paidAt          DateTime?
+  issueDate DateTime  @default(now())
+  dueDate   DateTime?
+  paidAt    DateTime?
 
   // Notes
   notes           String?
   termsConditions String?
 
   // PDF
-  pdfUrl          String?
+  pdfUrl String?
 
   // Payments
-  payments        Payment[]
+  payments Payment[]
 
   // Metadata
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("invoices")
 }
 
 model InvoiceItem {
-  id          String   @id @default(uuid())
-  invoiceId   String
-  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  id        String  @id @default(uuid())
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
-  productId   String
-  product     Product  @relation(fields: [productId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
 
-  quantity    Int
-  unitPrice   Float
-  taxRate     Float    @default(20)
-  discount    Float    @default(0)
-  total       Float
+  quantity  Int
+  unitPrice Float
+  taxRate   Float @default(20)
+  discount  Float @default(0)
+  total     Float
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@map("invoice_items")
 }
@@ -599,19 +599,19 @@ enum PaymentStatusEnum {
 }
 
 model Payment {
-  id              String              @id @default(uuid())
+  id String @id @default(uuid())
 
   // Order or Invoice
-  orderId         String?
-  order           Order?              @relation(fields: [orderId], references: [id])
+  orderId String?
+  order   Order?  @relation(fields: [orderId], references: [id])
 
-  invoiceId       String?
-  invoice         Invoice?            @relation(fields: [invoiceId], references: [id])
+  invoiceId String?
+  invoice   Invoice? @relation(fields: [invoiceId], references: [id])
 
   // Payment details
-  amount          Float
-  method          PaymentMethod
-  status          PaymentStatusEnum   @default(PENDING)
+  amount Float
+  method PaymentMethod
+  status PaymentStatusEnum @default(PENDING)
 
   // External references
   transactionId   String?
@@ -619,15 +619,15 @@ model Payment {
   paypalOrderId   String?
 
   // Metadata
-  metadata        Json?
-  notes           String?
+  metadata Json?
+  notes    String?
 
   // Dates
-  paidAt          DateTime?
-  refundedAt      DateTime?
+  paidAt     DateTime?
+  refundedAt DateTime?
 
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("payments")
 }
@@ -647,30 +647,30 @@ enum ActionType {
 }
 
 model GpsTracking {
-  id          String      @id @default(uuid())
+  id String @id @default(uuid())
 
-  userId      String
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  actionType  ActionType
+  actionType ActionType
 
   // GPS Coordinates
-  latitude    Float
-  longitude   Float
-  accuracy    Float?
-  address     String?
+  latitude  Float
+  longitude Float
+  accuracy  Float?
+  address   String?
 
   // Related entities
-  customerId  String?
-  orderId     String?
-  quoteId     String?
+  customerId String?
+  orderId    String?
+  quoteId    String?
 
   // Notes
-  notes       String?
+  notes String?
 
   // Metadata
-  timestamp   DateTime    @default(now())
-  createdAt   DateTime    @default(now())
+  timestamp DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@map("gps_trackings")
 }
@@ -700,20 +700,20 @@ enum ActivityType {
 }
 
 model Activity {
-  id          String        @id @default(uuid())
+  id String @id @default(uuid())
 
   type        ActivityType
   description String
 
-  userId      String?
-  user        User?         @relation(fields: [userId], references: [id])
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
 
-  customerId  String?
-  customer    Customer?     @relation(fields: [customerId], references: [id])
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
 
-  metadata    Json?
+  metadata Json?
 
-  createdAt   DateTime      @default(now())
+  createdAt DateTime @default(now())
 
   @@map("activities")
 }
@@ -736,26 +736,26 @@ enum ImportType {
 }
 
 model Import {
-  id              String        @id @default(uuid())
+  id String @id @default(uuid())
 
-  type            ImportType
-  status          ImportStatus  @default(PENDING)
+  type   ImportType
+  status ImportStatus @default(PENDING)
 
-  fileName        String
-  filePath        String
+  fileName String
+  filePath String
 
-  totalRows       Int           @default(0)
-  processedRows   Int           @default(0)
-  successRows     Int           @default(0)
-  failedRows      Int           @default(0)
+  totalRows     Int @default(0)
+  processedRows Int @default(0)
+  successRows   Int @default(0)
+  failedRows    Int @default(0)
 
-  errors          Json?
+  errors Json?
 
-  startedAt       DateTime?
-  completedAt     DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
 
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("imports")
 }
@@ -765,13 +765,13 @@ model Import {
 // ========================================
 
 model Settings {
-  id          String   @id @default(uuid())
-  key         String   @unique
-  value       String
-  type        String   @default("string")
+  id    String @id @default(uuid())
+  key   String @unique
+  value String
+  type  String @default("string")
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("settings")
 }
@@ -788,65 +788,65 @@ enum PurchaseInvoiceStatus {
 }
 
 model PurchaseInvoice {
-  id              String                  @id @default(uuid())
-  number          String                  @unique
+  id     String @id @default(uuid())
+  number String @unique
 
   // Supplier
-  supplierId      String
-  supplier        Supplier                @relation(fields: [supplierId], references: [id])
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id])
 
   // Status
-  status          PurchaseInvoiceStatus   @default(DRAFT)
+  status PurchaseInvoiceStatus @default(DRAFT)
 
   // Items
-  items           PurchaseInvoiceItem[]
+  items PurchaseInvoiceItem[]
 
   // Amounts
-  subtotal        Float                   @default(0)
-  tax             Float                   @default(0)
-  taxAmount       Float                   @default(0)
-  discount        Float                   @default(0)
-  total           Float                   @default(0)
+  subtotal  Float @default(0)
+  tax       Float @default(0)
+  taxAmount Float @default(0)
+  discount  Float @default(0)
+  total     Float @default(0)
 
   // Dates
-  date            DateTime                @default(now())
-  invoiceDate     DateTime                @default(now())
-  dueDate         DateTime?
-  paidAt          DateTime?
+  date        DateTime  @default(now())
+  invoiceDate DateTime  @default(now())
+  dueDate     DateTime?
+  paidAt      DateTime?
 
   // Notes
-  notes           String?
-  reference       String?                 // Numéro de facture fournisseur
+  notes     String?
+  reference String? // Numéro de facture fournisseur
 
   // PDF
-  pdfUrl          String?
+  pdfUrl String?
 
   // Accounting
-  accountingEntryId String?               @unique
-  accountingEntry   AccountingEntry?      @relation(fields: [accountingEntryId], references: [id])
+  accountingEntryId String?          @unique
+  accountingEntry   AccountingEntry? @relation(fields: [accountingEntryId], references: [id])
 
   // Metadata
-  createdAt       DateTime                @default(now())
-  updatedAt       DateTime                @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("purchase_invoices")
 }
 
 model PurchaseInvoiceItem {
-  id                  String            @id @default(uuid())
-  purchaseInvoiceId   String
-  purchaseInvoice     PurchaseInvoice   @relation(fields: [purchaseInvoiceId], references: [id], onDelete: Cascade)
+  id                String          @id @default(uuid())
+  purchaseInvoiceId String
+  purchaseInvoice   PurchaseInvoice @relation(fields: [purchaseInvoiceId], references: [id], onDelete: Cascade)
 
-  productId           String
-  product             Product           @relation(fields: [productId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
 
-  quantity            Int
-  unitPrice           Float
-  taxRate             Float             @default(20)
-  discount            Float             @default(0)
-  total               Float
+  quantity  Int
+  unitPrice Float
+  taxRate   Float @default(20)
+  discount  Float @default(0)
+  total     Float
 
-  createdAt           DateTime          @default(now())
+  createdAt DateTime @default(now())
 
   @@map("purchase_invoice_items")
 }
@@ -856,36 +856,36 @@ model PurchaseInvoiceItem {
 // ========================================
 
 enum StockMovementType {
-  PURCHASE        // Achat fournisseur
-  SALE            // Vente client
-  RETURN          // Retour
-  ADJUSTMENT      // Ajustement manuel
-  TRANSFER        // Transfert
-  LOSS            // Perte/casse
+  PURCHASE // Achat fournisseur
+  SALE // Vente client
+  RETURN // Retour
+  ADJUSTMENT // Ajustement manuel
+  TRANSFER // Transfert
+  LOSS // Perte/casse
 }
 
 model StockMovement {
-  id              String              @id @default(uuid())
+  id String @id @default(uuid())
 
-  productId       String
-  product         Product             @relation(fields: [productId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
 
-  type            StockMovementType
-  quantity        Int                 // Positif = entrée, Négatif = sortie
-  stockBefore     Int                 // Stock avant mouvement
-  stockAfter      Int                 // Stock après mouvement
+  type        StockMovementType
+  quantity    Int // Positif = entrée, Négatif = sortie
+  stockBefore Int // Stock avant mouvement
+  stockAfter  Int // Stock après mouvement
 
   // References
-  orderId         String?
+  orderId           String?
   purchaseInvoiceId String?
-  referenceNumber String?             // Numéro de référence (bon de livraison, etc.)
+  referenceNumber   String? // Numéro de référence (bon de livraison, etc.)
 
   // User who made the movement
-  userId          String?
-  notes           String?
+  userId String?
+  notes  String?
 
-  movementDate    DateTime            @default(now())
-  createdAt       DateTime            @default(now())
+  movementDate DateTime @default(now())
+  createdAt    DateTime @default(now())
 
   @@map("stock_movements")
 }
@@ -895,39 +895,39 @@ model StockMovement {
 // ========================================
 
 enum AccountType {
-  ASSET           // Classe 1-2 (Actif)
-  LIABILITY       // Classe 1 (Passif)
-  EQUITY          // Classe 1 (Capitaux propres)
-  REVENUE         // Classe 7 (Produits)
-  EXPENSE         // Classe 6 (Charges)
+  ASSET // Classe 1-2 (Actif)
+  LIABILITY // Classe 1 (Passif)
+  EQUITY // Classe 1 (Capitaux propres)
+  REVENUE // Classe 7 (Produits)
+  EXPENSE // Classe 6 (Charges)
 }
 
 enum JournalType {
-  VENTE           // Journal des ventes
-  ACHAT           // Journal des achats
-  BANQUE          // Journal de banque
-  CAISSE          // Journal de caisse
-  OD              // Opérations diverses
+  VENTE // Journal des ventes
+  ACHAT // Journal des achats
+  BANQUE // Journal de banque
+  CAISSE // Journal de caisse
+  OD // Opérations diverses
 }
 
 model AccountingAccount {
-  id              String                  @id @default(uuid())
-  code            String                  @unique   // ex: "401000", "707000"
-  name            String                            // ex: "Fournisseurs", "Ventes de marchandises"
-  type            AccountType
+  id   String      @id @default(uuid())
+  code String      @unique // ex: "401000", "707000"
+  name String // ex: "Fournisseurs", "Ventes de marchandises"
+  type AccountType
 
   // Hierarchy
-  parentId        String?
-  parent          AccountingAccount?      @relation("AccountHierarchy", fields: [parentId], references: [id])
-  children        AccountingAccount[]     @relation("AccountHierarchy")
+  parentId String?
+  parent   AccountingAccount?  @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children AccountingAccount[] @relation("AccountHierarchy")
 
   // Relations
-  entryLines      AccountingEntryLine[]
+  entryLines AccountingEntryLine[]
 
   // Metadata
-  isActive        Boolean                 @default(true)
-  createdAt       DateTime                @default(now())
-  updatedAt       DateTime                @updatedAt
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("accounting_accounts")
 }
@@ -938,46 +938,46 @@ enum AccountingEntryStatus {
 }
 
 model AccountingEntry {
-  id              String                  @id @default(uuid())
-  number          String                  @unique
-  date            DateTime                @default(now())
-  label           String
-  journal         JournalType
-  status          AccountingEntryStatus   @default(DRAFT)
+  id      String                @id @default(uuid())
+  number  String                @unique
+  date    DateTime              @default(now())
+  label   String
+  journal JournalType
+  status  AccountingEntryStatus @default(DRAFT)
 
   // Relations
-  lines           AccountingEntryLine[]
+  lines AccountingEntryLine[]
 
   // Source documents
-  invoiceId       String?                 @unique
+  invoiceId       String?          @unique
   invoice         Invoice?
   purchaseInvoice PurchaseInvoice?
 
-  orderId         String?
-  reference       String?                 // Numéro de pièce
+  orderId   String?
+  reference String? // Numéro de pièce
 
   // Metadata
-  notes           String?
-  createdAt       DateTime                @default(now())
-  updatedAt       DateTime                @updatedAt
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("accounting_entries")
 }
 
 model AccountingEntryLine {
-  id              String              @id @default(uuid())
+  id String @id @default(uuid())
 
-  entryId         String
-  entry           AccountingEntry     @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  entryId String
+  entry   AccountingEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
 
-  accountId       String
-  account         AccountingAccount   @relation(fields: [accountId], references: [id])
+  accountId String
+  account   AccountingAccount @relation(fields: [accountId], references: [id])
 
-  label           String?
-  debit           Float               @default(0)
-  credit          Float               @default(0)
+  label  String?
+  debit  Float   @default(0)
+  credit Float   @default(0)
 
-  createdAt       DateTime            @default(now())
+  createdAt DateTime @default(now())
 
   @@map("accounting_entry_lines")
 }
@@ -987,20 +987,20 @@ model AccountingEntryLine {
 // ========================================
 
 model ImportHistory {
-  id            String    @id @default(uuid())
-  type          String    // CUSTOMERS, PRODUCTS, SUPPLIERS, STOCKS
-  totalRows     Int
-  successCount  Int       @default(0)
-  errorCount    Int       @default(0)
-  warningCount  Int       @default(0)
+  id           String @id @default(uuid())
+  type         String // CUSTOMERS, PRODUCTS, SUPPLIERS, STOCKS
+  totalRows    Int
+  successCount Int    @default(0)
+  errorCount   Int    @default(0)
+  warningCount Int    @default(0)
 
-  userId        String
-  user          User      @relation(fields: [userId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
-  errors        String?   @db.Text  // JSON string
-  warnings      String?   @db.Text  // JSON string
+  errors   String? @db.Text // JSON string
+  warnings String? @db.Text // JSON string
 
-  createdAt     DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   @@map("import_history")
 }
@@ -1010,37 +1010,37 @@ model ImportHistory {
 // ========================================
 
 model Review {
-  id            String    @id @default(uuid())
+  id String @id @default(uuid())
 
   // Product relation
-  productId     String
-  product       Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   // Customer relation (optional - can be anonymous)
-  customerId    String?
-  customer      Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
 
   // Review content
-  rating        Int       // 1-5 stars
-  title         String?
-  comment       String    @db.Text
+  rating  Int // 1-5 stars
+  title   String?
+  comment String  @db.Text
 
   // Customer info for anonymous reviews
-  customerName  String?   // Si pas de customerId
-  customerEmail String?   // Si pas de customerId
+  customerName  String? // Si pas de customerId
+  customerEmail String? // Si pas de customerId
 
   // Status
-  isVerified    Boolean   @default(false) // Achat vérifié
-  isApproved    Boolean   @default(false) // Modération
-  isPublished   Boolean   @default(false) // Publié ou non
+  isVerified  Boolean @default(false) // Achat vérifié
+  isApproved  Boolean @default(false) // Modération
+  isPublished Boolean @default(false) // Publié ou non
 
   // Metadata
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@map("reviews")
   @@index([productId])
   @@index([isPublished])
+  @@map("reviews")
 }
 
 // ========================================
@@ -1079,8 +1079,8 @@ enum PermissionAction {
 }
 
 model Permission {
-  id          String              @id @default(uuid())
-  name        String              @unique
+  id          String             @id @default(uuid())
+  name        String             @unique
   description String?
   resource    PermissionResource
   action      PermissionAction
@@ -1089,11 +1089,11 @@ model Permission {
   rolePermissions RolePermission[]
   userPermissions UserPermission[]
 
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@map("permissions")
   @@index([resource, action])
+  @@map("permissions")
 }
 
 model RolePermission {
@@ -1103,14 +1103,14 @@ model RolePermission {
   permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
   // Override settings
-  isGranted    Boolean    @default(true)
+  isGranted Boolean @default(true)
 
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([role, permissionId])
-  @@map("role_permissions")
   @@index([role])
+  @@map("role_permissions")
 }
 
 model UserPermission {
@@ -1121,12 +1121,12 @@ model UserPermission {
   permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
   // Override settings (can grant or revoke specific permission for a user)
-  isGranted    Boolean    @default(true)
+  isGranted Boolean @default(true)
 
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([userId, permissionId])
-  @@map("user_permissions")
   @@index([userId])
+  @@map("user_permissions")
 }
