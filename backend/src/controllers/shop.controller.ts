@@ -136,6 +136,7 @@ export const getPublicProduct = async (req: Request, res: Response) => {
 // Get all public categories (no auth required)
 export const getPublicCategories = async (req: Request, res: Response) => {
   try {
+    // Récupérer toutes les catégories avec le compte de leurs produits directs
     const categories = await prisma.category.findMany({
       include: {
         _count: {
@@ -151,9 +152,44 @@ export const getPublicCategories = async (req: Request, res: Response) => {
       },
     });
 
+    // Créer une map pour calculer le nombre total de produits (incluant sous-catégories)
+    const categoryProductCounts = new Map<string, number>();
+
+    // D'abord, compter les produits directs de chaque catégorie
+    categories.forEach(cat => {
+      categoryProductCounts.set(cat.id, cat._count.products);
+    });
+
+    // Ensuite, pour chaque catégorie parente, additionner les produits de ses sous-catégories
+    categories.forEach(cat => {
+      if (!cat.parentId) {
+        // C'est une catégorie parente
+        let totalProducts = 0;
+
+        // Trouver toutes les sous-catégories
+        const children = categories.filter(c => c.parentId === cat.id);
+
+        // Additionner les produits de toutes les sous-catégories
+        children.forEach(child => {
+          totalProducts += categoryProductCounts.get(child.id) || 0;
+        });
+
+        // Mettre à jour le compte pour la catégorie parente
+        categoryProductCounts.set(cat.id, totalProducts);
+      }
+    });
+
+    // Construire la réponse avec les comptes mis à jour
+    const categoriesWithCounts = categories.map(cat => ({
+      ...cat,
+      _count: {
+        products: categoryProductCounts.get(cat.id) || 0,
+      },
+    }));
+
     return res.json({
       success: true,
-      data: categories,
+      data: categoriesWithCounts,
     });
   } catch (error: any) {
     console.error('Error fetching categories:', error);
