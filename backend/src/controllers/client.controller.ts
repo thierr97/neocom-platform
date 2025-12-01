@@ -10,6 +10,7 @@ export const clientRegister = async (req: Request, res: Response) => {
   try {
     const {
       email,
+      password,
       firstName,
       lastName,
       companyName,
@@ -28,6 +29,14 @@ export const clientRegister = async (req: Request, res: Response) => {
       return res.status(400).json({
         success: false,
         message: 'Email, prénom et nom sont requis',
+      });
+    }
+
+    // Validate password
+    if (!password || password.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: 'Le mot de passe doit contenir au moins 8 caractères',
       });
     }
 
@@ -60,11 +69,15 @@ export const clientRegister = async (req: Request, res: Response) => {
       });
     }
 
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     // Create new customer
     const customer = await prisma.customer.create({
       data: {
         type: type || (companyName ? 'COMPANY' : 'INDIVIDUAL'),
         email,
+        password: hashedPassword,
         firstName,
         lastName,
         companyName,
@@ -187,15 +200,15 @@ export const clientGoogleAuth = async (req: Request, res: Response) => {
   }
 };
 
-// Client login with email
+// Client login with email and password
 export const clientLogin = async (req: Request, res: Response) => {
   try {
-    const { email } = req.body;
+    const { email, password } = req.body;
 
-    if (!email) {
+    if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Email requis',
+        message: 'Email et mot de passe requis',
       });
     }
 
@@ -207,11 +220,29 @@ export const clientLogin = async (req: Request, res: Response) => {
     if (!customer) {
       return res.status(404).json({
         success: false,
-        message: 'Client non trouvé',
+        message: 'Email ou mot de passe incorrect',
       });
     }
 
-    // Generate a simple token (in production, use proper authentication)
+    // Check if customer has a password set
+    if (!customer.password) {
+      return res.status(401).json({
+        success: false,
+        message: 'Aucun mot de passe défini pour ce compte. Veuillez contacter l\'administrateur.',
+      });
+    }
+
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(password, customer.password);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: 'Email ou mot de passe incorrect',
+      });
+    }
+
+    // Generate token
     const token = jwt.sign(
       { customerId: customer.id, email: customer.email, type: 'customer' },
       process.env.JWT_SECRET || 'secret',

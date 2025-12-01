@@ -114,6 +114,9 @@ model Customer {
   siret       String?
   vatNumber   String?
 
+  // Authentication
+  password String? // Mot de passe hashé (nullable pour compatibilité avec clients existants)
+
   // Contact
   email    String  @unique
   phone    String?
