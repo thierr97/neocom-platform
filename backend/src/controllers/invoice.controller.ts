@@ -108,7 +108,7 @@ export const createInvoice = async (req: Request, res: Response) => {
       subtotal += item.quantity * item.unitPrice;
     });
 
-    const taxAmount = subtotal * (getDefaultTaxRate() / 100); // 20% TVA
+    const taxAmount = subtotal * (getDefaultTaxRate() / 100); // 8.5% TVA Guadeloupe
     const total = subtotal + taxAmount;
 
     // Generate invoice number
