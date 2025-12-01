@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import aiManagerController from '../controllers/ai-manager.controller';
-import { authenticateToken, authorizeRoles } from '../middleware/auth';
+import { authenticateToken, requireRole } from '../middleware/auth';
 
 const router = Router();
 
@@ -13,7 +13,7 @@ const router = Router();
 router.get(
   '/status',
   authenticateToken,
-  authorizeRoles('ADMIN'),
+  requireRole('ADMIN'),
   aiManagerController.getStatus.bind(aiManagerController)
 );
 
@@ -21,7 +21,7 @@ router.get(
 router.post(
   '/analyze/content',
   authenticateToken,
-  authorizeRoles('ADMIN'),
+  requireRole('ADMIN'),
   aiManagerController.analyzeContent.bind(aiManagerController)
 );
 
@@ -29,7 +29,7 @@ router.post(
 router.post(
   '/analyze/inventory',
   authenticateToken,
-  authorizeRoles('ADMIN'),
+  requireRole('ADMIN'),
   aiManagerController.analyzeInventory.bind(aiManagerController)
 );
 
@@ -37,7 +37,7 @@ router.post(
 router.post(
   '/analyze/customers',
   authenticateToken,
-  authorizeRoles('ADMIN'),
+  requireRole('ADMIN'),
   aiManagerController.analyzeCustomers.bind(aiManagerController)
 );
 
@@ -45,7 +45,7 @@ router.post(
 router.post(
   '/analyze/performance',
   authenticateToken,
-  authorizeRoles('ADMIN'),
+  requireRole('ADMIN'),
   aiManagerController.analyzePerformance.bind(aiManagerController)
 );
 
@@ -53,7 +53,7 @@ router.post(
 router.post(
   '/recommendations',
   authenticateToken,
-  authorizeRoles('ADMIN'),
+  requireRole('ADMIN'),
   aiManagerController.getRecommendations.bind(aiManagerController)
 );
 
@@ -61,7 +61,7 @@ router.post(
 router.post(
   '/product/:productId/description',
   authenticateToken,
-  authorizeRoles('ADMIN'),
+  requireRole('ADMIN'),
   aiManagerController.generateProductDescription.bind(aiManagerController)
 );
 
@@ -69,7 +69,7 @@ router.post(
 router.post(
   '/execute/safe-tasks',
   authenticateToken,
-  authorizeRoles('ADMIN'),
+  requireRole('ADMIN'),
   aiManagerController.executeSafeTasks.bind(aiManagerController)
 );
 
@@ -77,7 +77,7 @@ router.post(
 router.post(
   '/analyze/all',
   authenticateToken,
-  authorizeRoles('ADMIN'),
+  requireRole('ADMIN'),
   aiManagerController.analyzeAll.bind(aiManagerController)
 );
 

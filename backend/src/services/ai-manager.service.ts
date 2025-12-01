@@ -397,7 +397,7 @@ Génère une description de produit professionnelle, attrayante et optimisée po
         where: { OR: [{ description: null }, { description: '' }] },
       }),
       productsWithoutImage: await prisma.product.count({
-        where: { OR: [{ imageUrl: null }, { imageUrl: '' }] },
+        where: { OR: [{ images: { isEmpty: true } }, { thumbnail: null }] },
       }),
       lowStockProducts: await prisma.product.count({
         where: { stock: { lte: 10 }, status: 'ACTIVE' },
