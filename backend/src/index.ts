@@ -33,6 +33,7 @@ import reviewRoutes from './routes/review.routes';
 import migrationRoutes from './routes/migration.routes';
 import cloudinaryRoutes from './routes/cloudinary.routes';
 import settingsRoutes from './routes/settings.routes';
+import aiManagerRoutes from './routes/ai-manager.routes';
 
 // Load environment variables
 dotenv.config();
@@ -127,6 +128,7 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/migration', migrationRoutes);
 app.use('/api/cloudinary', cloudinaryRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/ai-manager', aiManagerRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
