@@ -27,10 +27,19 @@ export class AIManagerService {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     this.isEnabled = !!apiKey;
 
+    console.log('🤖 AI Manager initialization:');
+    console.log('  - API Key present:', !!apiKey);
+    console.log('  - API Key length:', apiKey ? apiKey.length : 0);
+    console.log('  - API Key starts with:', apiKey ? apiKey.substring(0, 20) + '...' : 'N/A');
+    console.log('  - AI Manager enabled:', this.isEnabled);
+
     if (this.isEnabled) {
       this.anthropic = new Anthropic({
         apiKey: apiKey,
       });
+      console.log('  - Anthropic client created successfully');
+    } else {
+      console.log('  - ⚠️ AI Manager is DISABLED - No API key found');
     }
   }
 
