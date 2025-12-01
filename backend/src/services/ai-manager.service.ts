@@ -69,20 +69,20 @@ export class AIManagerService {
       });
     }
 
-    // 2. Check company settings
-    const settings = await prisma.companySettings.findFirst();
-    if (!settings || !settings.description) {
-      decisions.push({
-        task: {
-          type: 'content_update',
-          priority: 'high',
-          description: 'Description de l\'entreprise manquante',
-        },
-        action: 'update_company_info',
-        reasoning: 'La description de l\'entreprise est essentielle pour le SEO',
-        confidence: 0.98,
-      });
-    }
+    // 2. Check company settings (commented out as model may not exist)
+    // const settings = await prisma.companySettings.findFirst();
+    // if (!settings || !settings.description) {
+    //   decisions.push({
+    //     task: {
+    //       type: 'content_update',
+    //       priority: 'high',
+    //       description: 'Description de l\'entreprise manquante',
+    //     },
+    //     action: 'update_company_info',
+    //     reasoning: 'La description de l\'entreprise est essentielle pour le SEO',
+    //     confidence: 0.98,
+    //   });
+    // }
 
     return decisions;
   }
@@ -108,7 +108,7 @@ export class AIManagerService {
 
 Produit:
 - Nom: ${product.name}
-- Référence: ${product.reference}
+- SKU: ${product.sku}
 - Catégorie: ${product.category?.name || 'Non catégorisé'}
 - Prix: ${product.price} €
 
@@ -221,8 +221,8 @@ Génère une description de produit professionnelle, attrayante et optimisée po
       where: {
         status: 'ACTIVE',
         OR: [
-          { imageUrl: null },
-          { imageUrl: { equals: '' } },
+          { images: { isEmpty: true } },
+          { thumbnail: null },
         ],
       },
     });
@@ -343,8 +343,17 @@ Génère une description de produit professionnelle, attrayante et optimisée po
       },
     });
 
-    const conversionRate = recentOrders.length /
-      (await prisma.customer.count({ where: { lastLoginAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } } }));
+    const activeCustomersCount = await prisma.customer.count({
+      where: {
+        status: 'ACTIVE',
+        orders: {
+          some: {
+            createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+          }
+        }
+      }
+    });
+    const conversionRate = activeCustomersCount > 0 ? recentOrders.length / activeCustomersCount : 0;
 
     if (conversionRate < 0.05) {
       decisions.push({

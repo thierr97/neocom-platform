@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import aiManagerController from '../controllers/ai-manager.controller';
-import { authenticateToken, authorizeRoles } from '../middleware/auth.middleware';
+import { authenticateToken, authorizeRoles } from '../middleware/auth';
 
 const router = Router();
 
