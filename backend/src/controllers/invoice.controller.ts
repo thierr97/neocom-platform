@@ -131,6 +131,8 @@ export const createInvoice = async (req: Request, res: Response) => {
             productId: item.productId,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
+            taxRate: getDefaultTaxRate(),
+            discount: item.discount || 0,
             total: item.quantity * item.unitPrice,
           })),
         },
