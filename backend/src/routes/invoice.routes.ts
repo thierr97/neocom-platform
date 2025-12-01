@@ -10,6 +10,7 @@ router.get('/', invoiceController.getAllInvoices);
 router.get('/:id', invoiceController.getInvoiceById);
 router.post('/', invoiceController.createInvoice);
 router.post('/from-order', invoiceController.createInvoiceFromOrder);
+router.post('/from-cart', invoiceController.createInvoiceFromCart);
 router.patch('/:id/status', invoiceController.updateInvoiceStatus);
 router.get('/:id/pdf', invoiceController.generateInvoicePDF);
 router.delete('/:id', invoiceController.deleteInvoice);

@@ -344,3 +344,106 @@ export const generateInvoicePDF = async (req: Request, res: Response) => {
     });
   }
 };
+
+// Create invoice from cart (B2B)
+export const createInvoiceFromCart = async (req: Request, res: Response) => {
+  try {
+    const { customerId, items } = req.body;
+    const userId = (req as any).user.userId;
+
+    if (!customerId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Client requis',
+      });
+    }
+
+    if (!items || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Le panier est vide',
+      });
+    }
+
+    // Load products and calculate amounts
+    let subtotal = 0;
+    const invoiceItems = [];
+
+    for (const item of items) {
+      const product = await prisma.product.findUnique({
+        where: { id: item.productId },
+      });
+
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          message: `Produit ${item.productId} non trouvé`,
+        });
+      }
+
+      const itemTotal = product.price * item.quantity;
+      subtotal += itemTotal;
+
+      invoiceItems.push({
+        productId: product.id,
+        quantity: item.quantity,
+        unitPrice: product.price,
+        total: itemTotal,
+      });
+    }
+
+    const taxAmount = subtotal * (getDefaultTaxRate() / 100);
+    const total = subtotal + taxAmount;
+
+    // Generate invoice number
+    const invoiceNumber = await generateInvoiceNumber();
+
+    // Create invoice
+    const invoice = await prisma.invoice.create({
+      data: {
+        number: invoiceNumber,
+        customerId,
+        userId,
+        status: 'DRAFT',
+        subtotal,
+        tax: taxAmount,
+        taxAmount,
+        total,
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+        items: {
+          create: invoiceItems,
+        },
+      },
+      include: {
+        customer: true,
+        items: {
+          include: {
+            product: true,
+          },
+        },
+      },
+    });
+
+    // Générer automatiquement l'écriture comptable
+    try {
+      await generateSaleInvoiceEntry(invoice.id);
+      console.log(`✅ Écriture comptable générée pour la facture ${invoice.number}`);
+    } catch (error) {
+      console.error('⚠️  Erreur génération écriture comptable:', error);
+      // Ne pas bloquer la création de la facture si l'écriture échoue
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: 'Facture créée depuis le panier avec succès',
+      data: invoice,
+    });
+  } catch (error: any) {
+    console.error('Error creating invoice from cart:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la création de la facture',
+      error: error.message,
+    });
+  }
+};

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { generateQuoteNumber } from '../utils/generateNumber';
 import { PDFService } from '../services/pdf.service';
+import { getDefaultTaxRate } from '../config/tax.config';
 
 const prisma = new PrismaClient();
 
@@ -106,7 +107,7 @@ export const createQuote = async (req: Request, res: Response) => {
       subtotal += item.quantity * item.unitPrice;
     });
 
-    const taxAmount = subtotal * 0.2; // 20% TVA
+    const taxAmount = subtotal * (getDefaultTaxRate() / 100); // TVA Guadeloupe
     const total = subtotal + taxAmount;
 
     // Generate quote number
@@ -342,6 +343,99 @@ export const generateQuotePDF = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la génération du PDF',
+    });
+  }
+};
+
+// Create quote from cart (B2B)
+export const createQuoteFromCart = async (req: Request, res: Response) => {
+  try {
+    const { customerId, items } = req.body;
+    const userId = (req as any).user.userId;
+
+    if (!customerId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Client requis',
+      });
+    }
+
+    if (!items || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Le panier est vide',
+      });
+    }
+
+    // Load products and calculate amounts
+    let subtotal = 0;
+    const quoteItems = [];
+
+    for (const item of items) {
+      const product = await prisma.product.findUnique({
+        where: { id: item.productId },
+      });
+
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          message: `Produit ${item.productId} non trouvé`,
+        });
+      }
+
+      const itemTotal = product.price * item.quantity;
+      subtotal += itemTotal;
+
+      quoteItems.push({
+        productId: product.id,
+        quantity: item.quantity,
+        unitPrice: product.price,
+        total: itemTotal,
+      });
+    }
+
+    const taxAmount = subtotal * (getDefaultTaxRate() / 100);
+    const total = subtotal + taxAmount;
+
+    // Generate quote number
+    const quoteNumber = await generateQuoteNumber();
+
+    // Create quote
+    const quote = await prisma.quote.create({
+      data: {
+        number: quoteNumber,
+        customerId,
+        userId,
+        status: 'DRAFT',
+        subtotal,
+        taxAmount,
+        total,
+        validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+        items: {
+          create: quoteItems,
+        },
+      },
+      include: {
+        customer: true,
+        items: {
+          include: {
+            product: true,
+          },
+        },
+      },
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Devis créé depuis le panier avec succès',
+      data: quote,
+    });
+  } catch (error: any) {
+    console.error('Error creating quote from cart:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la création du devis',
+      error: error.message,
     });
   }
 };
