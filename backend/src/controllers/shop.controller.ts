@@ -34,10 +34,10 @@ export const getPublicProducts = async (req: Request, res: Response) => {
 
       if (selectedCategory) {
         if (selectedCategory.children && selectedCategory.children.length > 0) {
-          // C'est une catégorie parente : inclure tous les produits des sous-catégories
+          // C'est une catégorie parente : inclure tous les produits de la catégorie parente ET des sous-catégories
           const childrenIds = selectedCategory.children.map(child => child.id);
           where.categoryId = {
-            in: childrenIds,
+            in: [category as string, ...childrenIds],
           };
         } else {
           // C'est une sous-catégorie : filtrer normalement
@@ -180,11 +180,11 @@ export const getPublicCategories = async (req: Request, res: Response) => {
       categoryProductCounts.set(cat.id, cat._count.products);
     });
 
-    // Ensuite, pour chaque catégorie parente, additionner les produits de ses sous-catégories
+    // Ensuite, pour chaque catégorie parente, additionner les produits de ses sous-catégories + ses propres produits
     categories.forEach(cat => {
       if (!cat.parentId) {
         // C'est une catégorie parente
-        let totalProducts = 0;
+        let totalProducts = categoryProductCounts.get(cat.id) || 0; // Commencer avec ses propres produits
 
         // Trouver toutes les sous-catégories
         const children = categories.filter(c => c.parentId === cat.id);
