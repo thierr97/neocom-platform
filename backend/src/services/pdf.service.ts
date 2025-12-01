@@ -328,40 +328,41 @@ export class PDFService {
     yPosition: number,
     shippingCost?: number
   ) {
-    const rightCol = 400;
+    const labelCol = 380;
+    const valueCol = 500;
+    const labelWidth = 115;
+    const valueWidth = 80;
 
     // Sous-total
     doc
       .fontSize(10)
       .font('Helvetica')
       .fillColor('#6b7280')
-      .text('Sous-total HT:', rightCol, yPosition, { align: 'right' })
-      .text(this.formatCurrency(subtotal), rightCol + 100, yPosition, { align: 'right' });
+      .text('Sous-total HT:', labelCol, yPosition, { width: labelWidth, align: 'right' })
+      .text(this.formatCurrency(subtotal), valueCol, yPosition, { width: valueWidth, align: 'right' });
 
     yPosition += 20;
 
     // Remise (si applicable)
     if (discount > 0) {
       doc
-        .text('Remise:', rightCol, yPosition, { align: 'right' })
-        .text(`-${this.formatCurrency(discount)}`, rightCol + 100, yPosition, {
-          align: 'right',
-        });
+        .text('Remise:', labelCol, yPosition, { width: labelWidth, align: 'right' })
+        .text(`-${this.formatCurrency(discount)}`, valueCol, yPosition, { width: valueWidth, align: 'right' });
       yPosition += 20;
     }
 
     // Frais de port (si applicable)
     if (shippingCost && shippingCost > 0) {
       doc
-        .text('Frais de port:', rightCol, yPosition, { align: 'right' })
-        .text(this.formatCurrency(shippingCost), rightCol + 100, yPosition, { align: 'right' });
+        .text('Frais de port:', labelCol, yPosition, { width: labelWidth, align: 'right' })
+        .text(this.formatCurrency(shippingCost), valueCol, yPosition, { width: valueWidth, align: 'right' });
       yPosition += 20;
     }
 
     // TVA
     doc
-      .text('TVA:', rightCol, yPosition, { align: 'right' })
-      .text(this.formatCurrency(taxAmount), rightCol + 100, yPosition, { align: 'right' });
+      .text('TVA (8,5%):', labelCol, yPosition, { width: labelWidth, align: 'right' })
+      .text(this.formatCurrency(taxAmount), valueCol, yPosition, { width: valueWidth, align: 'right' });
 
     yPosition += 30;
 
@@ -370,11 +371,11 @@ export class PDFService {
       .fontSize(14)
       .font('Helvetica-Bold')
       .fillColor('#111827')
-      .rect(rightCol - 10, yPosition - 5, 170, 30)
+      .rect(labelCol - 5, yPosition - 5, 215, 30)
       .fill('#e0e7ff')
       .fillColor('#1e40af')
-      .text('Total TTC:', rightCol, yPosition, { align: 'right' })
-      .text(this.formatCurrency(total), rightCol + 100, yPosition, { align: 'right' });
+      .text('Total TTC:', labelCol, yPosition, { width: labelWidth, align: 'right' })
+      .text(this.formatCurrency(total), valueCol, yPosition, { width: valueWidth, align: 'right' });
 
     return yPosition + 40;
   }

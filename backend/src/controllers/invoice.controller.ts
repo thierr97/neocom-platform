@@ -388,6 +388,8 @@ export const createInvoiceFromCart = async (req: Request, res: Response) => {
         productId: product.id,
         quantity: item.quantity,
         unitPrice: product.price,
+        taxRate: getDefaultTaxRate(),
+        discount: 0,
         total: itemTotal,
       });
     }
