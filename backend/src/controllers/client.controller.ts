@@ -5,6 +5,188 @@ import jwt from 'jsonwebtoken';
 
 const prisma = new PrismaClient();
 
+// Client registration
+export const clientRegister = async (req: Request, res: Response) => {
+  try {
+    const {
+      email,
+      firstName,
+      lastName,
+      companyName,
+      phone,
+      mobile,
+      address,
+      addressLine2,
+      city,
+      postalCode,
+      country,
+      type, // 'INDIVIDUAL' or 'COMPANY'
+    } = req.body;
+
+    // Validation
+    if (!email || !firstName || !lastName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email, prénom et nom sont requis',
+      });
+    }
+
+    // Check if customer already exists
+    const existingCustomer = await prisma.customer.findUnique({
+      where: { email },
+    });
+
+    if (existingCustomer) {
+      return res.status(409).json({
+        success: false,
+        message: 'Un compte client existe déjà avec cet email',
+      });
+    }
+
+    // Find or create public user
+    let publicUser = await prisma.user.findFirst({
+      where: { email: 'public@neoserv.com' },
+    });
+
+    if (!publicUser) {
+      publicUser = await prisma.user.create({
+        data: {
+          email: 'public@neoserv.com',
+          password: await bcrypt.hash('public123', 10),
+          role: 'CLIENT',
+          firstName: 'Public',
+          lastName: 'User',
+        },
+      });
+    }
+
+    // Create new customer
+    const customer = await prisma.customer.create({
+      data: {
+        type: type || (companyName ? 'COMPANY' : 'INDIVIDUAL'),
+        email,
+        firstName,
+        lastName,
+        companyName,
+        phone,
+        mobile,
+        address,
+        addressLine2,
+        city,
+        postalCode,
+        country: country || 'France',
+        status: 'ACTIVE',
+        userId: publicUser.id,
+      },
+    });
+
+    // Generate token
+    const token = jwt.sign(
+      { customerId: customer.id, email: customer.email, type: 'customer' },
+      process.env.JWT_SECRET || 'secret',
+      { expiresIn: '7d' }
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: 'Inscription réussie',
+      token,
+      customer: {
+        id: customer.id,
+        email: customer.email,
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        companyName: customer.companyName,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error in client registration:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de l\'inscription',
+      error: error.message,
+    });
+  }
+};
+
+// Client registration/login with Google
+export const clientGoogleAuth = async (req: Request, res: Response) => {
+  try {
+    const { email, firstName, lastName, googleId } = req.body;
+
+    if (!email || !firstName || !lastName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email, prénom et nom sont requis',
+      });
+    }
+
+    // Check if customer exists
+    let customer = await prisma.customer.findUnique({
+      where: { email },
+    });
+
+    if (!customer) {
+      // Find or create public user
+      let publicUser = await prisma.user.findFirst({
+        where: { email: 'public@neoserv.com' },
+      });
+
+      if (!publicUser) {
+        publicUser = await prisma.user.create({
+          data: {
+            email: 'public@neoserv.com',
+            password: await bcrypt.hash('public123', 10),
+            role: 'CLIENT',
+            firstName: 'Public',
+            lastName: 'User',
+          },
+        });
+      }
+
+      // Create new customer
+      customer = await prisma.customer.create({
+        data: {
+          type: 'INDIVIDUAL',
+          email,
+          firstName,
+          lastName,
+          status: 'ACTIVE',
+          userId: publicUser.id,
+          notes: `Inscrit via Google (ID: ${googleId})`,
+        },
+      });
+    }
+
+    // Generate token
+    const token = jwt.sign(
+      { customerId: customer.id, email: customer.email, type: 'customer' },
+      process.env.JWT_SECRET || 'secret',
+      { expiresIn: '7d' }
+    );
+
+    return res.json({
+      success: true,
+      message: 'Connexion réussie',
+      token,
+      customer: {
+        id: customer.id,
+        email: customer.email,
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        companyName: customer.companyName,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error in Google auth:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de l\'authentification Google',
+      error: error.message,
+    });
+  }
+};
+
 // Client login with email
 export const clientLogin = async (req: Request, res: Response) => {
   try {

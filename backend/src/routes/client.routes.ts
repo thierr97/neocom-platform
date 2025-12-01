@@ -4,8 +4,10 @@ import { authenticateClient } from '../middleware/clientAuth';
 
 const router = Router();
 
-// Public route - login
+// Public routes - no authentication required
+router.post('/register', clientController.clientRegister);
 router.post('/login', clientController.clientLogin);
+router.post('/google-auth', clientController.clientGoogleAuth);
 
 // Protected routes - require client authentication
 router.use(authenticateClient);
