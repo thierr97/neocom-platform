@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { getDefaultTaxRate } from '../config/tax.config';
 
 const prisma = new PrismaClient();
 
@@ -317,13 +318,14 @@ export const createPublicOrder = async (req: Request, res: Response) => {
       }
 
       const itemTotal = product.price * item.quantity;
-      const itemTax = itemTotal * (item.taxRate || 20) / 100;
+      const taxRate = item.taxRate || getDefaultTaxRate();
+      const itemTax = itemTotal * taxRate / 100;
 
       orderItems.push({
         productId: product.id,
         quantity: item.quantity,
         unitPrice: product.price,
-        taxRate: item.taxRate || 20,
+        taxRate: taxRate,
         discount: 0,
         total: itemTotal,
       });

@@ -1,3 +1,4 @@
+import { getDefaultTaxRate } from '../config/tax.config';
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { generateInvoiceNumber } from '../utils/generateNumber';
@@ -107,7 +108,7 @@ export const createInvoice = async (req: Request, res: Response) => {
       subtotal += item.quantity * item.unitPrice;
     });
 
-    const taxAmount = subtotal * 0.2; // 20% TVA
+    const taxAmount = subtotal * (getDefaultTaxRate() / 100); // 20% TVA
     const total = subtotal + taxAmount;
 
     // Generate invoice number

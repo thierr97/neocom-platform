@@ -1,3 +1,4 @@
+import { getDefaultTaxRate } from '../config/tax.config';
 import { Response } from 'express';
 import prisma from '../config/database';
 import { AuthRequest } from '../middleware/auth';
@@ -96,7 +97,7 @@ export const createPurchaseInvoice = async (req: AuthRequest, res: Response) => 
     const processedItems = items.map((item: any) => {
       const itemSubtotal = item.quantity * item.unitPrice;
       const itemDiscount = item.discount || 0;
-      const itemTaxRate = item.taxRate || 20;
+      const itemTaxRate = item.taxRate || getDefaultTaxRate();
       const itemTax = (itemSubtotal - itemDiscount) * (itemTaxRate / 100);
       const itemTotal = itemSubtotal - itemDiscount + itemTax;
 
@@ -199,7 +200,7 @@ export const updatePurchaseInvoice = async (req: AuthRequest, res: Response) => 
     const processedItems = items.map((item: any) => {
       const itemSubtotal = item.quantity * item.unitPrice;
       const itemDiscount = item.discount || 0;
-      const itemTaxRate = item.taxRate || 20;
+      const itemTaxRate = item.taxRate || getDefaultTaxRate();
       const itemTax = (itemSubtotal - itemDiscount) * (itemTaxRate / 100);
       const itemTotal = itemSubtotal - itemDiscount + itemTax;
 

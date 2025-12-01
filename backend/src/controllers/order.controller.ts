@@ -3,6 +3,7 @@ import prisma from '../config/database';
 import { AuthRequest } from '../middleware/auth';
 import { generateOrderNumber } from '../utils/generateNumber';
 import { PDFService } from '../services/pdf.service';
+import { getDefaultTaxRate } from '../config/tax.config';
 
 export const getOrders = async (req: AuthRequest, res: Response) => {
   try {
@@ -133,7 +134,8 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
         }
 
         const itemSubtotal = product.price * item.quantity;
-        const itemTax = itemSubtotal * (item.taxRate || 20) / 100;
+        const taxRate = item.taxRate || getDefaultTaxRate();
+        const itemTax = itemSubtotal * taxRate / 100;
         const itemTotal = itemSubtotal + itemTax;
 
         subtotal += itemSubtotal;
@@ -143,7 +145,7 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
           productId: item.productId,
           quantity: item.quantity,
           unitPrice: product.price,
-          taxRate: item.taxRate || 20,
+          taxRate: taxRate,
           discount: item.discount || 0,
           total: itemTotal,
         };
