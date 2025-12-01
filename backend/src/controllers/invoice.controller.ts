@@ -122,7 +122,6 @@ export const createInvoice = async (req: Request, res: Response) => {
         userId,
         status: 'DRAFT',
         subtotal,
-        tax: taxAmount,
         taxAmount,
         total,
         dueDate: dueDate ? new Date(dueDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
@@ -409,7 +408,6 @@ export const createInvoiceFromCart = async (req: Request, res: Response) => {
         userId,
         status: 'DRAFT',
         subtotal,
-        tax: taxAmount,
         taxAmount,
         total,
         dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days

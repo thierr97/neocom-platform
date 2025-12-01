@@ -126,7 +126,6 @@ export const createPurchaseInvoice = async (req: AuthRequest, res: Response) => 
         notes,
         reference,
         subtotal,
-        tax: taxAmount,
         taxAmount,
         discount: discount || 0,
         total,
