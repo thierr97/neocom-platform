@@ -146,14 +146,15 @@ export const createInvoice = async (req: Request, res: Response) => {
       },
     });
 
-    // Générer automatiquement l'écriture comptable
-    try {
-      await generateSaleInvoiceEntry(invoice.id);
-      console.log(`✅ Écriture comptable générée pour la facture ${invoice.number}`);
-    } catch (error) {
-      console.error('⚠️  Erreur génération écriture comptable:', error);
-      // Ne pas bloquer la création de la facture si l'écriture échoue
-    }
+    // Générer automatiquement l'écriture comptable (désactivé temporairement)
+    // Les comptes comptables doivent être configurés d'abord
+    // try {
+    //   await generateSaleInvoiceEntry(invoice.id);
+    //   console.log(`✅ Écriture comptable générée pour la facture ${invoice.number}`);
+    // } catch (error) {
+    //   console.error('⚠️  Erreur génération écriture comptable:', error);
+    //   // Ne pas bloquer la création de la facture si l'écriture échoue
+    // }
 
     return res.status(201).json({
       success: true,
@@ -426,14 +427,15 @@ export const createInvoiceFromCart = async (req: Request, res: Response) => {
       },
     });
 
-    // Générer automatiquement l'écriture comptable
-    try {
-      await generateSaleInvoiceEntry(invoice.id);
-      console.log(`✅ Écriture comptable générée pour la facture ${invoice.number}`);
-    } catch (error) {
-      console.error('⚠️  Erreur génération écriture comptable:', error);
-      // Ne pas bloquer la création de la facture si l'écriture échoue
-    }
+    // Générer automatiquement l'écriture comptable (désactivé temporairement)
+    // Les comptes comptables doivent être configurés d'abord
+    // try {
+    //   await generateSaleInvoiceEntry(invoice.id);
+    //   console.log(`✅ Écriture comptable générée pour la facture ${invoice.number}`);
+    // } catch (error) {
+    //   console.error('⚠️  Erreur génération écriture comptable:', error);
+    //   // Ne pas bloquer la création de la facture si l'écriture échoue
+    // }
 
     return res.status(201).json({
       success: true,
