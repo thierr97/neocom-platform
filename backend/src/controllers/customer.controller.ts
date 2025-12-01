@@ -128,8 +128,8 @@ export const createCustomer = async (req: AuthRequest, res: Response) => {
   try {
     const data = req.body;
 
-    // Si commercial, assigner à lui-même
-    if (req.user!.role === 'COMMERCIAL') {
+    // Assigner le userId de l'utilisateur connecté (commercial ou admin)
+    if (!data.userId) {
       data.userId = req.user!.userId;
     }
 
