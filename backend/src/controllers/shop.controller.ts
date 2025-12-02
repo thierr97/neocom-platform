@@ -515,3 +515,82 @@ export const searchProducts = async (req: Request, res: Response) => {
     });
   }
 };
+
+// Add default subcategory to categories without any (admin only)
+export const addMissingSubcategories = async (req: Request, res: Response) => {
+  try {
+    console.log('🔍 Recherche des catégories sans sous-catégories...');
+
+    // Récupérer toutes les catégories principales (sans parent)
+    const mainCategories = await prisma.category.findMany({
+      where: {
+        parentId: null
+      },
+      include: {
+        children: true,
+        _count: {
+          select: {
+            children: true
+          }
+        }
+      }
+    });
+
+    console.log(`📊 Total de catégories principales: ${mainCategories.length}`);
+
+    const categoriesWithoutSubcats = mainCategories.filter(cat => cat._count.children === 0);
+
+    console.log(`⚠️  Catégories SANS sous-catégories: ${categoriesWithoutSubcats.length}`);
+
+    if (categoriesWithoutSubcats.length === 0) {
+      return res.json({
+        success: true,
+        message: 'Toutes les catégories ont déjà des sous-catégories',
+        categoriesProcessed: 0,
+        details: []
+      });
+    }
+
+    const created = [];
+
+    // Ajouter une sous-catégorie "Général" pour chaque catégorie qui n'en a pas
+    for (const category of categoriesWithoutSubcats) {
+      try {
+        const subcategory = await prisma.category.create({
+          data: {
+            name: 'Général',
+            slug: `${category.slug}-general`,
+            parentId: category.id
+          }
+        });
+
+        console.log(`✅ Sous-catégorie créée pour "${category.name}" (ID: ${subcategory.id})`);
+        created.push({
+          parent: category.name,
+          subcategory: subcategory.name,
+          id: subcategory.id
+        });
+      } catch (error: any) {
+        console.error(`❌ Erreur pour "${category.name}":`, error);
+        created.push({
+          parent: category.name,
+          error: error.message
+        });
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: `${created.length} sous-catégorie(s) "Général" ajoutée(s) avec succès`,
+      categoriesProcessed: created.length,
+      details: created
+    });
+  } catch (error: any) {
+    console.error('Error adding missing subcategories:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de l\'ajout des sous-catégories',
+      error: error.message,
+    });
+  }
+};
