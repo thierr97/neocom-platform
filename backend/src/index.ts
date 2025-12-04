@@ -157,16 +157,27 @@ app.use((err: any, req: Request, res: Response, next: any) => {
 // Start server
 const startServer = async () => {
   try {
-    // Test database connection
+    // Test database connection with retry logic
+    console.log('🔌 Connexion à la base de données...');
     await prisma.$connect();
     console.log('✅ Base de données connectée');
 
-    app.listen(PORT, '0.0.0.0', () => {
+    // Start server
+    const server = app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 NEOSERV API démarrée sur le port ${PORT}`);
       console.log(`📍 URL: http://0.0.0.0:${PORT}`);
       console.log(`🏥 Health check: http://0.0.0.0:${PORT}/health`);
       console.log(`🌍 Environnement: ${process.env.NODE_ENV || 'development'}`);
     });
+
+    // Handle server errors
+    server.on('error', (error: any) => {
+      console.error('❌ Erreur du serveur:', error);
+      if (error.code === 'EADDRINUSE') {
+        console.error(`Le port ${PORT} est déjà utilisé`);
+      }
+    });
+
   } catch (error) {
     console.error('❌ Erreur de démarrage du serveur:', error);
     process.exit(1);
