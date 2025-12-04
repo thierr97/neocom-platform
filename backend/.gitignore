@@ -11,3 +11,4 @@ public/temp/*
 coverage
 .vscode
 .idea
+dist/
