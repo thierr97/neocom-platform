@@ -158,6 +158,9 @@ export const getPublicCategories = async (req: Request, res: Response) => {
   try {
     // Récupérer toutes les catégories avec le compte de leurs produits directs
     const categories = await prisma.category.findMany({
+      where: {
+        isVisible: true, // Only visible categories
+      },
       include: {
         _count: {
           select: {
@@ -590,6 +593,98 @@ export const addMissingSubcategories = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'ajout des sous-catégories',
+      error: error.message,
+    });
+  }
+};
+
+// ========================================
+// VISIBILITY MANAGEMENT (ADMIN ONLY)
+// ========================================
+
+// Toggle product visibility (single or multiple)
+export const toggleProductVisibility = async (req: Request, res: Response) => {
+  try {
+    const { productIds, isVisible } = req.body;
+
+    if (!Array.isArray(productIds) || productIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'productIds doit être un tableau non vide',
+      });
+    }
+
+    if (typeof isVisible !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        message: 'isVisible doit être un booléen',
+      });
+    }
+
+    // Update all products at once
+    const result = await prisma.product.updateMany({
+      where: {
+        id: { in: productIds },
+      },
+      data: {
+        isVisible,
+      },
+    });
+
+    return res.json({
+      success: true,
+      message: `${result.count} produit(s) ${isVisible ? 'affiché(s)' : 'masqué(s)'}`,
+      updatedCount: result.count,
+    });
+  } catch (error: any) {
+    console.error('Error toggling product visibility:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la mise à jour de la visibilité',
+      error: error.message,
+    });
+  }
+};
+
+// Toggle category visibility (single or multiple)
+export const toggleCategoryVisibility = async (req: Request, res: Response) => {
+  try {
+    const { categoryIds, isVisible } = req.body;
+
+    if (!Array.isArray(categoryIds) || categoryIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'categoryIds doit être un tableau non vide',
+      });
+    }
+
+    if (typeof isVisible !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        message: 'isVisible doit être un booléen',
+      });
+    }
+
+    // Update all categories at once
+    const result = await prisma.category.updateMany({
+      where: {
+        id: { in: categoryIds },
+      },
+      data: {
+        isVisible,
+      },
+    });
+
+    return res.json({
+      success: true,
+      message: `${result.count} catégorie(s) ${isVisible ? 'affichée(s)' : 'masquée(s)'}`,
+      updatedCount: result.count,
+    });
+  } catch (error: any) {
+    console.error('Error toggling category visibility:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la mise à jour de la visibilité',
       error: error.message,
     });
   }

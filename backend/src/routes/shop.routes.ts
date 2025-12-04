@@ -14,5 +14,7 @@ router.post('/orders', shopController.createPublicOrder);
 
 // Admin routes (authentication required)
 router.post('/categories/add-missing-subcategories', authenticateToken, requireRole('ADMIN'), shopController.addMissingSubcategories);
+router.post('/products/toggle-visibility', authenticateToken, requireRole('ADMIN'), shopController.toggleProductVisibility);
+router.post('/categories/toggle-visibility', authenticateToken, requireRole('ADMIN'), shopController.toggleCategoryVisibility);
 
 export default router;
