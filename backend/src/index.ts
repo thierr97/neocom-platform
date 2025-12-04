@@ -161,10 +161,10 @@ const startServer = async () => {
     await prisma.$connect();
     console.log('✅ Base de données connectée');
 
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 NEOSERV API démarrée sur le port ${PORT}`);
-      console.log(`📍 URL: http://localhost:${PORT}`);
-      console.log(`🏥 Health check: http://localhost:${PORT}/health`);
+      console.log(`📍 URL: http://0.0.0.0:${PORT}`);
+      console.log(`🏥 Health check: http://0.0.0.0:${PORT}/health`);
       console.log(`🌍 Environnement: ${process.env.NODE_ENV || 'development'}`);
     });
   } catch (error) {
