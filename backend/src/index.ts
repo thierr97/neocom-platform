@@ -54,6 +54,9 @@ const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
   message: 'Trop de requêtes depuis cette IP, veuillez réessayer plus tard.',
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  validate: { trustProxy: false }, // Disable validation for trust proxy - Required for Render
 });
 
 app.use('/api/', limiter);
