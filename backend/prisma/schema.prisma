@@ -58,6 +58,7 @@ model User {
   importHistory   ImportHistory[]
   userPermissions UserPermission[]
   connectionLogs  ConnectionLog[]
+  creditNotes     CreditNote[]
 
   // Metadata
   createdAt   DateTime  @default(now())
@@ -289,6 +290,7 @@ model Product {
   orderItems           OrderItem[]
   quoteItems           QuoteItem[]
   invoiceItems         InvoiceItem[]
+  creditNoteItems      CreditNoteItem[]
   purchaseInvoiceItems PurchaseInvoiceItem[]
   stockMovements       StockMovement[]
   reviews              Review[]
@@ -554,6 +556,9 @@ model Invoice {
   // Payments
   payments Payment[]
 
+  // Credit Notes (Avoirs)
+  creditNotes CreditNote[]
+
   // Metadata
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -578,6 +583,69 @@ model InvoiceItem {
   createdAt DateTime @default(now())
 
   @@map("invoice_items")
+}
+
+// ========================================
+// CREDIT NOTES (AVOIRS)
+// ========================================
+
+enum CreditNoteType {
+  TOTAL    // Avoir total (annule toute la facture)
+  PARTIAL  // Avoir partiel (annule certains produits)
+}
+
+model CreditNote {
+  id        String          @id @default(uuid())
+  number    String          @unique // Ex: AV-2024-001
+  type      CreditNoteType  @default(TOTAL)
+  reason    String?         // Motif de l'avoir
+
+  // Relation avec la facture d'origine
+  invoiceId String
+  invoice   Invoice         @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  // Commercial qui a créé l'avoir
+  userId    String
+  user      User            @relation(fields: [userId], references: [id])
+
+  // Items concernés par l'avoir
+  items     CreditNoteItem[]
+
+  // Montants
+  subtotal   Float          @default(0)
+  taxAmount  Float          @default(0)
+  total      Float          @default(0)
+
+  // Notes
+  notes      String?
+
+  // PDF
+  pdfUrl     String?
+
+  // Metadata
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  @@map("credit_notes")
+}
+
+model CreditNoteItem {
+  id            String      @id @default(uuid())
+  creditNoteId  String
+  creditNote    CreditNote  @relation(fields: [creditNoteId], references: [id], onDelete: Cascade)
+
+  productId     String
+  product       Product     @relation(fields: [productId], references: [id])
+
+  quantity      Int
+  unitPrice     Float
+  taxRate       Float       @default(20)
+  discount      Float       @default(0)
+  total         Float
+
+  createdAt     DateTime    @default(now())
+
+  @@map("credit_note_items")
 }
 
 // ========================================
