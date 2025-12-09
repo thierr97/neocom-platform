@@ -113,28 +113,28 @@ interface Invoice {
   termsConditions?: string;
 }
 
-// Configuration de l'entreprise (à personnaliser)
+// Configuration de l'entreprise (à personnaliser via variables d'environnement)
 const COMPANY_INFO: Company = {
-  name: 'NEOSERV',
-  address: 'Route de Montauban',
-  city: 'Abymes',
-  zipCode: '97139',
-  country: 'Guadeloupe',
-  phone: '0690 973710',
-  email: 'contact@neoserv.fr',
-  siret: '901381062000015',
-  vatNumber: 'FR60901381060',
+  name: process.env.COMPANY_NAME || 'NEOSERV',
+  address: process.env.COMPANY_ADDRESS || '123 Avenue des Champs-Élysées',
+  city: process.env.COMPANY_CITY || 'Paris',
+  zipCode: process.env.COMPANY_ZIP || '75008',
+  country: process.env.COMPANY_COUNTRY || 'France',
+  phone: process.env.COMPANY_PHONE || '+33 1 23 45 67 89',
+  email: process.env.COMPANY_EMAIL || 'contact@neoserv.fr',
+  siret: process.env.COMPANY_SIRET || '123 456 789 00012',
+  vatNumber: process.env.COMPANY_VAT || 'FR12345678900',
 };
 
-// Informations bancaires (RIB)
+// Informations bancaires (RIB) - à configurer via variables d'environnement
 const BANK_INFO = {
-  bankCode: process.env.BANK_CODE || '10107',
-  branchCode: process.env.BRANCH_CODE || '00476',
-  accountNumber: process.env.ACCOUNT_NUMBER || '00134086952',
-  accountKey: process.env.ACCOUNT_KEY || '94',
-  bic: process.env.BIC_CODE || 'FRBR1019700476001340869294',
-  iban: process.env.IBAN_CODE || 'FR26 1010 7004 7600 1340 8695 294',
-  accountHolder: process.env.ACCOUNT_HOLDER || 'LES 4 AS',
+  bankCode: process.env.BANK_CODE || '',
+  branchCode: process.env.BRANCH_CODE || '',
+  accountNumber: process.env.ACCOUNT_NUMBER || '',
+  accountKey: process.env.ACCOUNT_KEY || '',
+  bic: process.env.BIC_CODE || '',
+  iban: process.env.IBAN_CODE || '',
+  accountHolder: process.env.ACCOUNT_HOLDER || process.env.COMPANY_NAME || 'NEOSERV',
 };
 
 export class PDFService {
@@ -177,13 +177,17 @@ export class PDFService {
       .fontSize(24)
       .font('Helvetica-Bold')
       .fillColor('#000000')
-      .text('NEOSERV', 50, 50);
+      .text(COMPANY_INFO.name, 50, 50);
 
-    doc
-      .fontSize(9)
-      .font('Helvetica')
-      .fillColor('#000000')
-      .text('GUADELOUPE', 50, 80);
+    // Tagline/Subtitle (optionnel)
+    const companyTagline = process.env.COMPANY_TAGLINE || COMPANY_INFO.country.toUpperCase();
+    if (companyTagline) {
+      doc
+        .fontSize(9)
+        .font('Helvetica')
+        .fillColor('#000000')
+        .text(companyTagline, 50, 80);
+    }
 
     // DROITE - Informations du document
     const rightX = 400;
@@ -251,11 +255,14 @@ export class PDFService {
       .fillColor('#000000')
       .text('Émetteur', leftBoxX + 5, boxTop + 5);
 
+    const companyType = process.env.COMPANY_TYPE || '';
+    const companyFullName = companyType ? `${companyType} ${COMPANY_INFO.name}` : COMPANY_INFO.name;
+
     doc
       .fontSize(9)
       .font('Helvetica')
       .fillColor('#000000')
-      .text(`SAS ${COMPANY_INFO.name}`, leftBoxX + 5, boxTop + 22)
+      .text(companyFullName, leftBoxX + 5, boxTop + 22)
       .text(COMPANY_INFO.address, leftBoxX + 5, boxTop + 35)
       .text(`${COMPANY_INFO.zipCode} ${COMPANY_INFO.city}`, leftBoxX + 5, boxTop + 48)
       .text(COMPANY_INFO.country, leftBoxX + 5, boxTop + 61)
@@ -573,14 +580,32 @@ export class PDFService {
     yPosition += 40;
 
     // Mentions légales
+    const companyType = process.env.COMPANY_TYPE || '';
+    const companyTypeLong = process.env.COMPANY_TYPE_LONG || '';
+    const companyCapital = process.env.COMPANY_CAPITAL || '';
+    const companyNaf = process.env.COMPANY_NAF || '';
+
     doc
       .fontSize(7)
       .font('Helvetica')
       .fillColor('#666666')
       .text(`Nom du propriétaire du compte: ${BANK_INFO.accountHolder}`, 50, yPosition)
-      .text(`N° d'identification au registre du commerce: SIRET ${COMPANY_INFO.siret}`, 50, yPosition + 10)
-      .text(`NAF-APE: 93.293 - Numéro TVA: ${COMPANY_INFO.vatNumber}`, 50, yPosition + 20)
-      .text(`Société par actions simplifiée (SAS) - Capital de 10 000 €`, 50, yPosition + 30);
+      .text(`N° d'identification au registre du commerce: SIRET ${COMPANY_INFO.siret}`, 50, yPosition + 10);
+
+    let legalY = yPosition + 20;
+
+    // NAF-APE et TVA
+    if (companyNaf) {
+      doc.text(`NAF-APE: ${companyNaf} - Numéro TVA: ${COMPANY_INFO.vatNumber}`, 50, legalY);
+    } else {
+      doc.text(`Numéro TVA: ${COMPANY_INFO.vatNumber}`, 50, legalY);
+    }
+    legalY += 10;
+
+    // Type de société et capital
+    if (companyTypeLong && companyCapital) {
+      doc.text(`${companyTypeLong} (${companyType}) - Capital de ${companyCapital}`, 50, legalY);
+    }
 
     return yPosition + 50;
   }
