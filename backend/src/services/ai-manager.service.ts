@@ -130,7 +130,7 @@ Génère une description de produit professionnelle, attrayante et optimisée po
 - En français`;
 
     const message = await this.anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-3-5-sonnet-20240620',
       max_tokens: 1024,
       messages: [
         {
@@ -427,7 +427,7 @@ Statistiques:
 Donne des recommandations prioritaires, chiffrées et actionnables en français.`;
 
     const message = await this.anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-3-5-sonnet-20240620',
       max_tokens: 2048,
       messages: [
         {
