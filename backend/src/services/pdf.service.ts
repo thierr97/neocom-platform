@@ -701,7 +701,7 @@ export class PDFService {
     doc.end();
   }
 
-  static generateDeliveryNotePDF(order: Order, res: Response) {
+  static generateDeliveryNotePDF(order: Order, companySettings: CompanySettings, res: Response) {
     const doc = new PDFDocument({ margin: 50 });
 
     res.setHeader('Content-Type', 'application/pdf');
@@ -712,26 +712,49 @@ export class PDFService {
 
     doc.pipe(res);
 
-    // En-tête simple
+    // En-tête avec informations de l'entreprise
     doc
-      .fontSize(24)
+      .fontSize(14)
       .font('Helvetica-Bold')
       .fillColor('#000000')
-      .text('BON DE LIVRAISON', 50, 50);
+      .text(companySettings.name, 50, 50);
+
+    let yPos = 68;
+    doc.fontSize(9).font('Helvetica');
+
+    if (companySettings.address) {
+      doc.text(companySettings.address, 50, yPos);
+      yPos += 12;
+    }
+    if (companySettings.postalCode && companySettings.city) {
+      doc.text(`${companySettings.postalCode} ${companySettings.city}`, 50, yPos);
+      yPos += 12;
+    }
+    if (companySettings.siret) {
+      doc.text(`SIRET: ${companySettings.siret}`, 50, yPos);
+      yPos += 12;
+    }
+
+    // Titre et numéro du document à droite
+    doc
+      .fontSize(20)
+      .font('Helvetica-Bold')
+      .fillColor('#000000')
+      .text('BON DE LIVRAISON', 300, 50, { align: 'right' });
 
     doc
       .fontSize(10)
       .font('Helvetica')
-      .text(`Numéro: ${order.number}`, 350, 50, { align: 'right' })
-      .text(`Date: ${this.formatDate(order.createdAt)}`, 350, 65, { align: 'right' });
+      .text(`Numéro: ${order.number}`, 300, 75, { align: 'right' })
+      .text(`Date: ${this.formatDate(order.createdAt)}`, 300, 90, { align: 'right' });
 
     // Adresse de livraison
     doc
       .fontSize(12)
       .font('Helvetica-Bold')
-      .text('Adresse de livraison', 50, 120);
+      .text('Adresse de livraison', 50, 140);
 
-    let yPosition = 140;
+    let yPosition = 160;
     doc.fontSize(10).font('Helvetica');
 
     if (order.customer.type === 'COMPANY') {

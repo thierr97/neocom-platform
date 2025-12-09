@@ -4,6 +4,7 @@ import { AuthRequest } from '../middleware/auth';
 import { generateOrderNumber } from '../utils/generateNumber';
 import { PDFService } from '../services/pdf.service';
 import { getDefaultTaxRate } from '../config/tax.config';
+import { getCompanySettings } from '../utils/getCompanySettings';
 
 export const getOrders = async (req: AuthRequest, res: Response) => {
   try {
@@ -318,8 +319,11 @@ export const generateDeliveryNotePDF = async (req: AuthRequest, res: Response) =
       });
     }
 
-    // Generate PDF
-    PDFService.generateDeliveryNotePDF(order, res);
+    // Charger les paramètres de l'entreprise depuis la base de données
+    const companySettings = await getCompanySettings();
+
+    // Generate PDF avec les settings dynamiques
+    PDFService.generateDeliveryNotePDF(order, companySettings, res);
   } catch (error: any) {
     console.error('Error in generateDeliveryNotePDF:', error);
     res.status(500).json({
