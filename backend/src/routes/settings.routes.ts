@@ -19,6 +19,15 @@ router.get('/company', async (req: AuthRequest, res: Response) => {
       }
     });
 
+    // Récupérer les informations bancaires
+    const bankSettings = await prisma.settings.findMany({
+      where: {
+        key: {
+          startsWith: 'bank_'
+        }
+      }
+    });
+
     // Transformer en objet
     const company: any = {};
     companySettings.forEach(setting => {
@@ -26,9 +35,17 @@ router.get('/company', async (req: AuthRequest, res: Response) => {
       company[key] = setting.value;
     });
 
+    // Ajouter les informations bancaires
+    const bank: any = {};
+    bankSettings.forEach(setting => {
+      const key = setting.key.replace('bank_', '');
+      bank[key] = setting.value;
+    });
+
     res.json({
       success: true,
-      company
+      company,
+      bank
     });
 
   } catch (error: any) {
@@ -49,7 +66,7 @@ router.put('/company', authenticateToken, requireRole('ADMIN'), async (req: Auth
   try {
     const updates = req.body;
 
-    // Liste des champs autorisés
+    // Liste des champs autorisés pour company_
     const allowedFields = [
       'name',
       'legalForm',
@@ -70,7 +87,18 @@ router.put('/company', authenticateToken, requireRole('ADMIN'), async (req: Auth
       'description'
     ];
 
-    // Mettre à jour chaque champ
+    // Liste des champs bancaires autorisés pour bank_
+    const allowedBankFields = [
+      'bankCode',
+      'branchCode',
+      'accountNumber',
+      'accountKey',
+      'bic',
+      'iban',
+      'accountHolder'
+    ];
+
+    // Mettre à jour les champs de l'entreprise
     for (const [key, value] of Object.entries(updates)) {
       if (allowedFields.includes(key)) {
         await prisma.settings.upsert({
@@ -87,6 +115,22 @@ router.put('/company', authenticateToken, requireRole('ADMIN'), async (req: Auth
             type: 'string'
           }
         });
+      } else if (allowedBankFields.includes(key)) {
+        // Sauvegarder les champs bancaires avec le préfixe bank_
+        await prisma.settings.upsert({
+          where: {
+            key: `bank_${key}`
+          },
+          update: {
+            value: String(value),
+            updatedAt: new Date()
+          },
+          create: {
+            key: `bank_${key}`,
+            value: String(value),
+            type: 'string'
+          }
+        });
       }
     }
 
@@ -99,16 +143,32 @@ router.put('/company', authenticateToken, requireRole('ADMIN'), async (req: Auth
       }
     });
 
+    // Récupérer les informations bancaires
+    const bankSettings = await prisma.settings.findMany({
+      where: {
+        key: {
+          startsWith: 'bank_'
+        }
+      }
+    });
+
     const company: any = {};
     companySettings.forEach(setting => {
       const key = setting.key.replace('company_', '');
       company[key] = setting.value;
     });
 
+    const bank: any = {};
+    bankSettings.forEach(setting => {
+      const key = setting.key.replace('bank_', '');
+      bank[key] = setting.value;
+    });
+
     res.json({
       success: true,
       message: 'Informations mises à jour avec succès',
-      company
+      company,
+      bank
     });
 
   } catch (error: any) {

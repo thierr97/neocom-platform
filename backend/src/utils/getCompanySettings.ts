@@ -83,8 +83,7 @@ export async function getCompanySettings(): Promise<CompanySettings> {
 
 /**
  * Récupère les informations bancaires (RIB)
- * Pour l'instant on utilise les variables d'environnement
- * On pourrait aussi les stocker en BDD si nécessaire
+ * Charge depuis la base de données avec fallback sur les variables d'environnement
  */
 export interface BankInfo {
   bankCode: string;
@@ -97,15 +96,44 @@ export interface BankInfo {
 }
 
 export async function getBankInfo(): Promise<BankInfo> {
-  // Pour l'instant on utilise les variables d'environnement
-  // On pourrait aussi les récupérer depuis Settings si besoin
-  return {
-    bankCode: process.env.BANK_CODE || '',
-    branchCode: process.env.BRANCH_CODE || '',
-    accountNumber: process.env.ACCOUNT_NUMBER || '',
-    accountKey: process.env.ACCOUNT_KEY || '',
-    bic: process.env.BIC_CODE || '',
-    iban: process.env.IBAN_CODE || '',
-    accountHolder: process.env.ACCOUNT_HOLDER || process.env.COMPANY_NAME || 'NEOSERV',
-  };
+  try {
+    // Récupérer tous les settings qui commencent par "bank_"
+    const settingsFromDb = await prisma.settings.findMany({
+      where: {
+        key: {
+          startsWith: 'bank_'
+        }
+      }
+    });
+
+    // Convertir en objet
+    const settingsObj: any = {};
+    settingsFromDb.forEach(setting => {
+      const key = setting.key.replace('bank_', '');
+      settingsObj[key] = setting.value;
+    });
+
+    // Retourner avec valeurs par défaut si besoin
+    return {
+      bankCode: settingsObj.bankCode || process.env.BANK_CODE || '',
+      branchCode: settingsObj.branchCode || process.env.BRANCH_CODE || '',
+      accountNumber: settingsObj.accountNumber || process.env.ACCOUNT_NUMBER || '',
+      accountKey: settingsObj.accountKey || process.env.ACCOUNT_KEY || '',
+      bic: settingsObj.bic || process.env.BIC_CODE || '',
+      iban: settingsObj.iban || process.env.IBAN_CODE || '',
+      accountHolder: settingsObj.accountHolder || process.env.ACCOUNT_HOLDER || process.env.COMPANY_NAME || 'NEOSERV',
+    };
+  } catch (error) {
+    console.error('Error fetching bank info:', error);
+    // Retourner les valeurs par défaut en cas d'erreur
+    return {
+      bankCode: process.env.BANK_CODE || '',
+      branchCode: process.env.BRANCH_CODE || '',
+      accountNumber: process.env.ACCOUNT_NUMBER || '',
+      accountKey: process.env.ACCOUNT_KEY || '',
+      bic: process.env.BIC_CODE || '',
+      iban: process.env.IBAN_CODE || '',
+      accountHolder: process.env.ACCOUNT_HOLDER || process.env.COMPANY_NAME || 'NEOSERV',
+    };
+  }
 }
