@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { generateQuoteNumber } from '../utils/generateNumber';
 import { PDFService } from '../services/pdf.service';
 import { getDefaultTaxRate } from '../config/tax.config';
+import { getCompanySettings, getBankInfo } from '../utils/getCompanySettings';
 
 const prisma = new PrismaClient();
 
@@ -338,8 +339,12 @@ export const generateQuotePDF = async (req: Request, res: Response) => {
       });
     }
 
-    // Generate PDF
-    PDFService.generateQuotePDF(quote, res);
+    // Charger les paramètres de l'entreprise depuis la base de données
+    const companySettings = await getCompanySettings();
+    const bankInfo = await getBankInfo();
+
+    // Generate PDF avec les settings dynamiques
+    PDFService.generateQuotePDF(quote, companySettings, bankInfo, res);
   } catch (error: any) {
     console.error('Error generating quote PDF:', error);
     return res.status(500).json({

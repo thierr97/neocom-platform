@@ -2,6 +2,7 @@ import PDFDocument from 'pdfkit';
 import fs from 'fs';
 import path from 'path';
 import { Response } from 'express';
+import { CompanySettings, BankInfo } from '../utils/getCompanySettings';
 
 interface Company {
   name: string;
@@ -113,29 +114,8 @@ interface Invoice {
   termsConditions?: string;
 }
 
-// Configuration de l'entreprise (à personnaliser via variables d'environnement)
-const COMPANY_INFO: Company = {
-  name: process.env.COMPANY_NAME || 'NEOSERV',
-  address: process.env.COMPANY_ADDRESS || '123 Avenue des Champs-Élysées',
-  city: process.env.COMPANY_CITY || 'Paris',
-  zipCode: process.env.COMPANY_ZIP || '75008',
-  country: process.env.COMPANY_COUNTRY || 'France',
-  phone: process.env.COMPANY_PHONE || '+33 1 23 45 67 89',
-  email: process.env.COMPANY_EMAIL || 'contact@neoserv.fr',
-  siret: process.env.COMPANY_SIRET || '123 456 789 00012',
-  vatNumber: process.env.COMPANY_VAT || 'FR12345678900',
-};
-
-// Informations bancaires (RIB) - à configurer via variables d'environnement
-const BANK_INFO = {
-  bankCode: process.env.BANK_CODE || '',
-  branchCode: process.env.BRANCH_CODE || '',
-  accountNumber: process.env.ACCOUNT_NUMBER || '',
-  accountKey: process.env.ACCOUNT_KEY || '',
-  bic: process.env.BIC_CODE || '',
-  iban: process.env.IBAN_CODE || '',
-  accountHolder: process.env.ACCOUNT_HOLDER || process.env.COMPANY_NAME || 'NEOSERV',
-};
+// Les informations de l'entreprise et bancaires sont maintenant passées dynamiquement
+// depuis la base de données via getCompanySettings() et getBankInfo()
 
 export class PDFService {
   private static formatCurrency(amount: number): string {
@@ -165,6 +145,7 @@ export class PDFService {
    */
   private static addNewHeader(
     doc: PDFKit.PDFDocument,
+    companySettings: CompanySettings,
     documentType: 'DEVIS' | 'FACTURE',
     documentNumber: string,
     issueDate: Date,
@@ -177,10 +158,10 @@ export class PDFService {
       .fontSize(24)
       .font('Helvetica-Bold')
       .fillColor('#000000')
-      .text(COMPANY_INFO.name, 50, 50);
+      .text(companySettings.name, 50, 50);
 
     // Tagline/Subtitle (optionnel)
-    const companyTagline = process.env.COMPANY_TAGLINE || COMPANY_INFO.country.toUpperCase();
+    const companyTagline = process.env.COMPANY_TAGLINE || companySettings.country.toUpperCase();
     if (companyTagline) {
       doc
         .fontSize(9)
@@ -251,6 +232,7 @@ export class PDFService {
    */
   private static addEmitterAndClientBoxes(
     doc: PDFKit.PDFDocument,
+    companySettings: CompanySettings,
     customer: Customer,
     yPosition: number
   ): number {
@@ -272,17 +254,17 @@ export class PDFService {
       .text('Émetteur', leftBoxX + 5, boxTop + 5);
 
     const companyType = process.env.COMPANY_TYPE || '';
-    const companyFullName = companyType ? `${companyType} ${COMPANY_INFO.name}` : COMPANY_INFO.name;
+    const companyFullName = companyType ? `${companyType} ${companySettings.name}` : companySettings.name;
 
     doc
       .fontSize(9)
       .font('Helvetica')
       .fillColor('#000000')
       .text(companyFullName, leftBoxX + 5, boxTop + 22)
-      .text(COMPANY_INFO.address, leftBoxX + 5, boxTop + 35)
-      .text(`${COMPANY_INFO.zipCode} ${COMPANY_INFO.city}`, leftBoxX + 5, boxTop + 48)
-      .text(COMPANY_INFO.country, leftBoxX + 5, boxTop + 61)
-      .text(`Tél.: ${COMPANY_INFO.phone}`, leftBoxX + 5, boxTop + 78);
+      .text(companySettings.address, leftBoxX + 5, boxTop + 35)
+      .text(`${companySettings.postalCode} ${companySettings.city}`, leftBoxX + 5, boxTop + 48)
+      .text(companySettings.country, leftBoxX + 5, boxTop + 61)
+      .text(`Tél.: ${companySettings.phone}`, leftBoxX + 5, boxTop + 78);
 
     // DROITE - Client (encadré avec bordure noire)
     doc
@@ -536,7 +518,7 @@ export class PDFService {
   /**
    * RIB (Relevé d'Identité Bancaire) en bas du document
    */
-  private static addBankDetails(doc: PDFKit.PDFDocument, yPosition: number): number {
+  private static addBankDetails(doc: PDFKit.PDFDocument, companySettings: CompanySettings, bankInfo: BankInfo, yPosition: number): number {
     doc
       .fontSize(9)
       .font('Helvetica-Bold')
@@ -566,13 +548,13 @@ export class PDFService {
     // Valeurs
     xPos = startX;
     doc.font('Helvetica');
-    doc.text(BANK_INFO.bankCode, xPos, yPosition, { width: colWidths[0], align: 'center' });
+    doc.text(bankInfo.bankCode, xPos, yPosition, { width: colWidths[0], align: 'center' });
     xPos += colWidths[0];
-    doc.text(BANK_INFO.branchCode, xPos, yPosition, { width: colWidths[1], align: 'center' });
+    doc.text(bankInfo.branchCode, xPos, yPosition, { width: colWidths[1], align: 'center' });
     xPos += colWidths[1];
-    doc.text(BANK_INFO.accountNumber, xPos, yPosition, { width: colWidths[2], align: 'center' });
+    doc.text(bankInfo.accountNumber, xPos, yPosition, { width: colWidths[2], align: 'center' });
     xPos += colWidths[2];
-    doc.text(BANK_INFO.accountKey, xPos, yPosition, { width: colWidths[3], align: 'center' });
+    doc.text(bankInfo.accountKey, xPos, yPosition, { width: colWidths[3], align: 'center' });
 
     yPosition += 20;
 
@@ -584,8 +566,8 @@ export class PDFService {
     doc
       .fontSize(8)
       .font('Helvetica-Bold')
-      .text(`Code BIC: ${BANK_INFO.bic}`, 55, yPosition + 5)
-      .text(`Code IBAN: ${BANK_INFO.iban}`, 55, yPosition + 18);
+      .text(`Code BIC: ${bankInfo.bic}`, 55, yPosition + 5)
+      .text(`Code IBAN: ${bankInfo.iban}`, 55, yPosition + 18);
 
     yPosition += 40;
 
@@ -599,16 +581,16 @@ export class PDFService {
       .fontSize(7)
       .font('Helvetica')
       .fillColor('#666666')
-      .text(`Nom du propriétaire du compte: ${BANK_INFO.accountHolder}`, 50, yPosition)
-      .text(`N° d'identification au registre du commerce: SIRET ${COMPANY_INFO.siret}`, 50, yPosition + 10);
+      .text(`Nom du propriétaire du compte: ${bankInfo.accountHolder}`, 50, yPosition)
+      .text(`N° d'identification au registre du commerce: SIRET ${companySettings.siret}`, 50, yPosition + 10);
 
     let legalY = yPosition + 20;
 
     // NAF-APE et TVA
     if (companyNaf) {
-      doc.text(`NAF-APE: ${companyNaf} - Numéro TVA: ${COMPANY_INFO.vatNumber}`, 50, legalY);
+      doc.text(`NAF-APE: ${companyNaf} - Numéro TVA: ${companySettings.vatNumber}`, 50, legalY);
     } else {
-      doc.text(`Numéro TVA: ${COMPANY_INFO.vatNumber}`, 50, legalY);
+      doc.text(`Numéro TVA: ${companySettings.vatNumber}`, 50, legalY);
     }
     legalY += 10;
 
@@ -620,7 +602,7 @@ export class PDFService {
     return yPosition + 50;
   }
 
-  static generateQuotePDF(quote: Quote, res: Response) {
+  static generateQuotePDF(quote: Quote, companySettings: CompanySettings, bankInfo: BankInfo, res: Response) {
     const doc = new PDFDocument({ margin: 50, size: 'A4' });
 
     // Headers pour le téléchargement
@@ -632,6 +614,7 @@ export class PDFService {
     // En-tête avec informations du devis
     this.addNewHeader(
       doc,
+      companySettings,
       'DEVIS',
       quote.number,
       quote.createdAt,
@@ -641,7 +624,7 @@ export class PDFService {
     );
 
     // Émetteur et Client (boîtes côte à côte)
-    let yPosition = this.addEmitterAndClientBoxes(doc, quote.customer, 140);
+    let yPosition = this.addEmitterAndClientBoxes(doc, companySettings, quote.customer, 140);
 
     // Titre de section
     const validUntilStr = quote.validUntil ? this.formatDateLong(quote.validUntil) : '';
@@ -664,12 +647,12 @@ export class PDFService {
     yPosition = this.addPaymentConditions(doc, yPosition);
 
     // RIB en bas
-    this.addBankDetails(doc, yPosition);
+    this.addBankDetails(doc, companySettings, bankInfo, yPosition);
 
     doc.end();
   }
 
-  static generateInvoicePDF(invoice: Invoice, res: Response) {
+  static generateInvoicePDF(invoice: Invoice, companySettings: CompanySettings, bankInfo: BankInfo, res: Response) {
     const doc = new PDFDocument({ margin: 50, size: 'A4' });
 
     res.setHeader('Content-Type', 'application/pdf');
@@ -680,6 +663,7 @@ export class PDFService {
     // En-tête avec informations de la facture
     this.addNewHeader(
       doc,
+      companySettings,
       'FACTURE',
       invoice.number,
       invoice.issueDate,
@@ -689,7 +673,7 @@ export class PDFService {
     );
 
     // Émetteur et Client (boîtes côte à côte)
-    let yPosition = this.addEmitterAndClientBoxes(doc, invoice.customer, 140);
+    let yPosition = this.addEmitterAndClientBoxes(doc, companySettings, invoice.customer, 140);
 
     // Titre de section
     yPosition = this.addSectionTitle(doc, `LOCATION DU ${this.formatDateLong(invoice.issueDate)}`, yPosition);
@@ -712,7 +696,7 @@ export class PDFService {
     yPosition = this.addPaymentConditions(doc, yPosition);
 
     // RIB en bas
-    this.addBankDetails(doc, yPosition);
+    this.addBankDetails(doc, companySettings, bankInfo, yPosition);
 
     doc.end();
   }

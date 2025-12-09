@@ -4,6 +4,7 @@ import { PrismaClient } from '@prisma/client';
 import { generateInvoiceNumber } from '../utils/generateNumber';
 import { PDFService } from '../services/pdf.service';
 import { generateSaleInvoiceEntry, generatePaymentReceivedEntry } from '../services/auto-accounting.service';
+import { getCompanySettings, getBankInfo } from '../utils/getCompanySettings';
 
 const prisma = new PrismaClient();
 
@@ -336,8 +337,12 @@ export const generateInvoicePDF = async (req: Request, res: Response) => {
       });
     }
 
-    // Generate PDF
-    PDFService.generateInvoicePDF(invoice, res);
+    // Charger les paramètres de l'entreprise depuis la base de données
+    const companySettings = await getCompanySettings();
+    const bankInfo = await getBankInfo();
+
+    // Generate PDF avec les settings dynamiques
+    PDFService.generateInvoicePDF(invoice, companySettings, bankInfo, res);
   } catch (error: any) {
     console.error('Error generating invoice PDF:', error);
     return res.status(500).json({
