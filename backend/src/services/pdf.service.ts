@@ -190,15 +190,19 @@ export class PDFService {
     }
 
     // DROITE - Informations du document
-    const rightX = 400;
+    const rightX = 320;
+    const rightWidth = 225;
     let rightY = 50;
 
-    // Type de document + Numéro
+    // Type de document + Numéro (aligné à droite)
     doc
       .fontSize(14)
       .font('Helvetica-Bold')
       .fillColor('#000000')
-      .text(`${documentType} ${documentNumber}`, rightX, rightY, { align: 'left' });
+      .text(`${documentType} ${documentNumber}`, rightX, rightY, {
+        width: rightWidth,
+        align: 'right'
+      });
 
     rightY += 20;
 
@@ -206,25 +210,37 @@ export class PDFService {
     doc
       .fontSize(10)
       .font('Helvetica')
-      .text(`Date facturation : ${this.formatDateLong(issueDate)}`, rightX, rightY, { align: 'left' });
+      .text(`Date facturation : ${this.formatDateLong(issueDate)}`, rightX, rightY, {
+        width: rightWidth,
+        align: 'right'
+      });
 
     rightY += 15;
 
     // Date d'échéance (factures uniquement)
     if (dueDate) {
-      doc.text(`Date échéance : ${this.formatDateLong(dueDate)}`, rightX, rightY, { align: 'left' });
+      doc.text(`Date échéance : ${this.formatDateLong(dueDate)}`, rightX, rightY, {
+        width: rightWidth,
+        align: 'right'
+      });
       rightY += 15;
     }
 
     // Valable jusqu'au (devis uniquement)
     if (validUntil) {
-      doc.text(`Valable jusqu'au : ${this.formatDateLong(validUntil)}`, rightX, rightY, { align: 'left' });
+      doc.text(`Valable jusqu'au : ${this.formatDateLong(validUntil)}`, rightX, rightY, {
+        width: rightWidth,
+        align: 'right'
+      });
       rightY += 15;
     }
 
     // Code client (si disponible)
     if (customerCode) {
-      doc.text(`Code client : ${customerCode}`, rightX, rightY, { align: 'left' });
+      doc.text(`Code client : ${customerCode}`, rightX, rightY, {
+        width: rightWidth,
+        align: 'right'
+      });
     }
 
     return doc;
@@ -354,12 +370,6 @@ export class PDFService {
       });
       xPos += colWidths[i];
     });
-
-    // Texte "Montants exprimés en Euros" dans l'en-tête à droite
-    doc
-      .fontSize(7)
-      .font('Helvetica')
-      .text('Montants exprimés en Euros', startX + 300, tableTop + 5);
 
     // Ligne en dessous de l'en-tête
     yPosition = tableTop + 20;
