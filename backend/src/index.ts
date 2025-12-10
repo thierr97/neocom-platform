@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import prisma from './config/database';
+import { initializeWebSocket } from './services/tracking.service';
 
 // Routes
 import authRoutes from './routes/auth.routes';
@@ -24,6 +25,7 @@ import importRoutes from './routes/import.routes';
 import exportRoutes from './routes/export.routes';
 import gpsRoutes from './routes/gps.routes';
 import tripRoutes from './routes/trip.routes';
+import trackingRoutes from './routes/tracking.routes';
 import rbacRoutes from './routes/rbac.routes';
 import activityRoutes from './routes/activity.routes';
 import shopRoutes from './routes/shop.routes';
@@ -128,6 +130,7 @@ app.use('/api/import', importRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/gps', gpsRoutes);
 app.use('/api', tripRoutes);
+app.use('/api', trackingRoutes);
 app.use('/api/rbac', rbacRoutes);
 app.use('/api/activities', activityRoutes);
 app.use('/api/shop', shopRoutes);
@@ -173,6 +176,10 @@ const startServer = async () => {
       console.log(`🏥 Health check: http://0.0.0.0:${PORT}/health`);
       console.log(`🌍 Environnement: ${process.env.NODE_ENV || 'development'}`);
     });
+
+    // Initialize WebSocket server for real-time GPS tracking
+    initializeWebSocket(server);
+    console.log('🔌 WebSocket server initialized for real-time tracking');
 
     // Handle server errors
     server.on('error', (error: any) => {
