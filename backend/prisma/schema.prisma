@@ -134,6 +134,8 @@ model Customer {
   city         String?
   postalCode   String?
   country      String? @default("France")
+  latitude     Float? // Latitude GPS pour affichage sur carte
+  longitude    Float? // Longitude GPS pour affichage sur carte
 
   // Commercial
   userId String
