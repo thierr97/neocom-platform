@@ -59,6 +59,8 @@ model User {
   userPermissions UserPermission[]
   connectionLogs  ConnectionLog[]
   creditNotes     CreditNote[]
+  bankConnections BankConnection[] // Synchronisation bancaire
+  trips           Trip[] // Trajets commerciaux
 
   // Metadata
   createdAt   DateTime  @default(now())
@@ -138,11 +140,13 @@ model Customer {
   user   User   @relation("UserCustomers", fields: [userId], references: [id], onDelete: Cascade)
 
   // Relations
-  orders     Order[]
-  quotes     Quote[]
-  invoices   Invoice[]
-  activities Activity[]
-  reviews    Review[]
+  orders            Order[]
+  quotes            Quote[]
+  invoices          Invoice[]
+  activities        Activity[]
+  reviews           Review[]
+  accountingEntries AccountingEntry[]
+  visits            Visit[] // Visites commerciales
 
   // Notes & Tags
   notes String?
@@ -195,8 +199,9 @@ model Supplier {
   paymentMethod String? // e.g., "Virement", "Chèque"
 
   // Relations
-  products         Product[]
-  purchaseInvoices PurchaseInvoice[]
+  products          Product[]
+  purchaseInvoices  PurchaseInvoice[]
+  accountingEntries AccountingEntry[]
 
   // Notes
   notes String?
@@ -994,7 +999,8 @@ model AccountingAccount {
   children AccountingAccount[] @relation("AccountHierarchy")
 
   // Relations
-  entryLines AccountingEntryLine[]
+  entryLines   AccountingEntryLine[]
+  bankAccounts BankAccount[] // Comptes bancaires mappés à ce compte comptable
 
   // Metadata
   isActive  Boolean  @default(true)
@@ -1028,6 +1034,28 @@ model AccountingEntry {
   orderId   String?
   reference String? // Numéro de pièce
 
+  // FEC - Champs obligatoires pour le fichier FEC
+  journalCode    String  // VE, AC, BQ, CA, OD, AN (code du journal)
+  journalLabel   String  // "Ventes", "Achats", "Banque", etc.
+  pieceRef       String? // Référence de la pièce justificative
+  pieceDate      DateTime? // Date de la pièce
+  validationDate DateTime? // Date de validation de l'écriture
+
+  // FEC - Lettrage (pour rapprochements)
+  lettrage     String? // Code de lettrage (ex: "A", "B", "C")
+  lettrageDate DateTime? // Date du lettrage
+
+  // FEC - Tiers (client ou fournisseur)
+  thirdPartyCode  String? // Code auxiliaire (ex: "C0001", "F0001")
+  thirdPartyLabel String? // Nom du tiers
+  customerId      String?
+  customer        Customer? @relation(fields: [customerId], references: [id])
+  supplierId      String?
+  supplier        Supplier? @relation(fields: [supplierId], references: [id])
+
+  // Synchronisation bancaire
+  bankTransaction BankTransaction? // Lien vers transaction bancaire (si automatique)
+
   // Metadata
   notes     String?
   createdAt DateTime @default(now())
@@ -1048,6 +1076,10 @@ model AccountingEntryLine {
   label  String?
   debit  Float   @default(0)
   credit Float   @default(0)
+
+  // FEC - Devise (pour opérations en devises étrangères)
+  amountCurrency Float?  // Montant en devise étrangère
+  currency       String? // Code devise ISO (EUR, USD, GBP, etc.)
 
   createdAt DateTime @default(now())
 
@@ -1075,6 +1107,277 @@ model ImportHistory {
   createdAt DateTime @default(now())
 
   @@map("import_history")
+}
+
+// ========================================
+// FEC EXPORT HISTORY
+// ========================================
+
+model FECExport {
+  id       String @id @default(uuid())
+  filename String // fec_SIREN_YYYYMMDD_HHMMSS.txt
+  siren    String // 9 chiffres
+
+  // Période couverte
+  startDate DateTime // Date début période
+  endDate   DateTime // Date fin période
+
+  // Format du fichier
+  format String @default("txt") // txt ou csv
+
+  // Chemin du fichier généré
+  filePath String?
+
+  // Statut de l'export
+  status String @default("PENDING") // PENDING, COMPLETED, ERROR
+
+  // Statistiques
+  totalEntries Int?   // Nombre d'écritures exportées
+  totalLines   Int?   // Nombre de lignes d'écriture
+  totalDebit   Float? // Total des débits
+  totalCredit  Float? // Total des crédits
+
+  // Métadonnées
+  createdBy String?
+  createdAt DateTime @default(now())
+
+  @@map("fec_exports")
+}
+
+// ========================================
+// BANK SYNCHRONIZATION (Synchronisation bancaire style Pennylane)
+// ========================================
+
+// Connexion bancaire (Bridge API, Budget Insight, etc.)
+model BankConnection {
+  id String @id @default(uuid())
+
+  // Utilisateur propriétaire
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Informations banque
+  bankName String // "BNP Paribas", "Crédit Agricole", etc.
+  bankLogo String? // URL du logo
+
+  // Authentification API
+  provider     String // "bridge", "budget_insight", "plaid"
+  accessToken  String @db.Text // Token d'accès (chiffré)
+  refreshToken String? @db.Text // Token de rafraîchissement
+  expiresAt    DateTime?
+
+  // Statut
+  status   String    @default("ACTIVE") // ACTIVE, ERROR, DISCONNECTED
+  lastSync DateTime?
+  nextSync DateTime?
+
+  // Métadonnées
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  accounts BankAccount[]
+
+  @@map("bank_connections")
+}
+
+// Compte bancaire
+model BankAccount {
+  id           String         @id @default(uuid())
+  connectionId String
+  connection   BankConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  // Informations compte
+  accountNumber String // Numéro de compte (masqué: ****1234)
+  iban          String? // IBAN complet (chiffré)
+  accountName   String // "Compte courant", "Compte épargne"
+  accountType   String // "checking", "savings", "credit_card"
+  currency      String  @default("EUR")
+
+  // Soldes
+  balance     Float // Solde actuel
+  balanceDate DateTime // Date du solde
+
+  // Mapping comptable
+  accountingAccountId String?
+  accountingAccount   AccountingAccount? @relation(fields: [accountingAccountId], references: [id])
+
+  // Statut
+  status String @default("ACTIVE")
+
+  // Métadonnées
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  transactions BankTransaction[]
+
+  @@map("bank_accounts")
+}
+
+// Transaction bancaire brute
+model BankTransaction {
+  id            String      @id @default(uuid())
+  bankAccountId String
+  bankAccount   BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+
+  // Identifiant unique de la banque
+  externalId String // ID fourni par l'API bancaire
+
+  // Informations transaction
+  date      DateTime // Date de la transaction
+  valueDate DateTime? // Date de valeur
+  amount    Float // Montant (négatif = débit, positif = crédit)
+  currency  String   @default("EUR")
+
+  // Description
+  rawLabel   String  @db.Text // Libellé brut de la banque
+  cleanLabel String? @db.Text // Libellé nettoyé (sans codes techniques)
+  category   String? // Catégorie détectée par l'IA
+
+  // Contrepartie
+  counterparty     String? // Nom du tiers (bénéficiaire/émetteur)
+  counterpartyIBAN String? // IBAN de la contrepartie
+
+  // Statut de traitement
+  status String @default("PENDING") // PENDING, PROCESSED, IGNORED, ERROR
+
+  // Catégorisation IA
+  aiCategoryConfidence Float? // Confiance de l'IA (0-1)
+  aiSuggestedAccount   String? // Compte comptable suggéré
+  aiSuggestedVAT       Float? // TVA suggérée (20%, 10%, 5.5%, etc.)
+  aiReasoning          String? @db.Text // Explication de l'IA
+
+  // Mapping comptable
+  accountingEntryId String?          @unique
+  accountingEntry   AccountingEntry? @relation(fields: [accountingEntryId], references: [id])
+
+  // Règle appliquée (si automatique)
+  ruleId String?
+  rule   TransactionRule? @relation(fields: [ruleId], references: [id])
+
+  // Métadonnées
+  processedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  reconciliationMatches ReconciliationMatch[]
+
+  @@unique([bankAccountId, externalId])
+  @@index([date])
+  @@index([status])
+  @@map("bank_transactions")
+}
+
+// Règles de catégorisation automatique
+model TransactionRule {
+  id     String @id @default(uuid())
+  userId String // Utilisateur propriétaire
+
+  // Conditions de déclenchement
+  name        String // Nom de la règle
+  description String?
+  priority    Int     @default(0) // Ordre d'application (0 = haute priorité)
+
+  // Critères de matching
+  matchType  String // "contains", "starts_with", "ends_with", "exact", "regex"
+  matchValue String // Valeur à chercher dans le libellé
+  matchField String @default("rawLabel") // rawLabel, counterparty, amount
+
+  // Conditions supplémentaires
+  minAmount     Float? // Montant minimum
+  maxAmount     Float? // Montant maximum
+  amountType    String? // "debit", "credit", "both"
+  bankAccountId String? // Compte bancaire spécifique
+
+  // Actions à appliquer
+  category              String // Catégorie à appliquer
+  accountingAccountCode String // Code du compte comptable
+  vatRate               Float? // Taux de TVA à appliquer
+  journalCode           String // Code journal (VE, AC, BQ, etc.)
+
+  // Tiers
+  customerCode String? // Code client automatique
+  supplierCode String? // Code fournisseur automatique
+
+  // Auto-validation
+  autoValidate Boolean @default(false) // Valider automatiquement l'écriture
+
+  // Statut
+  isActive Boolean @default(true)
+
+  // Statistiques
+  timesApplied  Int       @default(0)
+  lastAppliedAt DateTime?
+
+  // Métadonnées
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  transactions BankTransaction[]
+
+  @@map("transaction_rules")
+}
+
+// Rapprochement (matching facture ↔ paiement)
+model ReconciliationMatch {
+  id            String          @id @default(uuid())
+  transactionId String
+  transaction   BankTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  // Document lié (facture, avoir, etc.)
+  documentType String // "invoice", "credit_note", "quote", "expense"
+  documentId   String // ID du document
+
+  // Montant du rapprochement
+  matchedAmount Float // Montant rapproché (peut être partiel)
+
+  // Statut
+  status     String @default("MATCHED") // MATCHED, PARTIAL, UNMATCHED
+  confidence Float // Confiance du matching (0-1)
+
+  // IA
+  isAutomatic Boolean @default(false) // Matching automatique ou manuel
+  aiReasoning String? @db.Text // Explication de l'IA
+
+  // Validation
+  validatedBy String? // ID utilisateur qui a validé
+  validatedAt DateTime?
+
+  // Métadonnées
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("reconciliation_matches")
+}
+
+// Historique de synchronisation
+model SyncHistory {
+  id           String @id @default(uuid())
+  connectionId String
+
+  // Période synchronisée
+  startDate DateTime
+  endDate   DateTime
+
+  // Résultats
+  status                String @default("PENDING") // SUCCESS, PARTIAL, ERROR
+  transactionsImported  Int    @default(0)
+  transactionsProcessed Int    @default(0)
+  transactionsFailed    Int    @default(0)
+
+  // Erreurs
+  errors Json? // Liste des erreurs rencontrées
+
+  // Performance
+  duration Int? // Durée en millisecondes
+
+  // Métadonnées
+  createdAt DateTime @default(now())
+
+  @@map("sync_history")
 }
 
 // ========================================
@@ -1201,4 +1504,181 @@ model UserPermission {
   @@unique([userId, permissionId])
   @@index([userId])
   @@map("user_permissions")
+}
+// ========================================
+// SALES TRACKING - TRIP MANAGEMENT
+// ========================================
+
+enum TripStatus {
+  IN_PROGRESS // Commercial en déplacement
+  COMPLETED   // Trajet terminé
+  CANCELLED   // Trajet annulé
+}
+
+enum VisitStatus {
+  PLANNED    // Visite prévue
+  IN_PROGRESS // En cours de visite
+  COMPLETED  // Visite terminée
+  CANCELLED  // Visite annulée
+  NO_SHOW    // Client absent
+}
+
+enum TripPurpose {
+  CLIENT_VISIT      // Visite client
+  PROSPECTING       // Prospection
+  DELIVERY          // Livraison
+  AFTER_SALES       // SAV
+  MEETING           // Réunion
+  TRAINING          // Formation
+  TRADE_SHOW        // Salon professionnel
+  OTHER             // Autre
+}
+
+// Trajet commercial (du check-in au check-out)
+model Trip {
+  id String @id @default(uuid())
+
+  // Commercial
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  status  TripStatus  @default(IN_PROGRESS)
+  purpose TripPurpose @default(CLIENT_VISIT)
+
+  // Horaires
+  startTime DateTime  @default(now()) // Check-in
+  endTime   DateTime? // Check-out
+
+  // Positions GPS
+  startLatitude  Float
+  startLongitude Float
+  startAddress   String?
+
+  endLatitude  Float?
+  endLongitude Float?
+  endAddress   String?
+
+  // Calculs kilométriques
+  distanceKm       Float?   @default(0) // Distance parcourue
+  estimatedKm      Float? // Distance estimée initiale
+  mileageRate      Float?   @default(0.50) // Taux kilométrique (€/km)
+  totalCost        Float?   @default(0) // Coût total (distance * taux)
+  durationMinutes  Int?     @default(0) // Durée totale en minutes
+
+  // Justificatifs
+  vehicleType        String? // Type de véhicule (voiture, moto, etc.)
+  vehicleRegistration String? // Immatriculation
+  hasReceipts        Boolean @default(false) // A des justificatifs (parking, péage, etc.)
+  receiptAmount      Float?  @default(0) // Montant total des justificatifs
+
+  // Relations
+  checkpoints TripCheckpoint[] // Points GPS le long du trajet
+  visits      Visit[] // Visites clients pendant le trajet
+
+  // Notes et objectifs
+  objective String? // Objectif du déplacement
+  notes     String? // Compte-rendu du trajet
+  photos    String[] @default([]) // Photos du trajet (justificatifs, etc.)
+
+  // Validation et remboursement
+  isValidated       Boolean   @default(false)
+  validatedAt       DateTime?
+  validatedBy       String? // UserId de l'admin/manager
+  isReimbursed      Boolean   @default(false)
+  reimbursedAt      DateTime?
+  reimbursementAmount Float? // Montant remboursé
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([startTime])
+  @@map("trips")
+}
+
+// Points GPS enregistrés le long du trajet (pour traçabilité)
+model TripCheckpoint {
+  id String @id @default(uuid())
+
+  tripId String
+  trip   Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  // Position GPS
+  latitude  Float
+  longitude Float
+  accuracy  Float? // Précision en mètres
+  address   String?
+
+  // Vitesse et cap (optionnel)
+  speed   Float? // km/h
+  heading Float? // Direction (0-360°)
+
+  // Metadata
+  timestamp DateTime @default(now())
+
+  @@index([tripId])
+  @@index([timestamp])
+  @@map("trip_checkpoints")
+}
+
+// Visite client pendant un trajet
+model Visit {
+  id String @id @default(uuid())
+
+  tripId String
+  trip   Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+
+  status  VisitStatus  @default(PLANNED)
+  purpose TripPurpose? @default(CLIENT_VISIT)
+
+  // Horaires de visite
+  scheduledAt DateTime? // Heure prévue
+  checkInAt   DateTime? // Arrivée sur site
+  checkOutAt  DateTime? // Départ du site
+  duration    Int? // Durée en minutes
+
+  // Position GPS de la visite
+  latitude  Float?
+  longitude Float?
+  address   String?
+
+  // Détails de la visite
+  contactName  String? // Personne rencontrée
+  contactPhone String? // Téléphone du contact
+  contactEmail String? // Email du contact
+
+  objective String? // Objectif de la visite
+  summary   String? // Compte-rendu de la visite
+  outcome   String? // Résultat (vente, devis, SAV, etc.)
+
+  // Documents et photos
+  photos     String[] @default([]) // Photos de la visite
+  documents  String[] @default([]) // Documents remis/reçus
+  signature  String? // Signature client (base64)
+
+  // Commandes/Devis liés
+  orderId String?
+  quoteId String?
+
+  // Satisfaction client
+  satisfactionScore Int? // Note de 1 à 5
+
+  // Follow-up
+  nextVisitDate DateTime?
+  followUpNotes String?
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tripId])
+  @@index([customerId])
+  @@index([checkInAt])
+  @@index([status])
+  @@map("visits")
 }
