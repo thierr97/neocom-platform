@@ -148,12 +148,28 @@ export const createAccountingEntry = async (req: AuthRequest, res: Response) => 
 
     const number = `${journal}-${year}-${String(count + 1).padStart(6, '0')}`;
 
+    // Map journal type to code and label for FEC compliance
+    const getJournalCodeAndLabel = (journal: string): { journalCode: string; journalLabel: string } => {
+      const mapping: Record<string, { journalCode: string; journalLabel: string }> = {
+        VENTE: { journalCode: 'VE', journalLabel: 'Ventes' },
+        ACHAT: { journalCode: 'AC', journalLabel: 'Achats' },
+        BANQUE: { journalCode: 'BQ', journalLabel: 'Banque' },
+        CAISSE: { journalCode: 'CA', journalLabel: 'Caisse' },
+        OD: { journalCode: 'OD', journalLabel: 'Opérations Diverses' },
+      };
+      return mapping[journal] || { journalCode: 'OD', journalLabel: 'Opérations Diverses' };
+    };
+
+    const { journalCode, journalLabel } = getJournalCodeAndLabel(journal);
+
     const entry = await prisma.accountingEntry.create({
       data: {
         number,
         date: new Date(date),
         label,
         journal,
+        journalCode,
+        journalLabel,
         reference,
         lines: {
           create: lines.map((line: any) => ({

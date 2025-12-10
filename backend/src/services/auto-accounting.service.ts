@@ -14,6 +14,21 @@ interface AccountingLineData {
 }
 
 /**
+ * Mappe le type de journal vers son code et libellé FEC
+ */
+const getJournalCodeAndLabel = (journal: string): { journalCode: string; journalLabel: string } => {
+  const mapping: Record<string, { journalCode: string; journalLabel: string }> = {
+    VENTE: { journalCode: 'VE', journalLabel: 'Ventes' },
+    ACHAT: { journalCode: 'AC', journalLabel: 'Achats' },
+    BANQUE: { journalCode: 'BQ', journalLabel: 'Banque' },
+    CAISSE: { journalCode: 'CA', journalLabel: 'Caisse' },
+    OD: { journalCode: 'OD', journalLabel: 'Opérations Diverses' },
+  };
+
+  return mapping[journal] || { journalCode: 'OD', journalLabel: 'Opérations Diverses' };
+}
+
+/**
  * Génère une écriture comptable automatique pour une facture de vente
  */
 export const generateSaleInvoiceEntry = async (invoiceId: string) => {
@@ -60,6 +75,9 @@ export const generateSaleInvoiceEntry = async (invoiceId: string) => {
     // Générer le numéro d'écriture
     const entryNumber = await generateAccountingEntryNumber();
 
+    // Obtenir le code et libellé du journal
+    const { journalCode, journalLabel } = getJournalCodeAndLabel('VENTE');
+
     // Créer l'écriture comptable
     const entry = await prisma.accountingEntry.create({
       data: {
@@ -68,6 +86,8 @@ export const generateSaleInvoiceEntry = async (invoiceId: string) => {
         reference: `FAC-${invoice.number}`,
         label: `Facture de vente n°${invoice.number} - ${invoice.customer?.companyName || invoice.customer?.firstName + ' ' + invoice.customer?.lastName}`,
         journal: 'VENTE',
+        journalCode,
+        journalLabel,
         status: 'DRAFT', // Brouillon pour validation par comptable
         lines: {
           create: [
@@ -164,6 +184,9 @@ export const generatePurchaseInvoiceEntry = async (purchaseInvoiceId: string) =>
     // Générer le numéro d'écriture
     const entryNumber = await generateAccountingEntryNumber();
 
+    // Obtenir le code et libellé du journal
+    const { journalCode, journalLabel } = getJournalCodeAndLabel('ACHAT');
+
     // Créer l'écriture
     const entry = await prisma.accountingEntry.create({
       data: {
@@ -172,6 +195,8 @@ export const generatePurchaseInvoiceEntry = async (purchaseInvoiceId: string) =>
         reference: `ACH-${purchaseInvoice.number}`,
         label: `Facture d'achat n°${purchaseInvoice.number} - ${purchaseInvoice.supplier.companyName}`,
         journal: 'ACHAT',
+        journalCode,
+        journalLabel,
         status: 'DRAFT',
         lines: {
           create: [
@@ -269,6 +294,9 @@ export const generatePaymentReceivedEntry = async (
     // Générer le numéro d'écriture
     const entryNumber = await generateAccountingEntryNumber();
 
+    // Obtenir le code et libellé du journal
+    const { journalCode, journalLabel } = getJournalCodeAndLabel(journalType);
+
     // Créer l'écriture de paiement
     const entry = await prisma.accountingEntry.create({
       data: {
@@ -277,6 +305,8 @@ export const generatePaymentReceivedEntry = async (
         reference: `REG-${invoice.number}`,
         label: `Règlement facture ${invoice.number} - ${invoice.customer?.companyName || invoice.customer?.firstName + ' ' + invoice.customer?.lastName}`,
         journal: journalType,
+        journalCode,
+        journalLabel,
         status: 'DRAFT',
         lines: {
           create: [
@@ -359,6 +389,9 @@ export const generatePaymentMadeEntry = async (
     // Générer le numéro d'écriture
     const entryNumber = await generateAccountingEntryNumber();
 
+    // Obtenir le code et libellé du journal
+    const { journalCode, journalLabel } = getJournalCodeAndLabel(journalType);
+
     // Créer l'écriture de paiement
     const entry = await prisma.accountingEntry.create({
       data: {
@@ -367,6 +400,8 @@ export const generatePaymentMadeEntry = async (
         reference: `PAIE-${purchaseInvoice.number}`,
         label: `Paiement facture ${purchaseInvoice.number} - ${purchaseInvoice.supplier.companyName}`,
         journal: journalType,
+        journalCode,
+        journalLabel,
         status: 'DRAFT',
         lines: {
           create: [
@@ -449,6 +484,9 @@ export const generateStockMovementEntry = async (orderId: string) => {
     // Générer le numéro d'écriture
     const entryNumber = await generateAccountingEntryNumber();
 
+    // Obtenir le code et libellé du journal
+    const { journalCode, journalLabel } = getJournalCodeAndLabel('OD');
+
     // Créer l'écriture de sortie de stock
     const entry = await prisma.accountingEntry.create({
       data: {
@@ -457,6 +495,8 @@ export const generateStockMovementEntry = async (orderId: string) => {
         reference: `CMD-${order.number}`,
         label: `Sortie stock - Commande ${order.number}`,
         journal: 'OD', // Opérations diverses
+        journalCode,
+        journalLabel,
         status: 'DRAFT',
         lines: {
           create: [
