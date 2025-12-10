@@ -128,6 +128,12 @@ export const createCustomer = async (req: AuthRequest, res: Response) => {
   try {
     const data = req.body;
 
+    // Map zipCode → postalCode (frontend compatibility)
+    if (data.zipCode) {
+      data.postalCode = data.zipCode;
+      delete data.zipCode;
+    }
+
     // Assigner le userId de l'utilisateur connecté (commercial ou admin)
     if (!data.userId) {
       data.userId = req.user!.userId;
@@ -164,6 +170,27 @@ export const createCustomer = async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error in createCustomer:', error);
+
+    // Gestion des erreurs Prisma spécifiques
+    if (error.code === 'P2002') {
+      // Contrainte unique violée
+      const field = error.meta?.target?.[0] || 'champ';
+      return res.status(400).json({
+        success: false,
+        message: `Un client avec cet ${field} existe déjà`,
+        error: error.message,
+      });
+    }
+
+    if (error.code === 'P2003') {
+      // Contrainte de clé étrangère violée
+      return res.status(400).json({
+        success: false,
+        message: 'Référence invalide (userId)',
+        error: error.message,
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la création du client',
@@ -176,6 +203,12 @@ export const updateCustomer = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const data = req.body;
+
+    // Map zipCode → postalCode (frontend compatibility)
+    if (data.zipCode) {
+      data.postalCode = data.zipCode;
+      delete data.zipCode;
+    }
 
     // Check if customer exists and access
     const existing = await prisma.customer.findUnique({ where: { id } });
