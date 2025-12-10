@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { auth } from '../middleware/auth';
+import { authenticateToken as auth } from '../middleware/auth';
 import {
   startTrip,
   endTrip,
