@@ -10,9 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
-
-const API_URL = 'http://localhost:4000/api';
+import api from '../src/services/api';
 
 export default function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState('');
@@ -28,19 +26,23 @@ export default function LoginScreen({ navigation }: any) {
     setLoading(true);
 
     try {
-      const response = await axios.post(`${API_URL}/auth/login`, {
+      const response = await api.post('/auth/login', {
         email,
         password,
       });
 
       if (response.data.success) {
-        // Save token
-        await AsyncStorage.setItem('userToken', response.data.token);
+        // Save tokens (note: api.ts interceptor uses 'authToken')
+        await AsyncStorage.setItem('authToken', response.data.tokens.accessToken);
+        await AsyncStorage.setItem('refreshToken', response.data.tokens.refreshToken);
         await AsyncStorage.setItem('userId', response.data.user.id);
         await AsyncStorage.setItem('userRole', response.data.user.role);
 
-        // Navigate to dashboard
-        navigation.replace('Dashboard');
+        // Save full user object for Dashboard and other screens
+        await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
+
+        // Navigate to main tabs
+        navigation.replace('Main');
       } else {
         Alert.alert('Erreur', response.data.message || 'Identifiants invalides');
       }
