@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AppState, AppStateStatus } from 'react-native';
 
 // Import screens
 import LoginScreen from './screens/LoginScreen';
@@ -111,6 +112,8 @@ function MainTabs() {
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
+  const navigationRef = useRef<any>(null);
+  const appState = useRef(AppState.currentState);
 
   useEffect(() => {
     checkAuth();
@@ -119,7 +122,23 @@ export default function App() {
   const checkAuth = async () => {
     try {
       const token = await AsyncStorage.getItem('authToken');
-      setIsAuthenticated(!!token);
+      const newAuthState = !!token;
+
+      // Si l'utilisateur était authentifié mais le token n'existe plus
+      if (isAuthenticated && !newAuthState) {
+        console.log('Token expiré détecté - redirection vers login');
+        setIsAuthenticated(false);
+
+        // Rediriger vers l'écran de connexion si possible
+        if (navigationRef.current) {
+          navigationRef.current.reset({
+            index: 0,
+            routes: [{ name: 'Login' }],
+          });
+        }
+      } else {
+        setIsAuthenticated(newAuthState);
+      }
     } catch (error) {
       console.error('Error checking auth:', error);
     } finally {
@@ -127,12 +146,38 @@ export default function App() {
     }
   };
 
+  // Vérifier le token quand l'app revient au premier plan
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+        console.log('App est revenue au premier plan - vérification du token');
+        checkAuth();
+      }
+      appState.current = nextAppState;
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [isAuthenticated]);
+
+  // Vérification périodique du token toutes les 30 secondes quand l'app est active
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (appState.current === 'active') {
+        checkAuth();
+      }
+    }, 30000); // 30 secondes
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
+
   if (loading) {
     return null; // You can add a loading screen here
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
         initialRouteName={isAuthenticated ? 'Main' : 'Login'}
         screenOptions={{
