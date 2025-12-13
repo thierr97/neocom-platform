@@ -10,7 +10,18 @@ const prisma = new PrismaClient();
 // Get all quotes
 export const getAllQuotes = async (req: Request, res: Response) => {
   try {
+    // Get userId from JWT token (set by auth middleware)
+    const userId = (req as any).user?.userId;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Non authentifié',
+      });
+    }
+
     const quotes = await prisma.quote.findMany({
+      where: { userId },
       include: {
         customer: {
           select: {
@@ -28,6 +39,7 @@ export const getAllQuotes = async (req: Request, res: Response) => {
                 id: true,
                 name: true,
                 sku: true,
+                price: true,
               },
             },
           },

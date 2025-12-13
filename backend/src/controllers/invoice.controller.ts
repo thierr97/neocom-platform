@@ -11,7 +11,18 @@ const prisma = new PrismaClient();
 // Get all invoices
 export const getAllInvoices = async (req: Request, res: Response) => {
   try {
+    // Get userId from JWT token (set by auth middleware)
+    const userId = (req as any).user?.userId;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Non authentifié',
+      });
+    }
+
     const invoices = await prisma.invoice.findMany({
+      where: { userId },
       include: {
         customer: {
           select: {
@@ -29,6 +40,7 @@ export const getAllInvoices = async (req: Request, res: Response) => {
                 id: true,
                 name: true,
                 sku: true,
+                price: true,
               },
             },
           },

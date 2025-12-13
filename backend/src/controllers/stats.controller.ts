@@ -425,3 +425,136 @@ export const getTeamConnectionStats = async (req: Request, res: Response) => {
     });
   }
 };
+
+// Get dashboard stats for current user (for mobile app)
+export const getDashboardStats = async (req: Request, res: Response) => {
+  try {
+    // Get userId from JWT token (set by auth middleware)
+    const userId = (req as any).user?.userId;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Non authentifié',
+      });
+    }
+
+    // Get user info
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Utilisateur non trouvé',
+      });
+    }
+
+    // Get counts
+    const customersCount = await prisma.customer.count({
+      where: { userId },
+    });
+
+    const quotesCount = await prisma.quote.count({
+      where: { userId },
+    });
+
+    const quotesAccepted = await prisma.quote.count({
+      where: { userId, status: 'ACCEPTED' },
+    });
+
+    const quotesRejected = await prisma.quote.count({
+      where: { userId, status: 'REJECTED' },
+    });
+
+    const ordersCount = await prisma.order.count({
+      where: { userId },
+    });
+
+    const ordersDelivered = await prisma.order.count({
+      where: { userId, status: 'DELIVERED' },
+    });
+
+    const invoicesCount = await prisma.invoice.count({
+      where: { userId },
+    });
+
+    const invoicesPaid = await prisma.invoice.count({
+      where: { userId, status: 'PAID' },
+    });
+
+    // Calculate total sales (sum of paid invoices)
+    const paidInvoices = await prisma.invoice.findMany({
+      where: { userId, status: 'PAID' },
+      select: { total: true },
+    });
+
+    const totalSales = paidInvoices.reduce((sum, invoice) => sum + invoice.total, 0);
+
+    // Get recent quotes (last 5)
+    const recentQuotes = await prisma.quote.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+      include: {
+        customer: {
+          select: {
+            firstName: true,
+            lastName: true,
+            companyName: true,
+          },
+        },
+      },
+    });
+
+    // Get recent invoices (last 5)
+    const recentInvoices = await prisma.invoice.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+      include: {
+        customer: {
+          select: {
+            firstName: true,
+            lastName: true,
+            companyName: true,
+          },
+        },
+      },
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        user,
+        stats: {
+          customersCount,
+          quotesCount,
+          quotesAccepted,
+          quotesRejected,
+          ordersCount,
+          ordersDelivered,
+          invoicesCount,
+          invoicesPaid,
+          totalSales,
+        },
+        recentQuotes,
+        recentInvoices,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error fetching dashboard stats:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des statistiques du tableau de bord',
+    });
+  }
+};
