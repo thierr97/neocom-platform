@@ -536,15 +536,29 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       data: {
         user,
         stats: {
-          customersCount,
-          quotesCount,
-          quotesAccepted,
-          quotesRejected,
-          ordersCount,
-          ordersDelivered,
-          invoicesCount,
-          invoicesPaid,
-          totalSales,
+          customers: {
+            total: customersCount,
+            active: customersCount, // Pour l'instant, on considère tous les clients comme actifs
+          },
+          quotes: {
+            total: quotesCount,
+            accepted: quotesAccepted,
+            rejected: quotesRejected,
+            pending: quotesCount - quotesAccepted - quotesRejected,
+          },
+          orders: {
+            total: ordersCount,
+            delivered: ordersDelivered,
+            pending: ordersCount - ordersDelivered,
+          },
+          invoices: {
+            total: invoicesCount,
+            paid: invoicesPaid,
+            pending: invoicesCount - invoicesPaid,
+          },
+          sales: {
+            total: totalSales,
+          },
         },
         recentQuotes,
         recentInvoices,
