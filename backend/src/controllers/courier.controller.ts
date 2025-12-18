@@ -143,10 +143,48 @@ export const getCourierProfile = async (req: AuthRequest, res: Response) => {
       orderBy: { createdAt: 'desc' },
     });
 
+    // Si le profil n'existe pas, le créer automatiquement
     if (!profile) {
-      return res.status(404).json({
-        success: false,
-        message: 'Profil coursier non trouvé',
+      console.log(`📝 Création automatique du profil coursier pour userId: ${userId}`);
+
+      const newProfile = await prisma.courierProfile.create({
+        data: {
+          userId,
+          status: 'DRAFT', // Profil en brouillon
+          isAvailable: false,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              phone: true,
+              role: true,
+              createdAt: true,
+            },
+          },
+          documents: {
+            orderBy: { uploadedAt: 'desc' },
+          },
+        },
+      });
+
+      return res.json({
+        success: true,
+        data: {
+          profile: {
+            ...newProfile,
+            activeDeliveries: [],
+          },
+          statistics: {
+            totalDeliveries: 0,
+            totalEarnings: 0,
+            statusBreakdown: [],
+          },
+        },
+        message: 'Profil coursier créé automatiquement',
       });
     }
 
