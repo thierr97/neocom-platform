@@ -39,6 +39,8 @@ import settingsRoutes from './routes/settings.routes';
 import aiManagerRoutes from './routes/ai-manager.routes';
 import creditNotesRoutes from './routes/credit-notes';
 import deliveryNoteRoutes from './routes/deliveryNote.routes';
+import deliveryRoutes from './routes/delivery.routes';
+import courierRoutes from './routes/courier.routes';
 
 // Load environment variables
 dotenv.config();
@@ -121,6 +123,8 @@ app.use('/api/quotes', quoteRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/credit-notes', creditNotesRoutes);
 app.use('/api/delivery-notes', deliveryNoteRoutes);
+app.use('/api/deliveries', deliveryRoutes);
+app.use('/api/courier', courierRoutes);
 app.use('/api/purchase-invoices', purchaseInvoiceRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/users', userRoutes);

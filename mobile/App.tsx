@@ -19,6 +19,7 @@ import DocumentsScreen from './screens/DocumentsScreen';
 import ProductsScreen from './screens/ProductsScreen';
 import ProductDetailScreen from './screens/ProductDetailScreen';
 import ProductSelectionScreen from './screens/ProductSelectionScreen';
+import CustomerSelectionScreen from './screens/CustomerSelectionScreen';
 import QuotesScreen from './screens/QuotesScreen';
 import InvoicesScreen from './screens/InvoicesScreen';
 import DeliveryNotesScreen from './screens/DeliveryNotesScreen';
@@ -26,11 +27,20 @@ import CreditNotesScreen from './screens/CreditNotesScreen';
 import QuoteDetailScreen from './screens/QuoteDetailScreen';
 import InvoiceDetailScreen from './screens/InvoiceDetailScreen';
 import DeliveryNoteDetailScreen from './screens/DeliveryNoteDetailScreen';
+import CreateQuoteScreen from './screens/CreateQuoteScreen';
+import CreateInvoiceScreen from './screens/CreateInvoiceScreen';
+import CreateCustomerScreen from './screens/CreateCustomerScreen';
+// Customer screens
+import ShopHomeScreen from './screens/ShopHomeScreen';
+import MyInvoicesScreen from './screens/MyInvoicesScreen';
+import ShopProductDetailScreen from './screens/ShopProductDetailScreen';
+import ShopCategoryScreen from './screens/ShopCategoryScreen';
+import ShopAllProductsScreen from './screens/ShopAllProductsScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// Bottom Tab Navigator
+// Bottom Tab Navigator for Commercial users
 function MainTabs() {
   return (
     <Tab.Navigator
@@ -48,6 +58,8 @@ function MainTabs() {
             iconName = focused ? 'navigate' : 'navigate-outline';
           } else if (route.name === 'DocumentsTab') {
             iconName = focused ? 'document-text' : 'document-text-outline';
+          } else if (route.name === 'ShopTab') {
+            iconName = focused ? 'storefront' : 'storefront-outline';
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
@@ -105,12 +117,71 @@ function MainTabs() {
           headerTitle: 'Documents commerciaux',
         }}
       />
+      <Tab.Screen
+        name="ShopTab"
+        component={ShopHomeScreen}
+        options={{
+          title: 'Boutique',
+          headerTitle: 'Boutique NeoServ',
+          headerShown: false,
+        }}
+      />
+    </Tab.Navigator>
+  );
+}
+
+// Bottom Tab Navigator for Customer users (Lambda users)
+function CustomerTabs() {
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName: any;
+
+          if (route.name === 'ShopTab') {
+            iconName = focused ? 'storefront' : 'storefront-outline';
+          } else if (route.name === 'MyInvoicesTab') {
+            iconName = focused ? 'receipt' : 'receipt-outline';
+          }
+
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+        tabBarActiveTintColor: '#34C759',
+        tabBarInactiveTintColor: 'gray',
+        headerStyle: {
+          backgroundColor: '#34C759',
+        },
+        headerTintColor: '#fff',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+      })}
+    >
+      <Tab.Screen
+        name="ShopTab"
+        component={ShopHomeScreen}
+        options={{
+          title: 'Boutique',
+          headerTitle: 'Boutique NeoServ',
+          headerShown: false,
+        }}
+      />
+      <Tab.Screen
+        name="MyInvoicesTab"
+        component={MyInvoicesScreen}
+        options={{
+          title: 'Mes Factures',
+          headerTitle: 'Mes Factures',
+          headerShown: false,
+        }}
+      />
     </Tab.Navigator>
   );
 }
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const navigationRef = useRef<any>(null);
   const appState = useRef(AppState.currentState);
@@ -122,12 +193,14 @@ export default function App() {
   const checkAuth = async () => {
     try {
       const token = await AsyncStorage.getItem('authToken');
+      const role = await AsyncStorage.getItem('userRole');
       const newAuthState = !!token;
 
       // Si l'utilisateur était authentifié mais le token n'existe plus
       if (isAuthenticated && !newAuthState) {
         console.log('Token expiré détecté - redirection vers login');
         setIsAuthenticated(false);
+        setUserRole(null);
 
         // Rediriger vers l'écran de connexion si possible
         if (navigationRef.current) {
@@ -138,6 +211,7 @@ export default function App() {
         }
       } else {
         setIsAuthenticated(newAuthState);
+        setUserRole(role);
       }
     } catch (error) {
       console.error('Error checking auth:', error);
@@ -176,6 +250,9 @@ export default function App() {
     return null; // You can add a loading screen here
   }
 
+  // Déterminer quel Tab Navigator utiliser selon le rôle
+  const TabNavigator = userRole === 'CUSTOMER' ? CustomerTabs : MainTabs;
+
   return (
     <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
@@ -197,7 +274,7 @@ export default function App() {
         />
         <Stack.Screen
           name="Main"
-          component={MainTabs}
+          component={TabNavigator}
           options={{ headerShown: false }}
         />
         <Stack.Screen
@@ -229,6 +306,11 @@ export default function App() {
           name="ProductSelection"
           component={ProductSelectionScreen}
           options={{ title: 'Sélection de produits' }}
+        />
+        <Stack.Screen
+          name="CustomerSelection"
+          component={CustomerSelectionScreen}
+          options={{ headerShown: false }}
         />
         <Stack.Screen
           name="Quotes"
@@ -264,6 +346,36 @@ export default function App() {
           name="DeliveryNoteDetail"
           component={DeliveryNoteDetailScreen}
           options={{ title: 'Détail bon de livraison' }}
+        />
+        <Stack.Screen
+          name="CreateQuote"
+          component={CreateQuoteScreen}
+          options={{ title: 'Créer un devis', headerShown: false }}
+        />
+        <Stack.Screen
+          name="CreateInvoice"
+          component={CreateInvoiceScreen}
+          options={{ title: 'Créer une facture', headerShown: false }}
+        />
+        <Stack.Screen
+          name="CreateCustomer"
+          component={CreateCustomerScreen}
+          options={{ title: 'Nouveau client', headerShown: false }}
+        />
+        <Stack.Screen
+          name="ShopProductDetail"
+          component={ShopProductDetailScreen}
+          options={{ title: 'Détail produit' }}
+        />
+        <Stack.Screen
+          name="ShopCategory"
+          component={ShopCategoryScreen}
+          options={{ title: 'Catégorie' }}
+        />
+        <Stack.Screen
+          name="ShopAllProducts"
+          component={ShopAllProductsScreen}
+          options={{ title: 'Tous les produits', headerShown: false }}
         />
       </Stack.Navigator>
     </NavigationContainer>

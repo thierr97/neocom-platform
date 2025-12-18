@@ -62,6 +62,15 @@ model User {
   bankConnections BankConnection[] // Synchronisation bancaire
   trips           Trip[] // Trajets commerciaux
 
+  // Relations delivery/courier system
+  salesDeliveries      Delivery[]        @relation("DeliverySales")
+  courierDeliveries    Delivery[]        @relation("DeliveryCourier")
+  deliveryEvents       DeliveryEvent[]   @relation("DeliveryEventUser")
+  courierProfile       CourierProfile?   @relation("CourierProfileUser")
+  courierLocations     CourierLocation[] @relation("CourierLocationUser")
+  notifications        Notification[]    @relation("NotificationUser")
+  payouts              Payout[]          @relation("PayoutCourier")
+
   // Metadata
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -149,6 +158,7 @@ model Customer {
   reviews           Review[]
   accountingEntries AccountingEntry[]
   visits            Visit[] // Visites commerciales
+  deliveries        Delivery[] // Livraisons pour ce client
 
   // Notes & Tags
   notes String?
@@ -461,6 +471,9 @@ model Order {
 
   // Invoice
   invoice Invoice?
+
+  // Delivery (système de livraison coursier)
+  deliveries Delivery[]
 
   // PDF Documents
   orderPdfUrl        String?
@@ -1683,4 +1696,466 @@ model Visit {
   @@index([checkInAt])
   @@index([status])
   @@map("visits")
+}
+
+// ========================================
+// DELIVERY & COURIER SYSTEM
+// ========================================
+
+// Statuts de livraison (workflow complet)
+enum DeliveryStatus {
+  CREATED      // Livraison créée
+  OFFERED      // Offerte aux coursiers disponibles
+  ACCEPTED     // Acceptée par un coursier
+  TO_PICKUP    // En route vers le point de collecte
+  AT_PICKUP    // Arrivé au point de collecte
+  PICKED_UP    // Colis récupéré
+  TO_DROPOFF   // En route vers le point de livraison
+  AT_DROPOFF   // Arrivé au point de livraison
+  DELIVERED    // Livré
+  COMPLETED    // Terminé (après validation)
+  CANCELED     // Annulé
+  FAILED       // Échec de livraison
+  INCIDENT     // Incident signalé
+}
+
+// Types d'événements de livraison (audit trail)
+enum DeliveryEventType {
+  STATUS_CHANGE    // Changement de statut
+  LOCATION_UPDATE  // Mise à jour de position
+  NOTE_ADDED       // Note ajoutée
+  PHOTO_ADDED      // Photo ajoutée
+  SIGNATURE_ADDED  // Signature ajoutée
+  REASSIGNED       // Réassignation à un autre coursier
+  INCIDENT         // Incident signalé
+  CUSTOMER_CONTACT // Contact client
+  ETA_UPDATE       // Mise à jour ETA
+}
+
+// Statut du profil coursier
+enum CourierStatus {
+  DRAFT       // Candidature en cours de remplissage
+  SUBMITTED   // Candidature soumise
+  UNDER_REVIEW // En cours de vérification
+  APPROVED    // Approuvé (peut accepter des livraisons)
+  REJECTED    // Rejeté
+  SUSPENDED   // Suspendu temporairement
+  BANNED      // Banni définitivement
+}
+
+// Types de véhicules
+enum VehicleType {
+  BIKE        // Vélo
+  SCOOTER     // Scooter/Moto
+  CAR         // Voiture
+  VAN         // Camionnette
+  TRUCK       // Camion
+  ON_FOOT     // À pied
+}
+
+// Types de documents KYC
+enum DocumentType {
+  ID_CARD          // Carte d'identité
+  DRIVERS_LICENSE  // Permis de conduire
+  VEHICLE_REGISTRATION // Carte grise
+  INSURANCE        // Assurance
+  CRIMINAL_RECORD  // Casier judiciaire
+  PROOF_ADDRESS    // Justificatif de domicile
+  BANK_RIB         // RIB
+  OTHER            // Autre
+}
+
+// Statut de validation des documents
+enum DocumentStatus {
+  PENDING     // En attente de vérification
+  APPROVED    // Approuvé
+  REJECTED    // Rejeté
+  EXPIRED     // Expiré
+}
+
+// Types de notifications
+enum NotificationType {
+  DELIVERY_ASSIGNED    // Livraison assignée
+  DELIVERY_OFFERED     // Livraison disponible
+  STATUS_UPDATED       // Statut mis à jour
+  COURIER_ARRIVED      // Coursier arrivé
+  DELIVERY_COMPLETED   // Livraison terminée
+  INCIDENT_REPORTED    // Incident signalé
+  MESSAGE_RECEIVED     // Message reçu
+  DOCUMENT_VERIFIED    // Document vérifié
+  PROFILE_APPROVED     // Profil approuvé
+  PROFILE_REJECTED     // Profil rejeté
+  PAYOUT_READY         // Paiement disponible
+  SYSTEM_ALERT         // Alerte système
+}
+
+// Statut de paiement coursier
+enum PayoutStatus {
+  PENDING      // En attente
+  PROCESSING   // En cours de traitement
+  COMPLETED    // Complété
+  FAILED       // Échec
+  CANCELED     // Annulé
+}
+
+// Livraison principale
+model Delivery {
+  id String @id @default(uuid())
+
+  // Lien avec la commande (optionnel)
+  orderId String?
+  order   Order?   @relation(fields: [orderId], references: [id])
+
+  // Client (destinataire)
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+
+  // Commercial assigné (celui qui gère la vente)
+  salesUserId String?
+  salesUser   User?    @relation("DeliverySales", fields: [salesUserId], references: [id])
+
+  // Coursier assigné
+  courierId String?
+  courier   User?    @relation("DeliveryCourier", fields: [courierId], references: [id])
+
+  // Statut et workflow
+  status            DeliveryStatus @default(CREATED)
+  previousStatus    DeliveryStatus?
+  statusChangedAt   DateTime       @default(now())
+  canceledReason    String?
+  failedReason      String?
+  incidentDetails   String?
+
+  // Adresses
+  pickupAddress      String
+  pickupLatitude     Float?
+  pickupLongitude    Float?
+  pickupContactName  String?
+  pickupContactPhone String?
+  pickupNotes        String?
+
+  deliveryAddress      String
+  deliveryLatitude     Float?
+  deliveryLongitude    Float?
+  deliveryContactName  String?
+  deliveryContactPhone String?
+  deliveryNotes        String?
+
+  // Planning
+  scheduledPickupAt  DateTime?
+  scheduledDeliveryAt DateTime?
+  estimatedDeliveryAt DateTime? // ETA calculé dynamiquement
+  actualPickupAt     DateTime?
+  actualDeliveryAt   DateTime?
+
+  // Détails de la livraison
+  packageDescription String?
+  packageWeight      Float?  // en kg
+  packageDimensions  String? // Format: "LxlxH cm"
+  specialInstructions String?
+  priority           Int     @default(0) // 0=normal, 1=urgent, 2=express
+
+  // Preuves de livraison
+  deliveryPhotos    String[] @default([]) // URLs ou Base64
+  deliverySignature String? // Base64 de la signature
+  recipientName     String? // Nom de la personne qui a reçu
+  deliveryCode      String? // Code de vérification
+
+  // Tarification
+  deliveryFee       Float? // Frais de livraison
+  courierEarnings   Float? // Gains du coursier
+  currency          String @default("EUR")
+
+  // Distance et durée (calculés)
+  estimatedDistance Float? // en km
+  actualDistance    Float? // en km
+  estimatedDuration Int?   // en minutes
+  actualDuration    Int?   // en minutes
+
+  // Relations
+  events         DeliveryEvent[]
+  courierLocations CourierLocation[]
+  notifications  Notification[]
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([customerId])
+  @@index([salesUserId])
+  @@index([courierId])
+  @@index([status])
+  @@index([scheduledDeliveryAt])
+  @@index([createdAt])
+  @@map("deliveries")
+}
+
+// Événements de livraison (audit trail immutable)
+model DeliveryEvent {
+  id String @id @default(uuid())
+
+  deliveryId String
+  delivery   Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+
+  // Type et détails de l'événement
+  type        DeliveryEventType
+  description String?
+  metadata    Json? // Données additionnelles flexibles
+
+  // Statut (pour les changements de statut)
+  oldStatus DeliveryStatus?
+  newStatus DeliveryStatus?
+
+  // Acteur de l'événement
+  userId String?
+  user   User?   @relation("DeliveryEventUser", fields: [userId], references: [id])
+  actorRole UserRole? // Role de l'acteur au moment de l'événement
+
+  // Géolocalisation (pour les événements liés à la position)
+  latitude  Float?
+  longitude Float?
+  accuracy  Float?
+
+  // Photos et documents
+  photos String[] @default([])
+  documents String[] @default([])
+
+  // Timestamp (IMMUTABLE - append-only)
+  timestamp DateTime @default(now())
+
+  @@index([deliveryId])
+  @@index([type])
+  @@index([timestamp])
+  @@map("delivery_events")
+}
+
+// Profil coursier (complément au User avec role=DELIVERY)
+model CourierProfile {
+  id String @id @default(uuid())
+
+  userId String @unique
+  user   User   @relation("CourierProfileUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Statut du coursier
+  status         CourierStatus @default(DRAFT)
+  statusNote     String? // Raison de rejet/suspension
+  approvedAt     DateTime?
+  approvedBy     String? // userId de l'admin qui a approuvé
+  rejectedAt     DateTime?
+  rejectedReason String?
+
+  // Disponibilité
+  isAvailable      Boolean @default(false)
+  currentLatitude  Float?
+  currentLongitude Float?
+  lastLocationUpdate DateTime?
+
+  // Informations personnelles complémentaires
+  dateOfBirth   DateTime?
+  nationality   String?
+  address       String?
+  city          String?
+  postalCode    String?
+  country       String    @default("France")
+
+  // Informations véhicule
+  vehicleType         VehicleType?
+  vehicleBrand        String?
+  vehicleModel        String?
+  vehicleYear         Int?
+  vehiclePlateNumber  String?
+  vehicleColor        String?
+
+  // Informations bancaires
+  iban          String?
+  bic           String?
+  bankName      String?
+  accountHolder String?
+
+  // Préférences de travail
+  maxDeliveriesPerDay Int? @default(10)
+  maxRadius           Float? @default(20.0) // Rayon max en km
+  workingDays         String[] @default([]) // ["Monday", "Tuesday", ...]
+  workingHoursStart   String? // Format "09:00"
+  workingHoursEnd     String? // Format "18:00"
+
+  // Statistiques
+  totalDeliveries      Int     @default(0)
+  completedDeliveries  Int     @default(0)
+  canceledDeliveries   Int     @default(0)
+  failedDeliveries     Int     @default(0)
+  averageRating        Float?
+  totalEarnings        Float   @default(0.0)
+  currentMonthEarnings Float   @default(0.0)
+
+  // Scores de performance (calculés)
+  onTimeRate       Float? // Pourcentage de livraisons à temps
+  acceptanceRate   Float? // Pourcentage d'offres acceptées
+  completionRate   Float? // Pourcentage de livraisons complétées
+  customerSatisfaction Float? // Note moyenne clients
+
+  // Documents KYC
+  documents CourierDocument[]
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([isAvailable])
+  @@map("courier_profiles")
+}
+
+// Documents du coursier (KYC)
+model CourierDocument {
+  id String @id @default(uuid())
+
+  courierProfileId String
+  courierProfile   CourierProfile @relation(fields: [courierProfileId], references: [id], onDelete: Cascade)
+
+  // Type et statut du document
+  type   DocumentType
+  status DocumentStatus @default(PENDING)
+
+  // Fichier
+  fileUrl      String // URL ou Base64 du document
+  fileName     String?
+  fileSize     Int? // en bytes
+  fileMimeType String?
+
+  // Validation
+  verifiedAt DateTime?
+  verifiedBy String? // userId de l'admin qui a vérifié
+  rejectedReason String?
+  expiresAt  DateTime? // Date d'expiration (permis, assurance, etc.)
+
+  // Notes admin
+  adminNotes String?
+
+  // Metadata
+  uploadedAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([courierProfileId])
+  @@index([type])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("courier_documents")
+}
+
+// Positions GPS du coursier (tracking en temps réel)
+model CourierLocation {
+  id String @id @default(uuid())
+
+  // Coursier
+  courierId String
+  courier   User   @relation("CourierLocationUser", fields: [courierId], references: [id], onDelete: Cascade)
+
+  // Livraison en cours (optionnel)
+  deliveryId String?
+  delivery   Delivery? @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+
+  // Position GPS
+  latitude  Float
+  longitude Float
+  accuracy  Float? // Précision en mètres
+  altitude  Float?
+  heading   Float? // Direction (0-360°)
+  speed     Float? // Vitesse en km/h
+
+  // Adresse (reverse geocoding)
+  address String?
+
+  // Metadata
+  timestamp DateTime @default(now())
+
+  @@index([courierId])
+  @@index([deliveryId])
+  @@index([timestamp])
+  @@map("courier_locations")
+}
+
+// Notifications in-app
+model Notification {
+  id String @id @default(uuid())
+
+  // Destinataire
+  userId String
+  user   User   @relation("NotificationUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Type et contenu
+  type    NotificationType
+  title   String
+  message String
+  data    Json? // Données additionnelles (deeplink, etc.)
+
+  // Livraison liée (optionnel)
+  deliveryId String?
+  delivery   Delivery? @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+
+  // État
+  isRead  Boolean  @default(false)
+  readAt  DateTime?
+  isSent  Boolean  @default(false)
+  sentAt  DateTime?
+
+  // Priorité
+  priority Int @default(0) // 0=normal, 1=high, 2=urgent
+
+  // Metadata
+  createdAt DateTime @default(now())
+  expiresAt DateTime? // Expiration de la notification
+
+  @@index([userId])
+  @@index([deliveryId])
+  @@index([type])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// Paiements coursier (wallet/payout)
+model Payout {
+  id String @id @default(uuid())
+
+  // Coursier
+  courierId String
+  courier   User   @relation("PayoutCourier", fields: [courierId], references: [id], onDelete: Cascade)
+
+  // Montant
+  amount        Float
+  currency      String @default("EUR")
+  taxAmount     Float? // Montant des taxes/commissions
+  netAmount     Float  // Montant net reçu par le coursier
+
+  // Période couverte
+  periodStart DateTime
+  periodEnd   DateTime
+
+  // Statut
+  status         PayoutStatus @default(PENDING)
+  processedAt    DateTime?
+  completedAt    DateTime?
+  failedReason   String?
+  transactionId  String? // ID de transaction externe (Stripe, etc.)
+
+  // Détails bancaires (snapshot au moment du paiement)
+  iban          String?
+  bic           String?
+  accountHolder String?
+
+  // Livraisons incluses dans ce paiement
+  deliveryIds String[] @default([]) // Liste des IDs de livraisons
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([courierId])
+  @@index([status])
+  @@index([periodStart])
+  @@index([periodEnd])
+  @@map("payouts")
 }
