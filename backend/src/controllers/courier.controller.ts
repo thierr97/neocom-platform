@@ -61,9 +61,7 @@ export const applyCourier = async (req: AuthRequest, res: Response) => {
       data: {
         userId: newUser.id,
         vehicleType,
-        licenseNumber,
-        bio,
-        status: 'PENDING', // En attente de validation KYC
+        status: 'SUBMITTED', // En attente de validation KYC
         isAvailable: false,
       },
     });
@@ -127,19 +125,22 @@ export const getCourierProfile = async (req: AuthRequest, res: Response) => {
         documents: {
           orderBy: { uploadedAt: 'desc' },
         },
-        deliveriesAssigned: {
-          where: {
-            status: {
-              in: ['OFFERED', 'ACCEPTED', 'TO_PICKUP', 'AT_PICKUP', 'PICKED_UP', 'TO_DROPOFF', 'AT_DROPOFF'],
-            },
-          },
-          include: {
-            customer: true,
-            order: true,
-          },
-          orderBy: { createdAt: 'desc' },
+      },
+    });
+
+    // Récupérer les livraisons actives séparément
+    const activeDeliveries = await prisma.delivery.findMany({
+      where: {
+        courierId: userId,
+        status: {
+          in: ['OFFERED', 'ACCEPTED', 'TO_PICKUP', 'AT_PICKUP', 'PICKED_UP', 'TO_DROPOFF', 'AT_DROPOFF'],
         },
       },
+      include: {
+        customer: true,
+        order: true,
+      },
+      orderBy: { createdAt: 'desc' },
     });
 
     if (!profile) {
@@ -178,7 +179,10 @@ export const getCourierProfile = async (req: AuthRequest, res: Response) => {
     return res.json({
       success: true,
       data: {
-        profile,
+        profile: {
+          ...profile,
+          activeDeliveries,
+        },
         statistics: {
           totalDeliveries,
           totalEarnings: totalEarnings._sum.courierEarnings || 0,
@@ -206,11 +210,15 @@ export const updateCourierProfile = async (req: AuthRequest, res: Response) => {
     const userId = req.user?.userId;
     const {
       vehicleType,
-      licenseNumber,
-      bio,
+      vehicleBrand,
+      vehicleModel,
+      vehicleYear,
+      vehiclePlateNumber,
       isAvailable,
-      bankAccountNumber,
-      bankAccountHolder,
+      iban,
+      bic,
+      bankName,
+      accountHolder,
     } = req.body;
 
     if (!userId) {
@@ -235,11 +243,15 @@ export const updateCourierProfile = async (req: AuthRequest, res: Response) => {
     // Construire l'objet de mise à jour
     const updateData: any = {};
     if (vehicleType !== undefined) updateData.vehicleType = vehicleType;
-    if (licenseNumber !== undefined) updateData.licenseNumber = licenseNumber;
-    if (bio !== undefined) updateData.bio = bio;
+    if (vehicleBrand !== undefined) updateData.vehicleBrand = vehicleBrand;
+    if (vehicleModel !== undefined) updateData.vehicleModel = vehicleModel;
+    if (vehicleYear !== undefined) updateData.vehicleYear = vehicleYear;
+    if (vehiclePlateNumber !== undefined) updateData.vehiclePlateNumber = vehiclePlateNumber;
     if (isAvailable !== undefined) updateData.isAvailable = isAvailable;
-    if (bankAccountNumber !== undefined) updateData.bankAccountNumber = bankAccountNumber;
-    if (bankAccountHolder !== undefined) updateData.bankAccountHolder = bankAccountHolder;
+    if (iban !== undefined) updateData.iban = iban;
+    if (bic !== undefined) updateData.bic = bic;
+    if (bankName !== undefined) updateData.bankName = bankName;
+    if (accountHolder !== undefined) updateData.accountHolder = accountHolder;
 
     // Mettre à jour le profil
     const updatedProfile = await prisma.courierProfile.update({
@@ -280,13 +292,13 @@ export const updateCourierProfile = async (req: AuthRequest, res: Response) => {
  *
  * Requires multipart/form-data with file upload
  * - file (File - image or PDF, max 5MB)
- * - type (DocumentType enum: ID_CARD, DRIVER_LICENSE, VEHICLE_REGISTRATION, INSURANCE, CRIMINAL_RECORD)
+ * - type (DocumentType enum: ID_CARD, DRIVERS_LICENSE, VEHICLE_REGISTRATION, INSURANCE, CRIMINAL_RECORD)
  * - expiresAt (DateTime, optionnel)
  */
 export const uploadDocument = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.userId;
-    const { type, expiresAt, legalStatus } = req.body;
+    const { type, expiresAt } = req.body;
     const file = req.file;
 
     if (!userId) {
@@ -326,20 +338,15 @@ export const uploadDocument = async (req: AuthRequest, res: Response) => {
     // Construire le chemin relatif du fichier pour le stockage
     const fileUrl = `/uploads/courier-documents/${file.filename}`;
 
-    // Mettre à jour le statut juridique si fourni
-    if (legalStatus) {
-      await prisma.courierProfile.update({
-        where: { userId },
-        data: { legalStatus },
-      });
-    }
-
     // Créer le document
     const document = await prisma.courierDocument.create({
       data: {
         courierProfileId: courierProfile.id,
         type,
         fileUrl,
+        fileName: file.originalname,
+        fileSize: file.size,
+        fileMimeType: file.mimetype,
         status: 'PENDING', // En attente de validation par l'admin
         expiresAt: expiresAt ? new Date(expiresAt) : null,
       },
@@ -424,7 +431,15 @@ export const validateDocument = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { status, rejectionReason } = req.body;
+    const userId = req.user?.userId;
     const userRole = req.user?.role;
+
+    if (!userId || !userRole) {
+      return res.status(401).json({
+        success: false,
+        message: 'Non authentifié',
+      });
+    }
 
     // Vérification RBAC
     if (userRole !== 'ADMIN') {
@@ -473,8 +488,9 @@ export const validateDocument = async (req: AuthRequest, res: Response) => {
       where: { id },
       data: {
         status,
-        validatedAt: status === 'APPROVED' ? new Date() : null,
-        rejectionReason: status === 'REJECTED' ? rejectionReason : null,
+        verifiedAt: status === 'APPROVED' ? new Date() : null,
+        verifiedBy: userId,
+        rejectedReason: status === 'REJECTED' ? rejectionReason : null,
       },
     });
 
@@ -486,19 +502,21 @@ export const validateDocument = async (req: AuthRequest, res: Response) => {
         },
       });
 
-      // Vérifier si au moins ID_CARD et DRIVER_LICENSE sont approuvés
+      // Vérifier si au moins ID_CARD et DRIVERS_LICENSE sont approuvés
       const hasIdCard = allDocuments.some(
         (doc) => doc.type === 'ID_CARD' && doc.status === 'APPROVED'
       );
       const hasDriverLicense = allDocuments.some(
-        (doc) => doc.type === 'DRIVER_LICENSE' && doc.status === 'APPROVED'
+        (doc) => doc.type === 'DRIVERS_LICENSE' && doc.status === 'APPROVED'
       );
 
       if (hasIdCard && hasDriverLicense) {
         await prisma.courierProfile.update({
           where: { id: document.courierProfileId },
           data: {
-            status: 'ACTIVE',
+            status: 'APPROVED',
+            approvedAt: new Date(),
+            approvedBy: userId,
             isAvailable: true,
           },
         });
@@ -541,7 +559,7 @@ export const getPendingCouriers = async (req: AuthRequest, res: Response) => {
 
     const pendingCouriers = await prisma.courierProfile.findMany({
       where: {
-        status: 'PENDING',
+        status: 'SUBMITTED',
       },
       include: {
         user: {
@@ -620,13 +638,8 @@ export const getAllCouriers = async (req: AuthRequest, res: Response) => {
             id: true,
             type: true,
             status: true,
-            validatedAt: true,
+            verifiedAt: true,
             expiresAt: true,
-          },
-        },
-        _count: {
-          select: {
-            deliveriesAssigned: true,
           },
         },
       },
