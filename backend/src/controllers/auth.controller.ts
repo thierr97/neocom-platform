@@ -273,3 +273,54 @@ export const logout = async (req: AuthRequest, res: Response) => {
     });
   }
 };
+
+export const refreshToken = async (req: Request, res: Response) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'Refresh token manquant',
+      });
+    }
+
+    // Importer la fonction de vérification
+    const { verifyRefreshToken, generateTokens } = await import('../utils/jwt');
+
+    // Vérifier le refresh token
+    const payload = verifyRefreshToken(refreshToken);
+
+    // Vérifier que l'utilisateur existe toujours et est actif
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId },
+    });
+
+    if (!user || user.status !== 'ACTIVE') {
+      return res.status(403).json({
+        success: false,
+        message: 'Utilisateur introuvable ou inactif',
+      });
+    }
+
+    // Générer de nouveaux tokens
+    const tokens = generateTokens({
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+    });
+
+    return res.json({
+      success: true,
+      message: 'Tokens renouvelés',
+      tokens,
+    });
+  } catch (error: any) {
+    console.error('Error in refreshToken:', error);
+    return res.status(401).json({
+      success: false,
+      message: 'Refresh token invalide ou expiré',
+      error: error.message,
+    });
+  }
+};

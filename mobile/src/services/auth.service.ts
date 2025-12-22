@@ -28,13 +28,16 @@ export interface AuthResponse {
 export const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
   try {
     const response = await api.post('/auth/login', credentials);
-    const { token, user } = response.data;
+    const { user, tokens } = response.data;
 
-    // Sauvegarder le token et l'utilisateur
-    await AsyncStorage.setItem('authToken', token);
+    // Sauvegarder les tokens et l'utilisateur
+    if (tokens) {
+      await AsyncStorage.setItem('authToken', tokens.accessToken);
+      await AsyncStorage.setItem('refreshToken', tokens.refreshToken);
+    }
     await AsyncStorage.setItem('user', JSON.stringify(user));
 
-    return { token, user };
+    return { token: tokens?.accessToken || response.data.token, user };
   } catch (error: any) {
     console.error('Erreur de connexion:', error.response?.data || error.message);
     throw new Error(error.response?.data?.message || 'Erreur de connexion au serveur');

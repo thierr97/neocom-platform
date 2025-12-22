@@ -38,31 +38,90 @@ api.interceptors.request.use(
   }
 );
 
+// Variable pour éviter les multiples tentatives de refresh simultanées
+let isRefreshing = false;
+let refreshPromise: Promise<string> | null = null;
+
+/**
+ * Fonction pour rafraîchir le token
+ */
+const refreshAccessToken = async (): Promise<string> => {
+  const refreshToken = await AsyncStorage.getItem('refreshToken');
+
+  if (!refreshToken) {
+    throw new Error('No refresh token available');
+  }
+
+  try {
+    const response = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
+    const { tokens } = response.data;
+
+    // Sauvegarder les nouveaux tokens
+    await AsyncStorage.setItem('authToken', tokens.accessToken);
+    await AsyncStorage.setItem('refreshToken', tokens.refreshToken);
+
+    return tokens.accessToken;
+  } catch (error) {
+    // Si le refresh échoue, nettoyer les données
+    await AsyncStorage.multiRemove(['authToken', 'refreshToken', 'user']);
+    throw error;
+  }
+};
+
 /**
  * Intercepteur pour gérer les erreurs de réponse
  */
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    // Si 401 Unauthorized ou 403 Forbidden, le token est invalide ou expiré
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      console.log('Token invalide ou expiré - nettoyage des données d\'authentification');
+    const originalRequest = error.config;
 
-      // Nettoyer toutes les données d'authentification
+    // Si 401 et que ce n'est pas déjà une retry
+    if ((error.response?.status === 401 || error.response?.status === 403) && !originalRequest._retry) {
+      originalRequest._retry = true;
+
       try {
-        await AsyncStorage.multiRemove([
-          'authToken',
-          'refreshToken',
-          'userId',
-          'userRole',
-          'user'
-        ]);
-      } catch (cleanupError) {
-        console.error('Erreur lors du nettoyage des données:', cleanupError);
-      }
+        // Si un refresh est déjà en cours, attendre qu'il se termine
+        if (isRefreshing) {
+          const newToken = await refreshPromise;
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          return api(originalRequest);
+        }
 
-      // L'utilisateur devra se reconnecter
-      // La navigation sera gérée automatiquement par App.tsx qui détecte l'absence de token
+        // Sinon, initier le refresh
+        isRefreshing = true;
+        refreshPromise = refreshAccessToken();
+
+        const newToken = await refreshPromise;
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+
+        isRefreshing = false;
+        refreshPromise = null;
+
+        // Réessayer la requête originale avec le nouveau token
+        return api(originalRequest);
+      } catch (refreshError) {
+        isRefreshing = false;
+        refreshPromise = null;
+
+        console.log('Token invalide ou expiré - nettoyage des données d\'authentification');
+
+        // Nettoyer toutes les données d'authentification
+        try {
+          await AsyncStorage.multiRemove([
+            'authToken',
+            'refreshToken',
+            'userId',
+            'userRole',
+            'user'
+          ]);
+        } catch (cleanupError) {
+          console.error('Erreur lors du nettoyage des données:', cleanupError);
+        }
+
+        // L'utilisateur devra se reconnecter
+        return Promise.reject(refreshError);
+      }
     }
 
     return Promise.reject(error);
