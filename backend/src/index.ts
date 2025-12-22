@@ -79,16 +79,31 @@ const corsOptions = {
       process.env.MOBILE_APP_URL || 'exp://localhost:19000',
       'http://localhost:19006', // Expo web
       'http://localhost:8081', // React Native
+      'https://neoserv.fr',
+      'http://neoserv.fr',
     ];
 
-    // Allow Vercel preview deployments
-    if (origin && (origin.endsWith('.vercel.app') || origin.endsWith('neoserv.fr'))) {
+    // Allow if no origin (server-to-server requests)
+    if (!origin) {
       callback(null, true);
-    } else if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+      return;
     }
+
+    // Allow Vercel preview deployments and neoserv.fr subdomains
+    if (origin.endsWith('.vercel.app') || origin.endsWith('neoserv.fr') || origin.includes('neoserv.fr')) {
+      callback(null, true);
+      return;
+    }
+
+    // Allow explicitly listed origins
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    // Reject all others
+    console.log(`CORS blocked origin: ${origin}`);
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   optionsSuccessStatus: 200,
