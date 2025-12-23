@@ -11,8 +11,9 @@ const prisma = new PrismaClient();
 // Get all invoices
 export const getAllInvoices = async (req: Request, res: Response) => {
   try {
-    // Get userId from JWT token (set by auth middleware)
+    // Get userId and role from JWT token (set by auth middleware)
     const userId = (req as any).user?.userId;
+    const userRole = (req as any).user?.role;
 
     if (!userId) {
       return res.status(401).json({
@@ -21,8 +22,14 @@ export const getAllInvoices = async (req: Request, res: Response) => {
       });
     }
 
+    // Admin voir tous, commercial voir seulement les siennes
+    const where: any = {};
+    if (userRole === 'COMMERCIAL') {
+      where.userId = userId;
+    }
+
     const invoices = await prisma.invoice.findMany({
-      where: { userId },
+      where,
       include: {
         customer: {
           select: {
@@ -93,6 +100,17 @@ export const getInvoiceById = async (req: Request, res: Response) => {
       return res.status(404).json({
         success: false,
         message: 'Facture non trouvée',
+      });
+    }
+
+    // Check access - commercial peut voir seulement ses factures
+    const userRole = (req as any).user?.role;
+    const userId = (req as any).user?.userId;
+
+    if (userRole === 'COMMERCIAL' && invoice.userId !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Accès non autorisé',
       });
     }
 
