@@ -150,6 +150,14 @@ model Customer {
   userId String
   user   User   @relation("UserCustomers", fields: [userId], references: [id], onDelete: Cascade)
 
+  // Remises commerciales (appliquées par le commercial)
+  discountRate      Float?   @default(0) // Taux de remise en pourcentage (ex: 10 pour 10%)
+  discountType      String?  @default("PERCENTAGE") // "PERCENTAGE" ou "FIXED"
+  discountReason    String? // Raison de la remise
+  discountValidFrom DateTime? // Date de début de validité
+  discountValidTo   DateTime? // Date de fin de validité
+  discountAppliedBy String? // ID du commercial qui a appliqué la remise
+
   // Relations
   orders            Order[]
   quotes            Quote[]

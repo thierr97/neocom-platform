@@ -139,6 +139,40 @@ export const createCustomer = async (req: AuthRequest, res: Response) => {
       data.userId = req.user!.userId;
     }
 
+    // Gestion des remises commerciales
+    if (data.discountRate !== undefined && data.discountRate !== null) {
+      // Valider le taux de remise
+      if (data.discountType === 'PERCENTAGE' && (data.discountRate < 0 || data.discountRate > 100)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Le taux de remise doit être entre 0 et 100 pour une remise en pourcentage',
+        });
+      }
+
+      if (data.discountRate < 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Le taux de remise ne peut pas être négatif',
+        });
+      }
+
+      // Valider les dates de validité
+      if (data.discountValidFrom && data.discountValidTo) {
+        const validFrom = new Date(data.discountValidFrom);
+        const validTo = new Date(data.discountValidTo);
+
+        if (validFrom >= validTo) {
+          return res.status(400).json({
+            success: false,
+            message: 'La date de début de validité doit être antérieure à la date de fin',
+          });
+        }
+      }
+
+      // Enregistrer automatiquement qui a appliqué la remise
+      data.discountAppliedBy = req.user!.userId;
+    }
+
     const customer = await prisma.customer.create({
       data,
       include: {
@@ -162,6 +196,18 @@ export const createCustomer = async (req: AuthRequest, res: Response) => {
         customerId: customer.id,
       },
     });
+
+    // Log de la remise si applicable
+    if (customer.discountRate && customer.discountRate > 0) {
+      await prisma.activity.create({
+        data: {
+          type: 'CUSTOMER_UPDATED',
+          description: `Remise de ${customer.discountRate}${customer.discountType === 'PERCENTAGE' ? '%' : '€'} appliquée${customer.discountReason ? ` - Raison: ${customer.discountReason}` : ''}`,
+          userId: req.user!.userId,
+          customerId: customer.id,
+        },
+      });
+    }
 
     res.status(201).json({
       success: true,
@@ -210,6 +256,40 @@ export const updateCustomer = async (req: AuthRequest, res: Response) => {
       delete data.zipCode;
     }
 
+    // Gestion des remises commerciales
+    if (data.discountRate !== undefined && data.discountRate !== null) {
+      // Valider le taux de remise
+      if (data.discountType === 'PERCENTAGE' && (data.discountRate < 0 || data.discountRate > 100)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Le taux de remise doit être entre 0 et 100 pour une remise en pourcentage',
+        });
+      }
+
+      if (data.discountRate < 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Le taux de remise ne peut pas être négatif',
+        });
+      }
+
+      // Valider les dates de validité
+      if (data.discountValidFrom && data.discountValidTo) {
+        const validFrom = new Date(data.discountValidFrom);
+        const validTo = new Date(data.discountValidTo);
+
+        if (validFrom >= validTo) {
+          return res.status(400).json({
+            success: false,
+            message: 'La date de début de validité doit être antérieure à la date de fin',
+          });
+        }
+      }
+
+      // Enregistrer automatiquement qui a appliqué/modifié la remise
+      data.discountAppliedBy = req.user!.userId;
+    }
+
     // Check if customer exists and access
     const existing = await prisma.customer.findUnique({ where: { id } });
     if (!existing) {
@@ -250,6 +330,22 @@ export const updateCustomer = async (req: AuthRequest, res: Response) => {
         customerId: customer.id,
       },
     });
+
+    // Log spécifique pour les modifications de remise
+    if (data.discountRate !== undefined && (existing.discountRate !== customer.discountRate || existing.discountType !== customer.discountType)) {
+      const discountDescription = customer.discountRate && customer.discountRate > 0
+        ? `Remise ${existing.discountRate ? 'modifiée' : 'appliquée'}: ${customer.discountRate}${customer.discountType === 'PERCENTAGE' ? '%' : '€'}${customer.discountReason ? ` - Raison: ${customer.discountReason}` : ''}`
+        : 'Remise supprimée';
+
+      await prisma.activity.create({
+        data: {
+          type: 'CUSTOMER_UPDATED',
+          description: discountDescription,
+          userId: req.user!.userId,
+          customerId: customer.id,
+        },
+      });
+    }
 
     res.json({
       success: true,
