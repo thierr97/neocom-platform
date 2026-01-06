@@ -41,6 +41,7 @@ import creditNotesRoutes from './routes/credit-notes';
 import deliveryNoteRoutes from './routes/deliveryNote.routes';
 import deliveryRoutes from './routes/delivery.routes';
 import courierRoutes from './routes/courier.routes';
+import shopBannerRoutes from './routes/shop-banner.routes';
 
 // Load environment variables
 dotenv.config();
@@ -155,6 +156,7 @@ app.use('/api', trackingRoutes);
 app.use('/api/rbac', rbacRoutes);
 app.use('/api/activities', activityRoutes);
 app.use('/api/shop', shopRoutes);
+app.use('/api/shop/banners', shopBannerRoutes);
 app.use('/api/client', clientRoutes);
 // app.use('/api/payments', paymentRoutes);  // Temporairement désactivé
 // app.use('/api/ai', aiRoutes);  // Temporairement désactivé

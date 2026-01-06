@@ -2167,3 +2167,61 @@ model Payout {
   @@index([periodEnd])
   @@map("payouts")
 }
+
+// ========================================
+// SHOP BANNERS (Bannières configurables pour le site e-commerce)
+// ========================================
+
+model ShopBanner {
+  id String @id @default(uuid())
+
+  // Configuration de base
+  title           String? // Titre principal (ex: "Cyber Monday")
+  subtitle        String? // Sous-titre (ex: "Fin de la promo : 31 décembre")
+  description     String? // Description/texte additionnel
+  ctaText         String? // Texte du bouton d'action (ex: "Voir les offres")
+  ctaLink         String? // Lien du bouton
+
+  // Style visuel
+  backgroundType  String  @default("gradient") // "gradient", "image", "color"
+  backgroundValue String? // Gradient CSS, URL d'image, ou couleur hex
+  textColor       String  @default("#FFFFFF") // Couleur du texte
+  buttonColor     String? // Couleur du bouton CTA
+
+  // Images
+  mainImage       String? // Image principale (ex: emoji cadeau, ou image upload)
+  secondaryImages String[] @default([]) // Images secondaires
+
+  // Mise en page
+  layout          String  @default("horizontal") // "horizontal", "vertical", "centered"
+  height          String  @default("medium") // "small", "medium", "large", "custom"
+  customHeight    String? // Hauteur personnalisée (ex: "400px")
+
+  // Positionnement des éléments (JSON pour flexibilité)
+  positioning     Json? // {textAlign: "left", imagePosition: "right", etc.}
+
+  // Badge de promotion
+  showBadge       Boolean @default(false)
+  badgeText       String? // Texte du badge (ex: "-70%")
+  badgeColor      String? @default("#EF4444") // Rouge par défaut
+
+  // Dates de validité
+  startDate       DateTime?
+  endDate         DateTime?
+  showCountdown   Boolean @default(false) // Afficher un compte à rebours
+
+  // État et priorité
+  isActive        Boolean @default(true)
+  priority        Int     @default(0) // Pour afficher plusieurs bannières (0 = plus haute priorité)
+
+  // Metadata
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  createdBy       String? // UserId de l'admin qui a créé
+
+  @@index([isActive])
+  @@index([priority])
+  @@index([startDate])
+  @@index([endDate])
+  @@map("shop_banners")
+}
