@@ -24,9 +24,9 @@ export const getPublicProducts = async (req: Request, res: Response) => {
 
     // Filter by category
     if (category) {
-      // Vérifier si c'est une catégorie parente
+      // Chercher la catégorie par slug (envoyé depuis le frontend)
       const selectedCategory = await prisma.category.findUnique({
-        where: { id: category as string },
+        where: { slug: category as string },
         include: {
           children: true, // Récupérer les sous-catégories
         },
@@ -37,11 +37,11 @@ export const getPublicProducts = async (req: Request, res: Response) => {
           // C'est une catégorie parente : inclure tous les produits de la catégorie parente ET des sous-catégories
           const childrenIds = selectedCategory.children.map(child => child.id);
           where.categoryId = {
-            in: [category as string, ...childrenIds],
+            in: [selectedCategory.id, ...childrenIds],
           };
         } else {
           // C'est une sous-catégorie : filtrer normalement
-          where.categoryId = category;
+          where.categoryId = selectedCategory.id;
         }
       }
     }
