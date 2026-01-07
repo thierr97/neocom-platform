@@ -520,86 +520,105 @@ export class PDFService {
    */
   private static addBankDetails(doc: PDFKit.PDFDocument, companySettings: CompanySettings, bankInfo: BankInfo, yPosition: number): number {
     doc
-      .fontSize(9)
+      .fontSize(10)
       .font('Helvetica-Bold')
       .fillColor('#000000')
       .text('Règlement par virement sur le compte bancaire suivant:', 50, yPosition);
 
-    yPosition += 15;
-
-    // Tableau RIB
-    const startX = 50;
-    const colWidths = [90, 90, 120, 50];
-    let xPos = startX;
-
-    doc.fontSize(8).font('Helvetica-Bold');
-
-    // En-têtes
-    doc.text('Code banque', xPos, yPosition, { width: colWidths[0], align: 'center' });
-    xPos += colWidths[0];
-    doc.text('Code guichet', xPos, yPosition, { width: colWidths[1], align: 'center' });
-    xPos += colWidths[1];
-    doc.text('Numéro de compte', xPos, yPosition, { width: colWidths[2], align: 'center' });
-    xPos += colWidths[2];
-    doc.text('Clé', xPos, yPosition, { width: colWidths[3], align: 'center' });
-
-    yPosition += 12;
-
-    // Valeurs
-    xPos = startX;
-    doc.font('Helvetica');
-    doc.text(bankInfo.bankCode, xPos, yPosition, { width: colWidths[0], align: 'center' });
-    xPos += colWidths[0];
-    doc.text(bankInfo.branchCode, xPos, yPosition, { width: colWidths[1], align: 'center' });
-    xPos += colWidths[1];
-    doc.text(bankInfo.accountNumber, xPos, yPosition, { width: colWidths[2], align: 'center' });
-    xPos += colWidths[2];
-    doc.text(bankInfo.accountKey, xPos, yPosition, { width: colWidths[3], align: 'center' });
-
     yPosition += 20;
 
-    // BIC-IBAN encadré
+    // Encadré avec fond gris clair pour les informations bancaires
     doc
-      .rect(50, yPosition, 300, 30)
-      .stroke('#000000');
+      .fillColor('#F5F5F5')
+      .rect(50, yPosition, 500, 55)
+      .fill();
 
     doc
-      .fontSize(8)
+      .strokeColor('#CCCCCC')
+      .rect(50, yPosition, 500, 55)
+      .stroke();
+
+    // IBAN
+    doc
+      .fontSize(9)
       .font('Helvetica-Bold')
-      .text(`Code BIC: ${bankInfo.bic}`, 55, yPosition + 5)
-      .text(`Code IBAN: ${bankInfo.iban}`, 55, yPosition + 18);
+      .fillColor('#000000')
+      .text('IBAN:', 60, yPosition + 10);
 
-    yPosition += 40;
+    doc
+      .fontSize(10)
+      .font('Helvetica')
+      .fillColor('#000000')
+      .text(bankInfo.iban || 'Non renseigné', 110, yPosition + 10);
 
-    // Mentions légales
+    // BIC / SWIFT
+    doc
+      .fontSize(9)
+      .font('Helvetica-Bold')
+      .fillColor('#000000')
+      .text('BIC / SWIFT:', 60, yPosition + 28);
+
+    doc
+      .fontSize(10)
+      .font('Helvetica')
+      .fillColor('#000000')
+      .text(bankInfo.bic || 'Non renseigné', 130, yPosition + 28);
+
+    yPosition += 70;
+
+    // Mentions légales - Section plus structurée
     const companyType = process.env.COMPANY_TYPE || '';
     const companyTypeLong = process.env.COMPANY_TYPE_LONG || '';
     const companyCapital = process.env.COMPANY_CAPITAL || '';
     const companyNaf = process.env.COMPANY_NAF || '';
 
     doc
+      .fontSize(8)
+      .font('Helvetica-Bold')
+      .fillColor('#000000')
+      .text('Titulaire du compte:', 50, yPosition);
+
+    doc
+      .fontSize(8)
+      .font('Helvetica')
+      .fillColor('#333333')
+      .text(bankInfo.accountHolder || companySettings.name, 50, yPosition + 12);
+
+    yPosition += 30;
+
+    // Informations légales de l'entreprise
+    doc
       .fontSize(7)
       .font('Helvetica')
-      .fillColor('#666666')
-      .text(`Nom du propriétaire du compte: ${bankInfo.accountHolder}`, 50, yPosition)
-      .text(`N° d'identification au registre du commerce: SIRET ${companySettings.siret}`, 50, yPosition + 10);
+      .fillColor('#666666');
 
-    let legalY = yPosition + 20;
+    let legalY = yPosition;
 
-    // NAF-APE et TVA
-    if (companyNaf) {
-      doc.text(`NAF-APE: ${companyNaf} - Numéro TVA: ${companySettings.vatNumber}`, 50, legalY);
-    } else {
-      doc.text(`Numéro TVA: ${companySettings.vatNumber}`, 50, legalY);
+    // SIRET
+    if (companySettings.siret) {
+      doc.text(`SIRET ${companySettings.siret}`, 50, legalY);
+      legalY += 10;
     }
-    legalY += 10;
+
+    // TVA
+    if (companySettings.vatNumber) {
+      doc.text(`Numéro TVA: ${companySettings.vatNumber}`, 50, legalY);
+      legalY += 10;
+    }
+
+    // NAF-APE
+    if (companyNaf) {
+      doc.text(`NAF-APE: ${companyNaf}`, 50, legalY);
+      legalY += 10;
+    }
 
     // Type de société et capital
     if (companyTypeLong && companyCapital) {
       doc.text(`${companyTypeLong} (${companyType}) - Capital de ${companyCapital}`, 50, legalY);
+      legalY += 10;
     }
 
-    return yPosition + 50;
+    return legalY + 10;
   }
 
   static generateQuotePDF(quote: Quote, companySettings: CompanySettings, bankInfo: BankInfo, res: Response) {
