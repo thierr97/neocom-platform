@@ -15,6 +15,10 @@ router.patch('/:id/toggle-visibility', requireRole('ADMIN'), productController.t
 router.patch('/:id', requireRole('ADMIN'), productController.patchProduct);
 router.delete('/:id', requireRole('ADMIN'), productController.deleteProduct);
 
+// AI Description Generation
+router.post('/:id/generate-description', requireRole('ADMIN'), productController.generateProductDescription);
+router.post('/bulk/generate-descriptions', requireRole('ADMIN'), productController.generateBulkDescriptions);
+
 // Categories
 router.get('/categories/all', productController.getCategories);
 router.post('/categories', requireRole('ADMIN'), productController.createCategory);

@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import prisma from '../config/database';
 import { AuthRequest } from '../middleware/auth';
+import aiManagerService from '../services/ai-manager.service';
 
 // Fonction pour normaliser le texte de recherche
 function normalizeSearchText(text: string): string {
@@ -507,6 +508,139 @@ export const toggleProductVisibility = async (req: AuthRequest, res: Response) =
     res.status(500).json({
       success: false,
       message: 'Erreur lors du changement de visibilité',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Generate AI description for a single product
+ */
+export const generateProductDescription = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    // Verify product exists
+    const product = await prisma.product.findUnique({
+      where: { id },
+      include: { category: true },
+    });
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Produit non trouvé',
+      });
+    }
+
+    // Generate description using AI
+    const description = await aiManagerService.generateProductDescription(id);
+
+    // Get updated product
+    const updatedProduct = await prisma.product.findUnique({
+      where: { id },
+      include: { category: true },
+    });
+
+    res.json({
+      success: true,
+      message: 'Description générée avec succès',
+      description,
+      product: updatedProduct,
+    });
+  } catch (error: any) {
+    console.error('Error generating product description:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Erreur lors de la génération de la description',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Generate AI descriptions for multiple products (bulk)
+ */
+export const generateBulkDescriptions = async (req: AuthRequest, res: Response) => {
+  try {
+    const { productIds, onlyEmpty } = req.body;
+
+    let productsToProcess: string[] = [];
+
+    if (productIds && Array.isArray(productIds)) {
+      // Use provided product IDs
+      productsToProcess = productIds;
+    } else if (onlyEmpty) {
+      // Find products without descriptions
+      const products = await prisma.product.findMany({
+        where: {
+          status: 'ACTIVE',
+          OR: [
+            { description: null },
+            { description: { equals: '' } },
+          ],
+        },
+        select: { id: true },
+        take: 20, // Limit to 20 products at a time
+      });
+      productsToProcess = products.map(p => p.id);
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Veuillez fournir productIds ou onlyEmpty=true',
+      });
+    }
+
+    if (productsToProcess.length === 0) {
+      return res.json({
+        success: true,
+        message: 'Aucun produit à traiter',
+        results: [],
+      });
+    }
+
+    // Generate descriptions for each product
+    const results = [];
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const productId of productsToProcess) {
+      try {
+        const description = await aiManagerService.generateProductDescription(productId);
+        results.push({
+          productId,
+          success: true,
+          description: description.substring(0, 100) + '...',
+        });
+        successCount++;
+
+        // Add small delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } catch (error: any) {
+        results.push({
+          productId,
+          success: false,
+          error: error.message,
+        });
+        errorCount++;
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Descriptions générées: ${successCount} succès, ${errorCount} erreurs`,
+      results,
+      summary: {
+        total: productsToProcess.length,
+        success: successCount,
+        error: errorCount,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error generating bulk descriptions:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la génération en masse',
       error: error.message,
     });
   }
