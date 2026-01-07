@@ -50,8 +50,10 @@ export const createStripePaymentIntent = async (req: Request, res: Response) => 
 
     return res.json({
       success: true,
-      clientSecret: paymentIntent.client_secret,
-      paymentIntentId: paymentIntent.id,
+      data: {
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id,
+      },
     });
   } catch (error: any) {
     console.error('Error creating payment intent:', error);

@@ -30,7 +30,7 @@ import rbacRoutes from './routes/rbac.routes';
 import activityRoutes from './routes/activity.routes';
 import shopRoutes from './routes/shop.routes';
 import clientRoutes from './routes/client.routes';
-// import paymentRoutes from './routes/payment.routes';  // Temporairement désactivé
+import paymentRoutes from './routes/payment.routes';
 // import aiRoutes from './routes/ai.routes';  // Temporairement désactivé
 import reviewRoutes from './routes/review.routes';
 import migrationRoutes from './routes/migration.routes';
@@ -158,7 +158,7 @@ app.use('/api/activities', activityRoutes);
 app.use('/api/shop', shopRoutes);
 app.use('/api/shop/banners', shopBannerRoutes);
 app.use('/api/client', clientRoutes);
-// app.use('/api/payments', paymentRoutes);  // Temporairement désactivé
+app.use('/api/payments', paymentRoutes);
 // app.use('/api/ai', aiRoutes);  // Temporairement désactivé
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/migration', migrationRoutes);
