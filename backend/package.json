@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon src/index.ts",
-    "prebuild": "prisma migrate deploy && prisma generate",
+    "prebuild": "prisma migrate resolve --applied 20251223210000_add_discount_to_customers || true && prisma migrate deploy && prisma generate",
     "build": "tsc",
     "start": "node dist/index.js",
     "postinstall": "prisma generate",
