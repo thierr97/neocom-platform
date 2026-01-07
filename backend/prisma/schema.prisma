@@ -2175,6 +2175,9 @@ model Payout {
 model ShopBanner {
   id String @id @default(uuid())
 
+  // Type de bannière
+  bannerType      String  @default("hero") // "hero", "flash_deals", "vacances", "offre_jour", "category_promo"
+
   // Configuration de base
   title           String? // Titre principal (ex: "Cyber Monday")
   subtitle        String? // Sous-titre (ex: "Fin de la promo : 31 décembre")
@@ -2210,6 +2213,9 @@ model ShopBanner {
   endDate         DateTime?
   showCountdown   Boolean @default(false) // Afficher un compte à rebours
 
+  // Placement sur la page
+  placement       String  @default("top") // "top", "after_categories", "middle_products", "before_footer"
+
   // État et priorité
   isActive        Boolean @default(true)
   priority        Int     @default(0) // Pour afficher plusieurs bannières (0 = plus haute priorité)
@@ -2221,6 +2227,7 @@ model ShopBanner {
 
   @@index([isActive])
   @@index([priority])
+  @@index([placement])
   @@index([startDate])
   @@index([endDate])
   @@map("shop_banners")
