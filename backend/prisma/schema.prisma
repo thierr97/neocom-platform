@@ -17,6 +17,8 @@ enum UserRole {
   DELIVERY
   CLIENT
   ACCOUNTANT
+  STAFF_PREPA  // Preparation and reception staff
+  SUB_ADMIN    // Supervisor - can validate tasks and view all operations
 }
 
 enum UserStatus {
@@ -70,6 +72,12 @@ model User {
   courierLocations     CourierLocation[] @relation("CourierLocationUser")
   notifications        Notification[]    @relation("NotificationUser")
   payouts              Payout[]          @relation("PayoutCourier")
+
+  // Relations logistics/tasks system
+  tasksAssigned      Task[]       @relation("TaskAssignedTo")    // Tasks assigned to this user
+  tasksCreated       Task[]       @relation("TaskAssignedBy")    // Tasks assigned by this user
+  taskProofsUploaded TaskProof[]  @relation("TaskProofUploadedBy")
+  taskReviews        TaskReview[] @relation("TaskReviewedBy")    // Reviews made by this user (SUB_ADMIN)
 
   // Metadata
   createdAt   DateTime  @default(now())
@@ -496,6 +504,27 @@ model Order {
   confirmedAt DateTime?
   shippedAt   DateTime?
   deliveredAt DateTime?
+
+  // LOGISTICS SYSTEM - Fulfillment Flow
+  fulfillmentFlow String? @default("DIRECT") // DIRECT or INBOUND_THEN_LAST_MILE
+
+  // Inbound Logistics (FRANCE → GUADELOUPE)
+  inboundCarrier        String?
+  inboundTrackingNumber String?
+  inboundStatus         String? @default("NOT_STARTED") // NOT_STARTED, SHIPPED, IN_TRANSIT, RECEIVED
+  inboundShippedAt      DateTime?
+  inboundReceivedAt     DateTime?
+  inboundProofUrl       String? // Photo/scan de réception
+  inboundNotes          String?
+
+  // Last Mile Delivery (LOCAL DELIVERY in Guadeloupe)
+  lastMileType           String? // INTERNAL_DRIVER or EXTERNAL_CARRIER
+  lastMileCarrier        String? // If external
+  lastMileTrackingNumber String? // If external
+  lastMileNotes          String?
+
+  // Relations for logistics
+  tasks Task[] // Task/intervention assignments
 
   // Metadata
   createdAt DateTime @default(now())
@@ -2231,4 +2260,147 @@ model ShopBanner {
   @@index([startDate])
   @@index([endDate])
   @@map("shop_banners")
+}
+
+// ========================================
+// LOGISTICS SYSTEM - TASKS & INTERVENTIONS
+// ========================================
+
+enum TaskType {
+  RECEPTION_INBOUND    // Réception marchandise en provenance de France
+  DELIVERY_LAST_MILE   // Livraison locale
+  SHIP_LAST_MILE       // Expédition locale (si external carrier)
+}
+
+enum TaskStatus {
+  TODO         // À faire
+  IN_PROGRESS  // En cours
+  DONE         // Terminé (waiting validation)
+  APPROVED     // Approuvé par SUB_ADMIN
+  REJECTED     // Rejeté par SUB_ADMIN
+  ISSUE        // Incident signalé
+}
+
+enum TaskProofType {
+  PHOTO      // Photo de preuve
+  SIGNATURE  // Signature électronique
+  GPS        // Position GPS
+  NOTE       // Note textuelle
+  DOCUMENT   // Document attaché
+}
+
+enum TaskReviewStatus {
+  APPROVED      // Validé
+  REJECTED      // Rejeté
+  PENDING_INFO  // En attente d'infos
+}
+
+// Task/Intervention principale
+model Task {
+  id String @id @default(uuid())
+
+  // Lien avec la commande
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  // Type et statut
+  type   TaskType
+  status TaskStatus @default(TODO)
+
+  // Assignment
+  assignedToId String?
+  assignedTo   User?    @relation("TaskAssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  assignedById String?
+  assignedBy   User?    @relation("TaskAssignedBy", fields: [assignedById], references: [id], onDelete: SetNull)
+
+  assignedAt DateTime?
+
+  // Scheduling
+  scheduledAt DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  // Details
+  title       String
+  description String?
+  notes       String?
+
+  // Location (if applicable)
+  locationAddress   String?
+  locationLatitude  Float?
+  locationLongitude Float?
+
+  // Relations
+  proofs  TaskProof[]
+  reviews TaskReview[]
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([type])
+  @@index([scheduledAt])
+  @@map("tasks")
+}
+
+// Preuves attachées à une tâche
+model TaskProof {
+  id String @id @default(uuid())
+
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  // Type de preuve
+  type TaskProofType
+
+  // Contenu
+  fileUrl       String? // Pour photos/documents
+  signatureData String? @db.Text // Signature base64
+  noteText      String? @db.Text
+
+  // Données GPS
+  latitude  Float?
+  longitude Float?
+  accuracy  Float?
+  address   String?
+
+  // Metadata
+  uploadedById String?
+  uploadedBy   User?    @relation("TaskProofUploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  uploadedAt DateTime @default(now())
+
+  @@index([taskId])
+  @@index([type])
+  @@map("task_proofs")
+}
+
+// Reviews/Validations par SUB_ADMIN
+model TaskReview {
+  id String @id @default(uuid())
+
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  // Review details
+  status   TaskReviewStatus
+  comments String?          @db.Text
+
+  // Actions prises (JSON: reassigned, reopened, etc.)
+  actionsTaken Json?
+
+  // Reviewer
+  reviewedById String
+  reviewedBy   User   @relation("TaskReviewedBy", fields: [reviewedById], references: [id], onDelete: Cascade)
+
+  reviewedAt DateTime @default(now())
+
+  @@index([taskId])
+  @@index([reviewedById])
+  @@index([status])
+  @@map("task_reviews")
 }

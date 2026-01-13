@@ -42,6 +42,8 @@ import deliveryNoteRoutes from './routes/deliveryNote.routes';
 import deliveryRoutes from './routes/delivery.routes';
 import courierRoutes from './routes/courier.routes';
 import shopBannerRoutes from './routes/shop-banner.routes';
+import taskRoutes from './routes/task.routes';
+import logisticsRoutes from './routes/logistics.routes';
 
 // Load environment variables
 dotenv.config();
@@ -165,6 +167,8 @@ app.use('/api/migration', migrationRoutes);
 app.use('/api/cloudinary', cloudinaryRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/ai-manager', aiManagerRoutes);
+app.use('/api/tasks', taskRoutes);
+app.use('/api/logistics', logisticsRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
