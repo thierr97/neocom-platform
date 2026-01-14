@@ -27,13 +27,14 @@ import {
   sendPositionUpdate,
   joinTracking,
 } from '../src/services/socket.service';
-import { getAuthToken } from '../src/services/auth.service';
+import { getAuthToken, getCurrentUser } from '../src/services/auth.service';
 import {
   startTrip as startTripAPI,
   endTrip as endTripAPI,
   addCheckpoint as addCheckpointAPI,
   Trip,
 } from '../src/services/trip.service';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface TrackingStats {
   distance: number; // en mètres
@@ -117,12 +118,16 @@ const GPSTrackingScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       setCurrentTrip(trip);
       console.log('✅ Trajet créé dans la DB:', trip.id);
 
-      // 2. Connecter au WebSocket
+      // 2. Connecter au WebSocket avec le vrai userId
       const token = await getAuthToken();
-      if (token) {
-        const userId = 'user-id'; // À remplacer par le vrai user ID
-        connectSocket(userId, token);
+      const user = await getCurrentUser();
+
+      if (token && user) {
+        console.log('🔌 Connexion WebSocket pour user:', user.id);
+        connectSocket(user.id, token);
         joinTracking();
+      } else {
+        console.warn('⚠️ Impossible de connecter WebSocket: token ou user manquant');
       }
 
       // 3. Réinitialiser le compteur de checkpoints
