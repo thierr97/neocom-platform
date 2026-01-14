@@ -11,9 +11,7 @@ import {
 } from 'react-native';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
-
-const API_URL = 'http://localhost:4000/api';
+import api from '../src/services/api';
 
 interface Customer {
   id: string;
@@ -71,10 +69,7 @@ export default function CustomerVisitScreen({ navigation }: any) {
 
   const loadCustomers = async () => {
     try {
-      const token = await AsyncStorage.getItem('userToken');
-      const response = await axios.get(`${API_URL}/customers`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await api.get('/customers');
 
       if (response.data.success) {
         setCustomers(response.data.data);
@@ -119,7 +114,6 @@ export default function CustomerVisitScreen({ navigation }: any) {
     setSubmitting(true);
 
     try {
-      const token = await AsyncStorage.getItem('userToken');
       const userId = await AsyncStorage.getItem('userId');
 
       const visitData = {
@@ -132,9 +126,7 @@ export default function CustomerVisitScreen({ navigation }: any) {
         accuracy: location?.coords.accuracy,
       };
 
-      const response = await axios.post(`${API_URL}/gps/visits`, visitData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await api.post('/gps/visits', visitData);
 
       if (response.data.success) {
         Alert.alert(

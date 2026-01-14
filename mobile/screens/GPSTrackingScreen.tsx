@@ -28,6 +28,12 @@ import {
   joinTracking,
 } from '../src/services/socket.service';
 import { getAuthToken } from '../src/services/auth.service';
+import {
+  startTrip as startTripAPI,
+  endTrip as endTripAPI,
+  addCheckpoint as addCheckpointAPI,
+  Trip,
+} from '../src/services/trip.service';
 
 interface TrackingStats {
   distance: number; // en mètres
@@ -45,10 +51,12 @@ const GPSTrackingScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     checkpoints: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [currentTrip, setCurrentTrip] = useState<Trip | null>(null);
 
   const mapRef = useRef<MapView>(null);
   const subscriptionRef = useRef<any>(null);
   const startTimeRef = useRef<number>(Date.now());
+  const checkpointCounterRef = useRef<number>(0);
 
   useEffect(() => {
     initializeTracking();
@@ -90,7 +98,26 @@ const GPSTrackingScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   const startTracking = async () => {
     try {
-      // Connecter au WebSocket
+      if (!currentPosition) {
+        Alert.alert('Erreur', 'Position GPS non disponible');
+        return;
+      }
+
+      // 1. Créer le trajet dans la base de données
+      const trip = await startTripAPI({
+        purpose: 'CLIENT_VISIT',
+        objective: 'Visite de prospection',
+        vehicleType: 'CAR',
+        latitude: currentPosition.latitude,
+        longitude: currentPosition.longitude,
+        address: 'Position de départ',
+        estimatedKm: 0,
+      });
+
+      setCurrentTrip(trip);
+      console.log('✅ Trajet créé dans la DB:', trip.id);
+
+      // 2. Connecter au WebSocket
       const token = await getAuthToken();
       if (token) {
         const userId = 'user-id'; // À remplacer par le vrai user ID
@@ -98,7 +125,10 @@ const GPSTrackingScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         joinTracking();
       }
 
-      // Démarrer le suivi de position
+      // 3. Réinitialiser le compteur de checkpoints
+      checkpointCounterRef.current = 0;
+
+      // 4. Démarrer le suivi de position
       subscriptionRef.current = await watchPosition(
         (location: LocationData) => {
           const newPosition = location.coords;
@@ -128,8 +158,25 @@ const GPSTrackingScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             return updatedTrail;
           });
 
-          // Envoyer position via WebSocket
+          // Envoyer position via WebSocket (temps réel)
           sendPositionUpdate(location);
+
+          // Sauvegarder checkpoint dans la DB toutes les 5 positions (pour économiser les requêtes)
+          checkpointCounterRef.current += 1;
+          if (currentTrip && checkpointCounterRef.current % 5 === 0) {
+            addCheckpointAPI({
+              tripId: currentTrip.id,
+              latitude: newPosition.latitude,
+              longitude: newPosition.longitude,
+              accuracy: newPosition.accuracy,
+              speed: location.coords.speed || undefined,
+              heading: location.coords.heading || undefined,
+            }).then(() => {
+              console.log('✅ Checkpoint sauvegardé');
+            }).catch((error) => {
+              console.error('❌ Erreur checkpoint:', error);
+            });
+          }
         },
         (error) => {
           console.error('Erreur de suivi GPS:', error);
@@ -155,22 +202,40 @@ const GPSTrackingScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     }
   };
 
-  const stopTracking = () => {
-    if (subscriptionRef.current) {
-      stopWatchingPosition(subscriptionRef.current);
-      subscriptionRef.current = null;
+  const stopTracking = async () => {
+    try {
+      if (subscriptionRef.current) {
+        stopWatchingPosition(subscriptionRef.current);
+        subscriptionRef.current = null;
+      }
+
+      disconnectSocket();
+      setIsTracking(false);
+
+      // Terminer le trajet dans la DB
+      if (currentTrip && currentPosition) {
+        await endTripAPI(currentTrip.id, {
+          latitude: currentPosition.latitude,
+          longitude: currentPosition.longitude,
+          address: 'Position finale',
+          notes: `Distance: ${(stats.distance / 1000).toFixed(2)} km - Durée: ${formatDuration(stats.duration)}`,
+        });
+
+        console.log('✅ Trajet terminé dans la DB');
+        setCurrentTrip(null);
+      }
+
+      Alert.alert(
+        'Tracking terminé',
+        `Distance: ${(stats.distance / 1000).toFixed(2)} km\nDurée: ${formatDuration(
+          stats.duration
+        )}\nCheckpoints: ${stats.checkpoints}`,
+        [{ text: 'OK' }]
+      );
+    } catch (error: any) {
+      console.error('Erreur lors de l\'arrêt du tracking:', error);
+      Alert.alert('Erreur', 'Une erreur est survenue lors de l\'arrêt du trajet');
     }
-
-    disconnectSocket();
-    setIsTracking(false);
-
-    Alert.alert(
-      'Tracking terminé',
-      `Distance: ${(stats.distance / 1000).toFixed(2)} km\nDurée: ${formatDuration(
-        stats.duration
-      )}\nCheckpoints: ${stats.checkpoints}`,
-      [{ text: 'OK' }]
-    );
   };
 
   const cleanupTracking = () => {
