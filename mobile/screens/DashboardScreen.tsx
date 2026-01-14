@@ -95,7 +95,7 @@ export default function DashboardScreen({ navigation }: any) {
           text: 'Déconnexion',
           style: 'destructive',
           onPress: async () => {
-            await AsyncStorage.multiRemove(['userToken', 'userId', 'userRole']);
+            await AsyncStorage.multiRemove(['authToken', 'refreshToken', 'user', 'userId', 'userRole']);
             navigation.replace('Login');
           },
         },
