@@ -1,3 +1,7 @@
+/**
+ * Écran d'accueil de la boutique - Identique au web
+ * Bannières, catégories populaires, meilleures ventes, flash deals
+ */
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -9,10 +13,13 @@ import {
   ActivityIndicator,
   ScrollView,
   Dimensions,
+  RefreshControl,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import shopAPI, { ShopCategory, ShopProduct } from '../src/services/shopAPI';
+import bannerAPI, { Banner } from '../src/services/bannerAPI';
+import ShopBanner from '../components/ShopBanner';
 import { getCategoryStyle } from '../src/config/categoryConfig';
 
 const { width } = Dimensions.get('window');
@@ -20,8 +27,11 @@ const CARD_WIDTH = (width - 48) / 2;
 
 export default function ShopHomeScreen({ navigation }: any) {
   const [categories, setCategories] = useState<ShopCategory[]>([]);
-  const [featuredProducts, setFeaturedProducts] = useState<ShopProduct[]>([]);
+  const [banners, setBanners] = useState<Banner[]>([]);
+  const [bestSellers, setBestSellers] = useState<ShopProduct[]>([]);
+  const [flashDeals, setFlashDeals] = useState<ShopProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -30,26 +40,44 @@ export default function ShopHomeScreen({ navigation }: any) {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [categoriesRes, productsRes] = await Promise.all([
+      const [categoriesRes, bannersRes, bestSellersRes, flashDealsRes] = await Promise.all([
         shopAPI.categories.getAll(),
+        bannerAPI.getActive(),
         shopAPI.products.getFeatured(),
+        shopAPI.products.getFeatured(), // On utilisera les mêmes pour l'instant
       ]);
 
       if (categoriesRes.success) {
+        // Top 4 catégories avec produits
         const topCategories = categoriesRes.data
           .filter(c => !c.parentId && c._count.products > 0)
-          .slice(0, 8);
+          .sort((a, b) => b._count.products - a._count.products)
+          .slice(0, 4);
         setCategories(topCategories);
       }
 
-      if (productsRes.success) {
-        setFeaturedProducts(productsRes.data);
+      if (bannersRes.success) {
+        setBanners(bannersRes.data);
+      }
+
+      if (bestSellersRes.success) {
+        setBestSellers(bestSellersRes.data.slice(0, 6));
+      }
+
+      if (flashDealsRes.success) {
+        setFlashDeals(flashDealsRes.data.slice(6, 12));
       }
     } catch (error) {
       console.error('Error loading shop data:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadData();
   };
 
   const renderCategory = ({ item }: { item: ShopCategory }) => {
@@ -109,21 +137,45 @@ export default function ShopHomeScreen({ navigation }: any) {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color="#a855f7" />
         <Text style={styles.loadingText}>Chargement de la boutique...</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+    >
+      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Boutique NeoServ</Text>
-        <Text style={styles.headerSubtitle}>Découvrez nos produits</Text>
+        <Text style={styles.headerSubtitle}>Découvrez nos offres exceptionnelles</Text>
       </View>
 
+      {/* Bannières Top */}
+      {banners.filter(b => b.placement === 'top').map(banner => (
+        <ShopBanner
+          key={banner.id}
+          banner={banner}
+          onPress={() => {
+            if (banner.ctaLink) {
+              // Navigation vers la page liée
+              console.log('Navigate to:', banner.ctaLink);
+            }
+          }}
+        />
+      ))}
+
+      {/* Catégories populaires */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Catégories</Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Catégories populaires</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('ShopAllProducts')}>
+            <Text style={styles.seeAllText}>Voir tout →</Text>
+          </TouchableOpacity>
+        </View>
         <FlatList
           data={categories}
           renderItem={renderCategory}
@@ -134,15 +186,29 @@ export default function ShopHomeScreen({ navigation }: any) {
         />
       </View>
 
+      {/* Bannières Middle */}
+      {banners.filter(b => b.placement === 'middle').map(banner => (
+        <ShopBanner
+          key={banner.id}
+          banner={banner}
+          onPress={() => {
+            if (banner.ctaLink) {
+              console.log('Navigate to:', banner.ctaLink);
+            }
+          }}
+        />
+      ))}
+
+      {/* Meilleures ventes */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Produits vedettes</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('ShopAllProducts')}>
-            <Text style={styles.seeAllText}>Voir tout</Text>
-          </TouchableOpacity>
+          <View>
+            <Text style={styles.sectionTitle}>⭐ Meilleures ventes</Text>
+            <Text style={styles.sectionSubtitle}>Les produits les plus populaires</Text>
+          </View>
         </View>
         <FlatList
-          data={featuredProducts}
+          data={bestSellers}
           renderItem={renderProduct}
           keyExtractor={(item) => item.id}
           numColumns={2}
@@ -150,6 +216,44 @@ export default function ShopHomeScreen({ navigation }: any) {
           contentContainerStyle={styles.productsList}
         />
       </View>
+
+      {/* Flash Deals */}
+      <View style={styles.section}>
+        <View style={styles.flashDealsHeader}>
+          <LinearGradient
+            colors={['#ef4444', '#dc2626']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.flashDealsGradient}
+          >
+            <Text style={styles.flashDealsTitle}>⚡ Flash Deals</Text>
+            <Text style={styles.flashDealsSubtitle}>Offres limitées</Text>
+          </LinearGradient>
+        </View>
+        <FlatList
+          data={flashDeals}
+          renderItem={renderProduct}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          scrollEnabled={false}
+          contentContainerStyle={styles.productsList}
+        />
+      </View>
+
+      {/* Bannières Bottom */}
+      {banners.filter(b => b.placement === 'bottom').map(banner => (
+        <ShopBanner
+          key={banner.id}
+          banner={banner}
+          onPress={() => {
+            if (banner.ctaLink) {
+              console.log('Navigate to:', banner.ctaLink);
+            }
+          }}
+        />
+      ))}
+
+      <View style={{ height: 40 }} />
     </ScrollView>
   );
 }
@@ -171,9 +275,10 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   header: {
-    backgroundColor: '#a855f7', // Purple-500 comme le web
+    backgroundColor: '#a855f7',
     padding: 24,
     paddingTop: 60,
+    marginBottom: 16,
   },
   headerTitle: {
     fontSize: 32,
@@ -199,12 +304,15 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     color: '#333',
-    paddingHorizontal: 16,
-    marginBottom: 16,
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
   },
   seeAllText: {
-    fontSize: 16,
-    color: '#a855f7', // Purple-500
+    fontSize: 14,
+    color: '#a855f7',
     fontWeight: '600',
   },
   categoriesList: {
@@ -242,6 +350,24 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: 'rgba(255,255,255,0.8)',
   },
+  flashDealsHeader: {
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
+  flashDealsGradient: {
+    padding: 16,
+    borderRadius: 12,
+  },
+  flashDealsTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  flashDealsSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.9)',
+    marginTop: 4,
+  },
   productsList: {
     paddingHorizontal: 16,
   },
@@ -276,7 +402,7 @@ const styles = StyleSheet.create({
   productPrice: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#a855f7', // Purple-500
+    color: '#a855f7',
     marginBottom: 8,
   },
   stockBadge: {
