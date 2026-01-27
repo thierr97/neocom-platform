@@ -10,8 +10,10 @@ import {
   ScrollView,
   Dimensions,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import shopAPI, { ShopCategory, ShopProduct } from '../src/services/shopAPI';
+import { getCategoryStyle } from '../src/config/categoryConfig';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
@@ -50,20 +52,31 @@ export default function ShopHomeScreen({ navigation }: any) {
     }
   };
 
-  const renderCategory = ({ item }: { item: ShopCategory }) => (
-    <TouchableOpacity
-      style={styles.categoryCard}
-      onPress={() => navigation.navigate('ShopCategory', { category: item })}
-    >
-      <View style={styles.categoryIcon}>
-        <Ionicons name="grid-outline" size={32} color="#007AFF" />
-      </View>
-      <Text style={styles.categoryName} numberOfLines={2}>
-        {item.name}
-      </Text>
-      <Text style={styles.categoryCount}>{item._count.products} produits</Text>
-    </TouchableOpacity>
-  );
+  const renderCategory = ({ item }: { item: ShopCategory }) => {
+    const style = getCategoryStyle(item.slug);
+
+    return (
+      <TouchableOpacity
+        onPress={() => navigation.navigate('ShopCategory', { category: item })}
+        style={styles.categoryCardWrapper}
+      >
+        <LinearGradient
+          colors={style.colors}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.categoryCard}
+        >
+          <Text style={styles.categoryEmoji}>{style.icon}</Text>
+          <View style={styles.categoryInfo}>
+            <Text style={styles.categoryName} numberOfLines={2}>
+              {item.name}
+            </Text>
+            <Text style={styles.categoryCount}>{item._count.products} produits</Text>
+          </View>
+        </LinearGradient>
+      </TouchableOpacity>
+    );
+  };
 
   const renderProduct = ({ item }: { item: ShopProduct }) => (
     <TouchableOpacity
@@ -158,7 +171,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   header: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#a855f7', // Purple-500 comme le web
     padding: 24,
     paddingTop: 60,
   },
@@ -191,44 +204,43 @@ const styles = StyleSheet.create({
   },
   seeAllText: {
     fontSize: 16,
-    color: '#007AFF',
+    color: '#a855f7', // Purple-500
     fontWeight: '600',
   },
   categoriesList: {
     paddingHorizontal: 16,
   },
-  categoryCard: {
-    width: 120,
+  categoryCardWrapper: {
     marginRight: 12,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
   },
-  categoryIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(0,122,255,0.1)',
-    justifyContent: 'center',
+  categoryCard: {
+    width: 160,
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  categoryEmoji: {
+    fontSize: 40,
+  },
+  categoryInfo: {
+    flex: 1,
   },
   categoryName: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    textAlign: 'center',
+    fontWeight: 'bold',
+    color: '#fff',
     marginBottom: 4,
   },
   categoryCount: {
-    fontSize: 12,
-    color: '#999',
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.8)',
   },
   productsList: {
     paddingHorizontal: 16,
@@ -264,7 +276,7 @@ const styles = StyleSheet.create({
   productPrice: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#007AFF',
+    color: '#a855f7', // Purple-500
     marginBottom: 8,
   },
   stockBadge: {
