@@ -18,15 +18,22 @@ export default function ShopCategoryScreen({ route, navigation }: any) {
   const { category } = route.params;
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
     loadProducts();
-  }, []);
+  }, [page]);
 
   const loadProducts = async () => {
     try {
+      if (page > 1) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+
       const response = await shopAPI.products.getAll({
         categoryId: category.id,
         page: page,
@@ -43,13 +50,13 @@ export default function ShopCategoryScreen({ route, navigation }: any) {
       console.error('Error loading products:', error);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
   const loadMore = () => {
-    if (!loading && hasMore) {
-      setPage(page + 1);
-      loadProducts();
+    if (!loading && !loadingMore && hasMore) {
+      setPage(prevPage => prevPage + 1);
     }
   };
 
@@ -111,8 +118,11 @@ export default function ShopCategoryScreen({ route, navigation }: any) {
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
         ListFooterComponent={
-          loading && page > 1 ? (
-            <ActivityIndicator size="small" color="#007AFF" style={styles.loader} />
+          loadingMore ? (
+            <View style={styles.loadingMore}>
+              <ActivityIndicator size="small" color="#007AFF" />
+              <Text style={styles.loadingMoreText}>Chargement...</Text>
+            </View>
           ) : null
         }
         ListEmptyComponent={
@@ -213,8 +223,14 @@ const styles = StyleSheet.create({
     color: '#FF3B30',
     fontWeight: '600',
   },
-  loader: {
-    marginVertical: 20,
+  loadingMore: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  loadingMoreText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#666',
   },
   emptyContainer: {
     flex: 1,
