@@ -531,37 +531,77 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       },
     });
 
+    // Calculate total amounts for quotes and invoices
+    const allQuotes = await prisma.quote.findMany({
+      where: { userId },
+      select: { total: true },
+    });
+    const quotesTotalAmount = allQuotes.reduce((sum, quote) => sum + quote.total, 0);
+
+    const allInvoices = await prisma.invoice.findMany({
+      where: { userId },
+      select: { total: true, dueDate: true, status: true },
+    });
+    const invoicesTotalAmount = allInvoices.reduce((sum, invoice) => sum + invoice.total, 0);
+
+    // Count overdue invoices (unpaid invoices with dueDate in the past)
+    const now = new Date();
+    const invoicesOverdue = allInvoices.filter(
+      inv => inv.status !== 'PAID' && inv.dueDate && new Date(inv.dueDate) < now
+    ).length;
+
+    // Get credit notes count
+    const creditNotesCount = await prisma.creditNote.count({
+      where: { userId },
+    });
+
+    const allCreditNotes = await prisma.creditNote.findMany({
+      where: { userId },
+      select: { total: true },
+    });
+    const creditNotesTotalAmount = allCreditNotes.reduce((sum, cn) => sum + cn.total, 0);
+
+    // Get products count (all products in database, not user-specific)
+    const productsCount = await prisma.product.count();
+    const productsLowStock = await prisma.product.count({
+      where: { stock: { lte: 10 } },
+    });
+
     return res.json({
       success: true,
       data: {
-        user,
-        stats: {
-          customers: {
-            total: customersCount,
-            active: customersCount, // Pour l'instant, on considère tous les clients comme actifs
-          },
-          quotes: {
-            total: quotesCount,
-            accepted: quotesAccepted,
-            rejected: quotesRejected,
-            pending: quotesCount - quotesAccepted - quotesRejected,
-          },
-          orders: {
-            total: ordersCount,
-            delivered: ordersDelivered,
-            pending: ordersCount - ordersDelivered,
-          },
-          invoices: {
-            total: invoicesCount,
-            paid: invoicesPaid,
-            pending: invoicesCount - invoicesPaid,
-          },
-          sales: {
-            total: totalSales,
-          },
+        customers: {
+          total: customersCount,
+          active: customersCount, // Pour l'instant, on considère tous les clients comme actifs
+          new: 0, // TODO: calculer les nouveaux clients du mois
         },
-        recentQuotes,
-        recentInvoices,
+        quotes: {
+          total: quotesCount,
+          accepted: quotesAccepted,
+          rejected: quotesRejected,
+          pending: quotesCount - quotesAccepted - quotesRejected,
+          totalAmount: quotesTotalAmount,
+        },
+        orders: {
+          total: ordersCount,
+          pending: ordersCount - ordersDelivered,
+          completed: ordersDelivered,
+        },
+        invoices: {
+          total: invoicesCount,
+          paid: invoicesPaid,
+          pending: invoicesCount - invoicesPaid,
+          overdue: invoicesOverdue,
+          totalAmount: invoicesTotalAmount,
+        },
+        creditNotes: {
+          total: creditNotesCount,
+          totalAmount: creditNotesTotalAmount,
+        },
+        products: {
+          total: productsCount,
+          lowStock: productsLowStock,
+        },
       },
     });
   } catch (error: any) {
