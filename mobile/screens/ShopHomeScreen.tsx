@@ -155,7 +155,7 @@ export default function ShopHomeScreen({ navigation }: any) {
       </View>
 
       {/* Bannières Top */}
-      {banners.filter(b => b.placement === 'top').map(banner => (
+      {(banners || []).filter(b => b.placement === 'top').map(banner => (
         <ShopBanner
           key={banner.id}
           banner={banner}
@@ -187,7 +187,7 @@ export default function ShopHomeScreen({ navigation }: any) {
       </View>
 
       {/* Bannières Middle */}
-      {banners.filter(b => b.placement === 'middle').map(banner => (
+      {(banners || []).filter(b => b.placement === 'middle').map(banner => (
         <ShopBanner
           key={banner.id}
           banner={banner}
@@ -241,7 +241,7 @@ export default function ShopHomeScreen({ navigation }: any) {
       </View>
 
       {/* Bannières Bottom */}
-      {banners.filter(b => b.placement === 'bottom').map(banner => (
+      {(banners || []).filter(b => b.placement === 'bottom').map(banner => (
         <ShopBanner
           key={banner.id}
           banner={banner}
