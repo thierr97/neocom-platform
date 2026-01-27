@@ -138,10 +138,25 @@ export const getActiveTripsWithPositions = async (req: AuthRequest, res: Respons
     const enrichedTrips = activeTrips.map((trip) => {
       const trackingUser = activeUsers.find((u) => u.tripId === trip.id);
 
+      // Format lastPosition from checkpoint if available
+      let lastPosition = null;
+      if (trackingUser?.lastPosition) {
+        lastPosition = trackingUser.lastPosition;
+      } else if (trip.checkpoints[0]) {
+        const checkpoint = trip.checkpoints[0];
+        lastPosition = {
+          latitude: checkpoint.latitude,
+          longitude: checkpoint.longitude,
+          timestamp: checkpoint.timestamp,
+          speed: checkpoint.speed || undefined,
+          accuracy: checkpoint.accuracy || undefined,
+        };
+      }
+
       return {
         ...trip,
         isTracked: !!trackingUser,
-        lastPosition: trackingUser?.lastPosition || trip.checkpoints[0] || null,
+        lastPosition,
       };
     });
 
