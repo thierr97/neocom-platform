@@ -9,6 +9,7 @@ export const getPublicProducts = async (req: Request, res: Response) => {
   try {
     const {
       category,
+      categoryId,
       search,
       sort = 'createdAt',
       order = 'desc',
@@ -22,15 +23,27 @@ export const getPublicProducts = async (req: Request, res: Response) => {
       status: 'ACTIVE',
     };
 
-    // Filter by category
-    if (category) {
-      // Chercher la catégorie par slug (envoyé depuis le frontend)
-      const selectedCategory = await prisma.category.findUnique({
-        where: { slug: category as string },
-        include: {
-          children: true, // Récupérer les sous-catégories
-        },
-      });
+    // Filter by category (by slug or by ID)
+    if (category || categoryId) {
+      let selectedCategory;
+
+      if (categoryId) {
+        // Chercher la catégorie par ID (envoyé depuis le mobile)
+        selectedCategory = await prisma.category.findUnique({
+          where: { id: categoryId as string },
+          include: {
+            children: true, // Récupérer les sous-catégories
+          },
+        });
+      } else if (category) {
+        // Chercher la catégorie par slug (envoyé depuis le web)
+        selectedCategory = await prisma.category.findUnique({
+          where: { slug: category as string },
+          include: {
+            children: true, // Récupérer les sous-catégories
+          },
+        });
+      }
 
       if (selectedCategory) {
         if (selectedCategory.children && selectedCategory.children.length > 0) {
