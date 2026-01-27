@@ -28,10 +28,12 @@ const CARD_WIDTH = (width - 48) / 2;
 export default function ShopHomeScreen({ navigation }: any) {
   const [categories, setCategories] = useState<ShopCategory[]>([]);
   const [banners, setBanners] = useState<Banner[]>([]);
-  const [bestSellers, setBestSellers] = useState<ShopProduct[]>([]);
-  const [flashDeals, setFlashDeals] = useState<ShopProduct[]>([]);
+  const [products, setProducts] = useState<ShopProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -40,11 +42,9 @@ export default function ShopHomeScreen({ navigation }: any) {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [categoriesRes, bannersRes, bestSellersRes, flashDealsRes] = await Promise.all([
+      const [categoriesRes, bannersRes] = await Promise.all([
         shopAPI.categories.getAll(),
         bannerAPI.getActive(),
-        shopAPI.products.getFeatured(),
-        shopAPI.products.getFeatured(), // On utilisera les mêmes pour l'instant
       ]);
 
       if (categoriesRes.success) {
@@ -60,13 +60,8 @@ export default function ShopHomeScreen({ navigation }: any) {
         setBanners(bannersRes.data);
       }
 
-      if (bestSellersRes.success) {
-        setBestSellers(bestSellersRes.data.slice(0, 6));
-      }
-
-      if (flashDealsRes.success) {
-        setFlashDeals(flashDealsRes.data.slice(6, 12));
-      }
+      // Charger les produits
+      await loadProducts();
     } catch (error) {
       console.error('Error loading shop data:', error);
     } finally {
@@ -75,8 +70,35 @@ export default function ShopHomeScreen({ navigation }: any) {
     }
   };
 
+  const loadProducts = async () => {
+    if (loadingMore || !hasMore) return;
+
+    try {
+      setLoadingMore(true);
+      const response = await shopAPI.products.getAll({
+        page: page,
+        limit: 20,
+      });
+
+      if (response.success) {
+        setProducts(prevProducts =>
+          page === 1 ? response.data : [...prevProducts, ...response.data]
+        );
+        setHasMore(response.pagination.hasNext);
+        setPage(page + 1);
+      }
+    } catch (error) {
+      console.error('Error loading products:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
   const onRefresh = () => {
     setRefreshing(true);
+    setPage(1);
+    setHasMore(true);
+    setProducts([]);
     loadData();
   };
 
@@ -172,7 +194,7 @@ export default function ShopHomeScreen({ navigation }: any) {
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Catégories populaires</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('ShopAllProducts')}>
+          <TouchableOpacity onPress={() => navigation.navigate('ShopAllCategories')}>
             <Text style={styles.seeAllText}>Voir tout →</Text>
           </TouchableOpacity>
         </View>
@@ -199,44 +221,31 @@ export default function ShopHomeScreen({ navigation }: any) {
         />
       ))}
 
-      {/* Meilleures ventes */}
+      {/* Tous les produits avec défilement infini */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <View>
-            <Text style={styles.sectionTitle}>⭐ Meilleures ventes</Text>
-            <Text style={styles.sectionSubtitle}>Les produits les plus populaires</Text>
+            <Text style={styles.sectionTitle}>🛍️ Tous nos produits</Text>
+            <Text style={styles.sectionSubtitle}>Parcourez l'intégralité de notre catalogue</Text>
           </View>
         </View>
         <FlatList
-          data={bestSellers}
+          data={products}
           renderItem={renderProduct}
           keyExtractor={(item) => item.id}
           numColumns={2}
           scrollEnabled={false}
           contentContainerStyle={styles.productsList}
-        />
-      </View>
-
-      {/* Flash Deals */}
-      <View style={styles.section}>
-        <View style={styles.flashDealsHeader}>
-          <LinearGradient
-            colors={['#ef4444', '#dc2626']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.flashDealsGradient}
-          >
-            <Text style={styles.flashDealsTitle}>⚡ Flash Deals</Text>
-            <Text style={styles.flashDealsSubtitle}>Offres limitées</Text>
-          </LinearGradient>
-        </View>
-        <FlatList
-          data={flashDeals}
-          renderItem={renderProduct}
-          keyExtractor={(item) => item.id}
-          numColumns={2}
-          scrollEnabled={false}
-          contentContainerStyle={styles.productsList}
+          onEndReached={loadProducts}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            loadingMore ? (
+              <View style={styles.loadingMore}>
+                <ActivityIndicator size="small" color="#a855f7" />
+                <Text style={styles.loadingMoreText}>Chargement...</Text>
+              </View>
+            ) : null
+          }
         />
       </View>
 
@@ -350,23 +359,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: 'rgba(255,255,255,0.8)',
   },
-  flashDealsHeader: {
-    paddingHorizontal: 16,
-    marginBottom: 16,
+  loadingMore: {
+    paddingVertical: 20,
+    alignItems: 'center',
   },
-  flashDealsGradient: {
-    padding: 16,
-    borderRadius: 12,
-  },
-  flashDealsTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  flashDealsSubtitle: {
+  loadingMoreText: {
+    marginTop: 8,
     fontSize: 14,
-    color: 'rgba(255,255,255,0.9)',
-    marginTop: 4,
+    color: '#666',
   },
   productsList: {
     paddingHorizontal: 16,

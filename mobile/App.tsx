@@ -36,6 +36,7 @@ import MyInvoicesScreen from './screens/MyInvoicesScreen';
 import ShopProductDetailScreen from './screens/ShopProductDetailScreen';
 import ShopCategoryScreen from './screens/ShopCategoryScreen';
 import ShopAllProductsScreen from './screens/ShopAllProductsScreen';
+import ShopAllCategoriesScreen from './screens/ShopAllCategoriesScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -376,6 +377,11 @@ export default function App() {
           name="ShopAllProducts"
           component={ShopAllProductsScreen}
           options={{ title: 'Tous les produits', headerShown: false }}
+        />
+        <Stack.Screen
+          name="ShopAllCategories"
+          component={ShopAllCategoriesScreen}
+          options={{ title: 'Toutes les catégories', headerShown: false }}
         />
       </Stack.Navigator>
     </NavigationContainer>
