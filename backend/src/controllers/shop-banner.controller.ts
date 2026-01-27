@@ -1,12 +1,12 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
 
-// Récupérer la bannière active (pour le frontend public)
+// Récupérer toutes les bannières actives (pour le frontend public)
 export const getActiveBanner = async (req: Request, res: Response) => {
   try {
     const now = new Date();
 
-    const banner = await prisma.shopBanner.findFirst({
+    const banners = await prisma.shopBanner.findMany({
       where: {
         isActive: true,
         OR: [
@@ -37,20 +37,21 @@ export const getActiveBanner = async (req: Request, res: Response) => {
         ]
       },
       orderBy: {
-        priority: 'asc' // Bannière avec la plus haute priorité
+        priority: 'asc' // Bannières triées par priorité
       }
     });
 
     res.json({
       success: true,
-      data: banner
+      data: banners // Retourne un tableau de bannières
     });
   } catch (error: any) {
-    console.error('Error getting active banner:', error);
+    console.error('Error getting active banners:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de la récupération de la bannière active',
-      error: error.message
+      message: 'Erreur lors de la récupération des bannières actives',
+      error: error.message,
+      data: [] // Retourne un tableau vide en cas d'erreur
     });
   }
 };
