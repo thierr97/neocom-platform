@@ -53,33 +53,38 @@ export default function ShopCategoryScreen({ route, navigation }: any) {
     }
   };
 
-  const renderProduct = ({ item }: { item: ShopProduct }) => (
-    <TouchableOpacity
-      style={styles.productCard}
-      onPress={() => navigation.navigate('ShopProductDetail', { productId: item.id })}
-    >
-      <Image
-        source={{ uri: item.thumbnail }}
-        style={styles.productImage}
-        resizeMode="cover"
-      />
-      <View style={styles.productInfo}>
-        <Text style={styles.productName} numberOfLines={2}>
-          {item.name}
-        </Text>
-        <Text style={styles.productPrice}>{item.price.toFixed(2)} €</Text>
-        {item.stock > 0 ? (
-          <View style={styles.stockBadge}>
-            <Text style={styles.stockText}>En stock</Text>
-          </View>
-        ) : (
-          <View style={[styles.stockBadge, styles.outOfStockBadge]}>
-            <Text style={styles.outOfStockText}>Rupture</Text>
-          </View>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
+  const renderProduct = ({ item }: { item: ShopProduct }) => {
+    const imageUri = item.thumbnail || (item.images && item.images[0]) || 'https://via.placeholder.com/400x400.png?text=Image+non+disponible';
+
+    return (
+      <TouchableOpacity
+        style={styles.productCard}
+        onPress={() => navigation.navigate('ShopProductDetail', { productId: item.id })}
+      >
+        <Image
+          source={{ uri: imageUri }}
+          style={styles.productImage}
+          resizeMode="cover"
+          onError={(error) => console.log('Image load error for product:', item.name, error.nativeEvent.error)}
+        />
+        <View style={styles.productInfo}>
+          <Text style={styles.productName} numberOfLines={2}>
+            {item.name}
+          </Text>
+          <Text style={styles.productPrice}>{item.price.toFixed(2)} €</Text>
+          {item.stock > 0 ? (
+            <View style={styles.stockBadge}>
+              <Text style={styles.stockText}>En stock</Text>
+            </View>
+          ) : (
+            <View style={[styles.stockBadge, styles.outOfStockBadge]}>
+              <Text style={styles.outOfStockText}>Rupture</Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   if (loading && page === 1) {
     return (
