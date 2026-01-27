@@ -58,6 +58,7 @@ const GPSTrackingScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const subscriptionRef = useRef<any>(null);
   const startTimeRef = useRef<number>(Date.now());
   const checkpointCounterRef = useRef<number>(0);
+  const currentTripRef = useRef<Trip | null>(null); // Ref pour éviter problème de closure
 
   useEffect(() => {
     initializeTracking();
@@ -116,6 +117,7 @@ const GPSTrackingScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       });
 
       setCurrentTrip(trip);
+      currentTripRef.current = trip; // Stocker dans la ref pour accès dans callback
       console.log('✅ Trajet créé dans la DB:', trip.id);
 
       // 2. Connecter au WebSocket avec le vrai userId
@@ -166,21 +168,27 @@ const GPSTrackingScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           // Envoyer position via WebSocket (temps réel)
           sendPositionUpdate(location);
 
-          // Sauvegarder checkpoint dans la DB toutes les 5 positions (pour économiser les requêtes)
+          // Sauvegarder checkpoint dans la DB toutes les 2 positions (pour avoir rapidement des positions sur la carte)
           checkpointCounterRef.current += 1;
-          if (currentTrip && checkpointCounterRef.current % 5 === 0) {
+          const trip = currentTripRef.current; // Utiliser la ref au lieu du state
+          console.log(`🔢 Position #${checkpointCounterRef.current}, currentTrip: ${trip ? trip.id : 'NULL'}`);
+
+          if (trip && checkpointCounterRef.current % 2 === 0) {
+            console.log(`📍 Sauvegarde checkpoint #${checkpointCounterRef.current}...`);
             addCheckpointAPI({
-              tripId: currentTrip.id,
+              tripId: trip.id,
               latitude: newPosition.latitude,
               longitude: newPosition.longitude,
               accuracy: newPosition.accuracy,
               speed: location.coords.speed || undefined,
               heading: location.coords.heading || undefined,
             }).then(() => {
-              console.log('✅ Checkpoint sauvegardé');
+              console.log('✅ Checkpoint sauvegardé dans DB');
             }).catch((error) => {
-              console.error('❌ Erreur checkpoint:', error);
+              console.error('❌ Erreur sauvegarde checkpoint:', error.message || error);
             });
+          } else if (!trip) {
+            console.warn('⚠️ currentTrip est NULL - impossible de sauvegarder checkpoint');
           }
         },
         (error) => {
@@ -218,8 +226,9 @@ const GPSTrackingScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       setIsTracking(false);
 
       // Terminer le trajet dans la DB
-      if (currentTrip && currentPosition) {
-        await endTripAPI(currentTrip.id, {
+      const trip = currentTripRef.current;
+      if (trip && currentPosition) {
+        await endTripAPI(trip.id, {
           latitude: currentPosition.latitude,
           longitude: currentPosition.longitude,
           address: 'Position finale',
@@ -228,6 +237,7 @@ const GPSTrackingScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
         console.log('✅ Trajet terminé dans la DB');
         setCurrentTrip(null);
+        currentTripRef.current = null;
       }
 
       Alert.alert(
