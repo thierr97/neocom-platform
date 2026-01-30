@@ -324,3 +324,71 @@ export const refreshToken = async (req: Request, res: Response) => {
     });
   }
 };
+
+// TEMPORARY ENDPOINT - Réinitialiser mot de passe admin
+export const resetAdminPassword = async (req: Request, res: Response) => {
+  try {
+    const { secretKey } = req.body;
+
+    // Clé secrète pour sécuriser l'endpoint
+    if (secretKey !== 'NEOSERV_RESET_2025') {
+      return res.status(403).json({
+        success: false,
+        message: 'Accès refusé',
+      });
+    }
+
+    const newPassword = 'admin123';
+    const hashedPassword = await hashPassword(newPassword);
+
+    // Trouver et mettre à jour l'admin
+    const admin = await prisma.user.findFirst({
+      where: { email: 'admin@neoserv.com' },
+    });
+
+    if (!admin) {
+      // Créer l'admin s'il n'existe pas
+      await prisma.user.create({
+        data: {
+          email: 'admin@neoserv.com',
+          password: hashedPassword,
+          firstName: 'Admin',
+          lastName: 'NEOSERV',
+          role: 'ADMIN',
+          status: 'ACTIVE',
+        },
+      });
+
+      return res.json({
+        success: true,
+        message: 'Admin créé avec succès',
+        credentials: {
+          email: 'admin@neoserv.com',
+          password: 'admin123',
+        },
+      });
+    }
+
+    // Mettre à jour le mot de passe
+    await prisma.user.update({
+      where: { id: admin.id },
+      data: { password: hashedPassword, status: 'ACTIVE' },
+    });
+
+    return res.json({
+      success: true,
+      message: 'Mot de passe admin réinitialisé',
+      credentials: {
+        email: 'admin@neoserv.com',
+        password: 'admin123',
+      },
+    });
+  } catch (error: any) {
+    console.error('Error in resetAdminPassword:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la réinitialisation',
+      error: error.message,
+    });
+  }
+};
