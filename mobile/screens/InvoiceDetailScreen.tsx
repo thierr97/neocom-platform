@@ -13,22 +13,7 @@ import documentsAPI from '../src/services/documentsAPI';
 
 export default function InvoiceDetailScreen({ route, navigation }: any) {
   const { invoice } = route.params;
-  const [downloading, setDownloading] = useState(false);
   const [sharing, setSharing] = useState(false);
-
-  const handleDownloadPDF = async () => {
-    try {
-      setDownloading(true);
-      const invoiceNumber = invoice.number || invoice.invoiceNumber;
-      await documentsAPI.invoices.downloadPDF(invoice.id, invoiceNumber);
-      Alert.alert('Succès', 'Le PDF a été téléchargé avec succès');
-    } catch (error: any) {
-      console.error('Error downloading PDF:', error);
-      Alert.alert('Erreur', error.message || 'Impossible de télécharger le PDF');
-    } finally {
-      setDownloading(false);
-    }
-  };
 
   const handleSharePDF = async () => {
     try {
@@ -179,37 +164,20 @@ export default function InvoiceDetailScreen({ route, navigation }: any) {
 
       {/* PDF Actions */}
       <View style={styles.section}>
-        <View style={styles.pdfActions}>
-          <TouchableOpacity
-            style={[styles.pdfButton, styles.downloadButton]}
-            onPress={handleDownloadPDF}
-            disabled={downloading || sharing}
-          >
-            {downloading ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <>
-                <Ionicons name="download-outline" size={20} color="#fff" />
-                <Text style={styles.pdfButtonText}>Télécharger PDF</Text>
-              </>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.pdfButton, styles.shareButton]}
-            onPress={handleSharePDF}
-            disabled={downloading || sharing}
-          >
-            {sharing ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <>
-                <Ionicons name="share-outline" size={20} color="#fff" />
-                <Text style={styles.pdfButtonText}>Partager PDF</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={[styles.pdfButton, styles.shareButton]}
+          onPress={handleSharePDF}
+          disabled={sharing}
+        >
+          {sharing ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <>
+              <Ionicons name="share-outline" size={24} color="#fff" />
+              <Text style={styles.pdfButtonText}>Partager PDF</Text>
+            </>
+          )}
+        </TouchableOpacity>
       </View>
 
       {/* Actions */}
@@ -377,29 +345,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  pdfActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
   pdfButton: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    gap: 8,
-  },
-  downloadButton: {
-    backgroundColor: '#007AFF',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    gap: 12,
   },
   shareButton: {
     backgroundColor: '#34C759',
   },
   pdfButtonText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
   },
 });
