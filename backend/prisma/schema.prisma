@@ -1700,6 +1700,7 @@ model Visit {
   address   String?
 
   // Détails de la visite
+  title        String? // Titre de la visite
   contactName  String? // Personne rencontrée
   contactPhone String? // Téléphone du contact
   contactEmail String? // Email du contact

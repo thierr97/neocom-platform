@@ -1,7 +1,42 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 
 const prisma = new PrismaClient();
+
+// Configuration multer pour l'upload de photos
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, '../../uploads/visits');
+    // Créer le dossier s'il n'existe pas
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'visit-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+export const upload = multer({
+  storage: storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|heic/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Seules les images sont autorisées'));
+    }
+  }
+});
 
 // Create GPS tracking point
 export const createGpsTracking = async (req: Request, res: Response) => {
@@ -397,6 +432,220 @@ export const batchCreateGpsTracking = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'enregistrement en lot',
+      error: error.message,
+    });
+  }
+};
+
+// Create customer visit
+export const createVisit = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user.userId;
+    const { customerId, visitDate, title, notes, latitude, longitude } = req.body;
+
+    console.log('📋 Création de visite:', { userId, customerId, title });
+
+    // Validate required fields
+    if (!customerId || !title || !notes) {
+      return res.status(400).json({
+        success: false,
+        message: 'Client, titre et description requis',
+      });
+    }
+
+    // Trouver le trip actif de l'utilisateur
+    const activeTrip = await prisma.trip.findFirst({
+      where: {
+        userId,
+        status: 'ACTIVE',
+      },
+      orderBy: {
+        startTime: 'desc',
+      },
+    });
+
+    if (!activeTrip) {
+      return res.status(400).json({
+        success: false,
+        message: 'Aucun trajet actif trouvé. Veuillez démarrer un trajet avant d\'enregistrer une visite.',
+      });
+    }
+
+    // Gérer la photo si elle est fournie
+    let photoUrl: string | undefined;
+    if (req.file) {
+      // URL relative pour accéder à la photo
+      photoUrl = `/uploads/visits/${req.file.filename}`;
+      console.log('📸 Photo sauvegardée:', photoUrl);
+    }
+
+    // Créer la visite
+    const visit = await prisma.visit.create({
+      data: {
+        tripId: activeTrip.id,
+        customerId,
+        title,
+        summary: notes,
+        latitude: latitude ? parseFloat(latitude) : undefined,
+        longitude: longitude ? parseFloat(longitude) : undefined,
+        checkInAt: visitDate ? new Date(visitDate) : new Date(),
+        status: 'COMPLETED',
+        photos: photoUrl ? [photoUrl] : [],
+      },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            companyName: true,
+            email: true,
+            phone: true,
+          },
+        },
+      },
+    });
+
+    // Log activity
+    const customerName = visit.customer?.companyName ||
+                        `${visit.customer?.firstName} ${visit.customer?.lastName}` ||
+                        'Client inconnu';
+
+    await prisma.activity.create({
+      data: {
+        type: 'OTHER',
+        description: `Visite client enregistrée: ${title} chez ${customerName}`,
+        userId,
+        customerId,
+      },
+    });
+
+    console.log('✅ Visite créée:', visit.id);
+
+    return res.status(201).json({
+      success: true,
+      message: 'Visite enregistrée avec succès',
+      data: visit,
+    });
+  } catch (error: any) {
+    console.error('❌ Error creating visit:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de l\'enregistrement de la visite',
+      error: error.message,
+    });
+  }
+};
+
+// Get visits for a trip
+export const getVisitsByTrip = async (req: Request, res: Response) => {
+  try {
+    const { tripId } = req.params;
+
+    const visits = await prisma.visit.findMany({
+      where: { tripId },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            companyName: true,
+            email: true,
+            phone: true,
+          },
+        },
+      },
+      orderBy: { checkInAt: 'asc' },
+    });
+
+    return res.json({
+      success: true,
+      data: visits,
+      count: visits.length,
+    });
+  } catch (error: any) {
+    console.error('Error fetching visits:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des visites',
+      error: error.message,
+    });
+  }
+};
+
+// Get all visits with filters
+export const getAllVisits = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user.userId;
+    const userRole = (req as any).user.role;
+    const { tripId, customerId, startDate, endDate } = req.query;
+
+    const where: any = {};
+
+    // Filter by trip
+    if (tripId) {
+      where.tripId = tripId as string;
+    } else {
+      // If no tripId specified, filter by user's trips
+      if (userRole === 'COMMERCIAL') {
+        where.trip = {
+          userId,
+        };
+      }
+    }
+
+    // Filter by customer
+    if (customerId) {
+      where.customerId = customerId as string;
+    }
+
+    // Filter by date range
+    if (startDate || endDate) {
+      where.checkInAt = {};
+      if (startDate) {
+        where.checkInAt.gte = new Date(startDate as string);
+      }
+      if (endDate) {
+        where.checkInAt.lte = new Date(endDate as string);
+      }
+    }
+
+    const visits = await prisma.visit.findMany({
+      where,
+      include: {
+        customer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            companyName: true,
+            email: true,
+            phone: true,
+          },
+        },
+        trip: {
+          select: {
+            id: true,
+            startTime: true,
+            endTime: true,
+            status: true,
+          },
+        },
+      },
+      orderBy: { checkInAt: 'desc' },
+    });
+
+    return res.json({
+      success: true,
+      data: visits,
+      count: visits.length,
+    });
+  } catch (error: any) {
+    console.error('Error fetching visits:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des visites',
       error: error.message,
     });
   }
