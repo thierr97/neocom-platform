@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { PrismaClient, TripStatus } from '@prisma/client';
+import { PrismaClient, TripStatus, VisitStatus } from '@prisma/client';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -489,7 +489,7 @@ export const createVisit = async (req: Request, res: Response) => {
         latitude: latitude ? parseFloat(latitude) : undefined,
         longitude: longitude ? parseFloat(longitude) : undefined,
         checkInAt: visitDate ? new Date(visitDate) : new Date(),
-        status: 'COMPLETED',
+        status: VisitStatus.COMPLETED,
         photos: photoUrl ? [photoUrl] : [],
       },
       include: {
