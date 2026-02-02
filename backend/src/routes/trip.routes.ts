@@ -14,6 +14,7 @@ import {
   getVisits,
   validateTrip,
   reimburseTrip,
+  fixActiveTrips,
 } from '../controllers/trip.controller';
 
 const router = Router();
@@ -45,6 +46,9 @@ router.post('/trips/:id/validate', auth, validateTrip);
 
 // Rembourser un trajet (admin/manager)
 router.post('/trips/:id/reimburse', auth, reimburseTrip);
+
+// Terminer tous les trajets actifs (admin only - pour débloquer les trajets bloqués)
+router.post('/trips/fix-active', auth, fixActiveTrips);
 
 // ========================================
 // CHECKPOINT ROUTES

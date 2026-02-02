@@ -901,3 +901,80 @@ export const reimburseTrip = async (req: AuthRequest, res: Response) => {
     });
   }
 };
+
+/**
+ * Terminer tous les trajets actifs (Admin only)
+ * Utilisé pour débloquer les trajets IN_PROGRESS qui ne peuvent pas être terminés
+ */
+export const fixActiveTrips = async (req: AuthRequest, res: Response) => {
+  try {
+    const userRole = req.user!.role;
+
+    // Vérifier que l'utilisateur est admin
+    if (userRole !== 'ADMIN') {
+      return res.status(403).json({
+        success: false,
+        message: 'Action réservée aux administrateurs',
+      });
+    }
+
+    console.log('🔧 Recherche des trajets IN_PROGRESS bloqués...');
+
+    // Trouver tous les trajets actifs
+    const activeTrips = await prisma.trip.findMany({
+      where: {
+        status: TripStatus.IN_PROGRESS,
+      },
+      include: {
+        user: {
+          select: {
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
+
+    console.log(`📊 ${activeTrips.length} trajets IN_PROGRESS trouvés`);
+
+    if (activeTrips.length === 0) {
+      return res.json({
+        success: true,
+        message: 'Aucun trajet actif à corriger',
+        fixed: 0,
+      });
+    }
+
+    // Terminer tous les trajets actifs
+    const result = await prisma.trip.updateMany({
+      where: {
+        status: TripStatus.IN_PROGRESS,
+      },
+      data: {
+        status: TripStatus.COMPLETED,
+        endTime: new Date(),
+      },
+    });
+
+    console.log(`✅ ${result.count} trajets terminés`);
+
+    res.json({
+      success: true,
+      message: `${result.count} trajet(s) terminé(s) avec succès`,
+      fixed: result.count,
+      trips: activeTrips.map(t => ({
+        id: t.id,
+        userEmail: t.user.email,
+        startTime: t.startTime,
+      })),
+    });
+  } catch (error: any) {
+    console.error('❌ Error in fixActiveTrips:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la correction des trajets',
+      error: error.message,
+    });
+  }
+};
