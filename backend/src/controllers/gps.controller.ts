@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, TripStatus } from '@prisma/client';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -457,7 +457,7 @@ export const createVisit = async (req: Request, res: Response) => {
     const activeTrip = await prisma.trip.findFirst({
       where: {
         userId,
-        status: 'ACTIVE',
+        status: TripStatus.IN_PROGRESS,
       },
       orderBy: {
         startTime: 'desc',
