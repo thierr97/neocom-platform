@@ -8,6 +8,7 @@ router.use(authenticateToken);
 
 router.get('/', customerController.getCustomers);
 router.get('/:id', customerController.getCustomerById);
+router.get('/:id/product-history', customerController.getCustomerProductHistory);
 router.post('/', customerController.createCustomer);
 router.put('/:id', customerController.updateCustomer);
 router.delete('/:id', customerController.deleteCustomer);

@@ -396,3 +396,204 @@ export const deleteCustomer = async (req: AuthRequest, res: Response) => {
     });
   }
 };
+
+// Get customer product history
+export const getCustomerProductHistory = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    // Get all quotes, orders and invoices items for this customer
+    const [quoteItems, orderItems, invoiceItems] = await Promise.all([
+      prisma.quoteItem.findMany({
+        where: {
+          quote: {
+            customerId: id,
+          },
+        },
+        include: {
+          product: {
+            select: {
+              id: true,
+              name: true,
+              sku: true,
+              price: true,
+            },
+          },
+          quote: {
+            select: {
+              number: true,
+              createdAt: true,
+              status: true,
+            },
+          },
+        },
+      }),
+      prisma.orderItem.findMany({
+        where: {
+          order: {
+            customerId: id,
+          },
+        },
+        include: {
+          product: {
+            select: {
+              id: true,
+              name: true,
+              sku: true,
+              price: true,
+            },
+          },
+          order: {
+            select: {
+              number: true,
+              createdAt: true,
+              status: true,
+            },
+          },
+        },
+      }),
+      prisma.invoiceItem.findMany({
+        where: {
+          invoice: {
+            customerId: id,
+          },
+        },
+        include: {
+          product: {
+            select: {
+              id: true,
+              name: true,
+              sku: true,
+              price: true,
+            },
+          },
+          invoice: {
+            select: {
+              number: true,
+              issueDate: true,
+              status: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    // Aggregate products
+    const productMap = new Map<string, {
+      productId: string;
+      productName: string;
+      productSku: string;
+      totalQuantity: number;
+      totalAmount: number;
+      occurrences: number;
+      inQuotes: number;
+      inOrders: number;
+      inInvoices: number;
+      lastOrderDate: Date;
+    }>();
+
+    // Process quote items
+    quoteItems.forEach((item) => {
+      const key = item.productId;
+      const existing = productMap.get(key);
+
+      if (existing) {
+        existing.totalQuantity += item.quantity;
+        existing.totalAmount += item.total;
+        existing.occurrences += 1;
+        existing.inQuotes += 1;
+        if (item.quote.createdAt > existing.lastOrderDate) {
+          existing.lastOrderDate = item.quote.createdAt;
+        }
+      } else {
+        productMap.set(key, {
+          productId: item.productId,
+          productName: item.product.name,
+          productSku: item.product.sku,
+          totalQuantity: item.quantity,
+          totalAmount: item.total,
+          occurrences: 1,
+          inQuotes: 1,
+          inOrders: 0,
+          inInvoices: 0,
+          lastOrderDate: item.quote.createdAt,
+        });
+      }
+    });
+
+    // Process order items
+    orderItems.forEach((item) => {
+      const key = item.productId;
+      const existing = productMap.get(key);
+
+      if (existing) {
+        existing.totalQuantity += item.quantity;
+        existing.totalAmount += item.total;
+        existing.occurrences += 1;
+        existing.inOrders += 1;
+        if (item.order.createdAt > existing.lastOrderDate) {
+          existing.lastOrderDate = item.order.createdAt;
+        }
+      } else {
+        productMap.set(key, {
+          productId: item.productId,
+          productName: item.product.name,
+          productSku: item.product.sku,
+          totalQuantity: item.quantity,
+          totalAmount: item.total,
+          occurrences: 1,
+          inQuotes: 0,
+          inOrders: 1,
+          inInvoices: 0,
+          lastOrderDate: item.order.createdAt,
+        });
+      }
+    });
+
+    // Process invoice items
+    invoiceItems.forEach((item) => {
+      const key = item.productId;
+      const existing = productMap.get(key);
+
+      if (existing) {
+        existing.totalQuantity += item.quantity;
+        existing.totalAmount += item.total;
+        existing.occurrences += 1;
+        existing.inInvoices += 1;
+        if (item.invoice.issueDate > existing.lastOrderDate) {
+          existing.lastOrderDate = item.invoice.issueDate;
+        }
+      } else {
+        productMap.set(key, {
+          productId: item.productId,
+          productName: item.product.name,
+          productSku: item.product.sku,
+          totalQuantity: item.quantity,
+          totalAmount: item.total,
+          occurrences: 1,
+          inQuotes: 0,
+          inOrders: 0,
+          inInvoices: 1,
+          lastOrderDate: item.invoice.issueDate,
+        });
+      }
+    });
+
+    // Convert to array and sort by total amount
+    const products = Array.from(productMap.values()).sort(
+      (a, b) => b.totalAmount - a.totalAmount
+    );
+
+    res.json({
+      success: true,
+      products,
+    });
+  } catch (error: any) {
+    console.error('Error in getCustomerProductHistory:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération de l\'historique produits',
+      error: error.message,
+    });
+  }
+};
