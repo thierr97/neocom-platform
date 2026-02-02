@@ -1,33 +1,19 @@
 import { Request, Response } from 'express';
 import { PrismaClient, TripStatus, VisitStatus } from '@prisma/client';
 import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
+import cloudinary from '../config/cloudinary';
 
 const prisma = new PrismaClient();
 
-// Configuration multer pour l'upload de photos
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../../uploads/visits');
-    // Créer le dossier s'il n'existe pas
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'visit-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
+// Configuration multer pour stocker en mémoire (avant upload Cloudinary)
+const storage = multer.memoryStorage();
 
 export const upload = multer({
   storage: storage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
   fileFilter: (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|heic/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const extname = allowedTypes.test(file.originalname.toLowerCase());
     const mimetype = allowedTypes.test(file.mimetype);
 
     if (mimetype && extname) {
@@ -474,9 +460,33 @@ export const createVisit = async (req: Request, res: Response) => {
     // Gérer la photo si elle est fournie
     let photoUrl: string | undefined;
     if (req.file) {
-      // URL relative pour accéder à la photo
-      photoUrl = `/uploads/visits/${req.file.filename}`;
-      console.log('📸 Photo sauvegardée:', photoUrl);
+      try {
+        console.log('📸 Upload de la photo vers Cloudinary...');
+
+        // Upload vers Cloudinary via stream
+        const uploadResult = await new Promise<any>((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            {
+              folder: 'neoserv/visits',
+              resource_type: 'image',
+              public_id: `visit-${Date.now()}-${Math.round(Math.random() * 1E9)}`,
+            },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          );
+
+          // Écrire le buffer dans le stream
+          uploadStream.end(req.file!.buffer);
+        });
+
+        photoUrl = uploadResult.secure_url;
+        console.log('✅ Photo uploadée sur Cloudinary:', photoUrl);
+      } catch (error) {
+        console.error('❌ Erreur upload Cloudinary:', error);
+        // Continuer sans photo plutôt que de faire échouer toute la visite
+      }
     }
 
     // Créer la visite
