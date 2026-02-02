@@ -13,6 +13,7 @@ router.post('/from-cart', quoteController.createQuoteFromCart);
 router.patch('/:id/status', quoteController.updateQuoteStatus);
 router.post('/:id/convert', quoteController.convertQuoteToOrder);
 router.get('/:id/pdf', quoteController.generateQuotePDF);
+router.post('/:id/send-email', quoteController.sendQuoteByEmail);
 router.delete('/:id', quoteController.deleteQuote);
 
 export default router;

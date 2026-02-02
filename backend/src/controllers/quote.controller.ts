@@ -4,6 +4,7 @@ import { generateQuoteNumber } from '../utils/generateNumber';
 import { PDFService } from '../services/pdf.service';
 import { getDefaultTaxRate } from '../config/tax.config';
 import { getCompanySettings, getBankInfo } from '../utils/getCompanySettings';
+import nodemailer from 'nodemailer';
 
 const prisma = new PrismaClient();
 
@@ -474,6 +475,135 @@ export const createQuoteFromCart = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la création du devis',
+      error: error.message,
+    });
+  }
+};
+
+// Send quote by email
+export const sendQuoteByEmail = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    // Get quote with customer info
+    const quote = await prisma.quote.findUnique({
+      where: { id },
+      include: {
+        customer: true,
+        items: {
+          include: {
+            product: true,
+          },
+        },
+      },
+    });
+
+    if (!quote) {
+      return res.status(404).json({
+        success: false,
+        message: 'Devis non trouvé',
+      });
+    }
+
+    if (!quote.customer.email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Le client n\'a pas d\'adresse email',
+      });
+    }
+
+    // Get company settings
+    const companySettings = await getCompanySettings();
+    const bankInfo = await getBankInfo();
+
+    // Generate PDF buffer
+    const PDFDocument = require('pdfkit');
+    const pdfBuffer = await new Promise<Buffer>((resolve, reject) => {
+      const doc = new PDFDocument({ margin: 50 });
+      const chunks: Buffer[] = [];
+
+      doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      // Generate PDF content (simplified version)
+      PDFService.generateQuotePDF(quote, companySettings, bankInfo, {
+        write: (chunk: any) => doc.write(chunk),
+        end: () => doc.end(),
+        setHeader: () => {},
+      } as any);
+    });
+
+    // Configure email transporter
+    const transporter = nodemailer.createTransporter({
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: {
+        user: process.env.SMTP_USER || companySettings.email || 'noreply@neoserv.com',
+        pass: process.env.SMTP_PASSWORD || '',
+      },
+    });
+
+    const customerName = quote.customer.type === 'COMPANY'
+      ? quote.customer.companyName
+      : `${quote.customer.firstName} ${quote.customer.lastName}`;
+
+    // Send email
+    await transporter.sendMail({
+      from: `"${companySettings.name}" <${process.env.SMTP_USER || companySettings.email}>`,
+      to: quote.customer.email,
+      subject: `Devis ${quote.number} - ${companySettings.name}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2563eb;">Nouveau devis</h2>
+          <p>Bonjour ${customerName},</p>
+          <p>Veuillez trouver ci-joint votre devis <strong>${quote.number}</strong>.</p>
+          <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 5px 0;"><strong>Numéro :</strong> ${quote.number}</p>
+            <p style="margin: 5px 0;"><strong>Date :</strong> ${new Date(quote.createdAt).toLocaleDateString('fr-FR')}</p>
+            <p style="margin: 5px 0;"><strong>Montant :</strong> ${quote.total.toFixed(2)} €</p>
+            <p style="margin: 5px 0;"><strong>Valable jusqu'au :</strong> ${quote.validUntil ? new Date(quote.validUntil).toLocaleDateString('fr-FR') : '-'}</p>
+          </div>
+          <p>Pour toute question, n'hésitez pas à nous contacter.</p>
+          <p>Cordialement,<br><strong>${companySettings.name}</strong></p>
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
+          <p style="font-size: 12px; color: #6b7280;">
+            ${companySettings.address || ''}<br>
+            ${companySettings.phone || ''}<br>
+            ${companySettings.email || ''}
+          </p>
+        </div>
+      `,
+      attachments: [
+        {
+          filename: `Devis-${quote.number}.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf',
+        },
+      ],
+    });
+
+    // Update quote status to SENT if it was DRAFT
+    if (quote.status === 'DRAFT') {
+      await prisma.quote.update({
+        where: { id },
+        data: {
+          status: 'SENT',
+          sentAt: new Date(),
+        },
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: `Devis envoyé avec succès à ${quote.customer.email}`,
+    });
+  } catch (error: any) {
+    console.error('Error sending quote by email:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de l\'envoi du devis par email',
       error: error.message,
     });
   }
