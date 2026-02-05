@@ -17,8 +17,8 @@ enum UserRole {
   DELIVERY
   CLIENT
   ACCOUNTANT
-  STAFF_PREPA  // Preparation and reception staff
-  SUB_ADMIN    // Supervisor - can validate tasks and view all operations
+  STAFF_PREPA // Preparation and reception staff
+  SUB_ADMIN // Supervisor - can validate tasks and view all operations
 }
 
 enum UserStatus {
@@ -55,7 +55,7 @@ model User {
   orders          Order[]
   quotes          Quote[]
   invoices        Invoice[]
-  payments        Payment[]        // Paiements encaissés par le commercial
+  payments        Payment[] // Paiements encaissés par le commercial
   gpsTrackings    GpsTracking[]
   activities      Activity[]
   importHistory   ImportHistory[]
@@ -66,19 +66,19 @@ model User {
   trips           Trip[] // Trajets commerciaux
 
   // Relations delivery/courier system
-  salesDeliveries      Delivery[]        @relation("DeliverySales")
-  courierDeliveries    Delivery[]        @relation("DeliveryCourier")
-  deliveryEvents       DeliveryEvent[]   @relation("DeliveryEventUser")
-  courierProfile       CourierProfile?   @relation("CourierProfileUser")
-  courierLocations     CourierLocation[] @relation("CourierLocationUser")
-  notifications        Notification[]    @relation("NotificationUser")
-  payouts              Payout[]          @relation("PayoutCourier")
+  salesDeliveries   Delivery[]        @relation("DeliverySales")
+  courierDeliveries Delivery[]        @relation("DeliveryCourier")
+  deliveryEvents    DeliveryEvent[]   @relation("DeliveryEventUser")
+  courierProfile    CourierProfile?   @relation("CourierProfileUser")
+  courierLocations  CourierLocation[] @relation("CourierLocationUser")
+  notifications     Notification[]    @relation("NotificationUser")
+  payouts           Payout[]          @relation("PayoutCourier")
 
   // Relations logistics/tasks system
-  tasksAssigned      Task[]       @relation("TaskAssignedTo")    // Tasks assigned to this user
-  tasksCreated       Task[]       @relation("TaskAssignedBy")    // Tasks assigned by this user
+  tasksAssigned      Task[]       @relation("TaskAssignedTo") // Tasks assigned to this user
+  tasksCreated       Task[]       @relation("TaskAssignedBy") // Tasks assigned by this user
   taskProofsUploaded TaskProof[]  @relation("TaskProofUploadedBy")
-  taskReviews        TaskReview[] @relation("TaskReviewedBy")    // Reviews made by this user (SUB_ADMIN)
+  taskReviews        TaskReview[] @relation("TaskReviewedBy") // Reviews made by this user (SUB_ADMIN)
 
   // Metadata
   createdAt   DateTime  @default(now())
@@ -160,8 +160,8 @@ model Customer {
   user   User   @relation("UserCustomers", fields: [userId], references: [id], onDelete: Cascade)
 
   // Remises commerciales (appliquées par le commercial)
-  discountRate      Float?   @default(0) // Taux de remise en pourcentage (ex: 10 pour 10%)
-  discountType      String?  @default("PERCENTAGE") // "PERCENTAGE" ou "FIXED"
+  discountRate      Float?    @default(0) // Taux de remise en pourcentage (ex: 10 pour 10%)
+  discountType      String?   @default("PERCENTAGE") // "PERCENTAGE" ou "FIXED"
   discountReason    String? // Raison de la remise
   discountValidFrom DateTime? // Date de début de validité
   discountValidTo   DateTime? // Date de fin de validité
@@ -176,6 +176,7 @@ model Customer {
   accountingEntries AccountingEntry[]
   visits            Visit[] // Visites commerciales
   deliveries        Delivery[] // Livraisons pour ce client
+  proProfile        ProCustomerProfile? // Profil B2B si client professionnel
 
   // Notes & Tags
   notes String?
@@ -463,6 +464,11 @@ model Order {
   status        OrderStatus   @default(PENDING)
   paymentStatus PaymentStatus @default(PENDING)
 
+  // B2B Fields
+  isB2B             Boolean       @default(false) // Commande B2B ou B2C
+  paymentTerms      PaymentTerms? // Conditions de paiement si B2B
+  proPricesSnapshot Json? // Snapshot des prix B2B appliqués au moment de la commande
+
   // Items
   items OrderItem[]
 
@@ -512,7 +518,7 @@ model Order {
   // Inbound Logistics (FRANCE → GUADELOUPE)
   inboundCarrier        String?
   inboundTrackingNumber String?
-  inboundStatus         String? @default("NOT_STARTED") // NOT_STARTED, SHIPPED, IN_TRANSIT, RECEIVED
+  inboundStatus         String?   @default("NOT_STARTED") // NOT_STARTED, SHIPPED, IN_TRANSIT, RECEIVED
   inboundShippedAt      DateTime?
   inboundReceivedAt     DateTime?
   inboundProofUrl       String? // Photo/scan de réception
@@ -648,60 +654,60 @@ model InvoiceItem {
 // ========================================
 
 enum CreditNoteType {
-  TOTAL    // Avoir total (annule toute la facture)
-  PARTIAL  // Avoir partiel (annule certains produits)
+  TOTAL // Avoir total (annule toute la facture)
+  PARTIAL // Avoir partiel (annule certains produits)
 }
 
 model CreditNote {
-  id        String          @id @default(uuid())
-  number    String          @unique // Ex: AV-2024-001
-  type      CreditNoteType  @default(TOTAL)
-  reason    String?         // Motif de l'avoir
+  id     String         @id @default(uuid())
+  number String         @unique // Ex: AV-2024-001
+  type   CreditNoteType @default(TOTAL)
+  reason String? // Motif de l'avoir
 
   // Relation avec la facture d'origine
   invoiceId String
-  invoice   Invoice         @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   // Commercial qui a créé l'avoir
-  userId    String
-  user      User            @relation(fields: [userId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
   // Items concernés par l'avoir
-  items     CreditNoteItem[]
+  items CreditNoteItem[]
 
   // Montants
-  subtotal   Float          @default(0)
-  taxAmount  Float          @default(0)
-  total      Float          @default(0)
+  subtotal  Float @default(0)
+  taxAmount Float @default(0)
+  total     Float @default(0)
 
   // Notes
-  notes      String?
+  notes String?
 
   // PDF
-  pdfUrl     String?
+  pdfUrl String?
 
   // Metadata
-  createdAt  DateTime       @default(now())
-  updatedAt  DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("credit_notes")
 }
 
 model CreditNoteItem {
-  id            String      @id @default(uuid())
-  creditNoteId  String
-  creditNote    CreditNote  @relation(fields: [creditNoteId], references: [id], onDelete: Cascade)
+  id           String     @id @default(uuid())
+  creditNoteId String
+  creditNote   CreditNote @relation(fields: [creditNoteId], references: [id], onDelete: Cascade)
 
-  productId     String
-  product       Product     @relation(fields: [productId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
 
-  quantity      Int
-  unitPrice     Float
-  taxRate       Float       @default(20)
-  discount      Float       @default(0)
-  total         Float
+  quantity  Int
+  unitPrice Float
+  taxRate   Float @default(20)
+  discount  Float @default(0)
+  total     Float
 
-  createdAt     DateTime    @default(now())
+  createdAt DateTime @default(now())
 
   @@map("credit_note_items")
 }
@@ -1098,8 +1104,8 @@ model AccountingEntry {
   reference String? // Numéro de pièce
 
   // FEC - Champs obligatoires pour le fichier FEC
-  journalCode    String  // VE, AC, BQ, CA, OD, AN (code du journal)
-  journalLabel   String  // "Ventes", "Achats", "Banque", etc.
+  journalCode    String // VE, AC, BQ, CA, OD, AN (code du journal)
+  journalLabel   String // "Ventes", "Achats", "Banque", etc.
   pieceRef       String? // Référence de la pièce justificative
   pieceDate      DateTime? // Date de la pièce
   validationDate DateTime? // Date de validation de l'écriture
@@ -1141,7 +1147,7 @@ model AccountingEntryLine {
   credit Float   @default(0)
 
   // FEC - Devise (pour opérations en devises étrangères)
-  amountCurrency Float?  // Montant en devise étrangère
+  amountCurrency Float? // Montant en devise étrangère
   currency       String? // Code devise ISO (EUR, USD, GBP, etc.)
 
   createdAt DateTime @default(now())
@@ -1195,8 +1201,8 @@ model FECExport {
   status String @default("PENDING") // PENDING, COMPLETED, ERROR
 
   // Statistiques
-  totalEntries Int?   // Nombre d'écritures exportées
-  totalLines   Int?   // Nombre de lignes d'écriture
+  totalEntries Int? // Nombre d'écritures exportées
+  totalLines   Int? // Nombre de lignes d'écriture
   totalDebit   Float? // Total des débits
   totalCredit  Float? // Total des crédits
 
@@ -1225,8 +1231,8 @@ model BankConnection {
 
   // Authentification API
   provider     String // "bridge", "budget_insight", "plaid"
-  accessToken  String @db.Text // Token d'accès (chiffré)
-  refreshToken String? @db.Text // Token de rafraîchissement
+  accessToken  String    @db.Text // Token d'accès (chiffré)
+  refreshToken String?   @db.Text // Token de rafraîchissement
   expiresAt    DateTime?
 
   // Statut
@@ -1291,7 +1297,7 @@ model BankTransaction {
   date      DateTime // Date de la transaction
   valueDate DateTime? // Date de valeur
   amount    Float // Montant (négatif = débit, positif = crédit)
-  currency  String   @default("EUR")
+  currency  String    @default("EUR")
 
   // Description
   rawLabel   String  @db.Text // Libellé brut de la banque
@@ -1568,33 +1574,34 @@ model UserPermission {
   @@index([userId])
   @@map("user_permissions")
 }
+
 // ========================================
 // SALES TRACKING - TRIP MANAGEMENT
 // ========================================
 
 enum TripStatus {
   IN_PROGRESS // Commercial en déplacement
-  COMPLETED   // Trajet terminé
-  CANCELLED   // Trajet annulé
+  COMPLETED // Trajet terminé
+  CANCELLED // Trajet annulé
 }
 
 enum VisitStatus {
-  PLANNED    // Visite prévue
+  PLANNED // Visite prévue
   IN_PROGRESS // En cours de visite
-  COMPLETED  // Visite terminée
-  CANCELLED  // Visite annulée
-  NO_SHOW    // Client absent
+  COMPLETED // Visite terminée
+  CANCELLED // Visite annulée
+  NO_SHOW // Client absent
 }
 
 enum TripPurpose {
-  CLIENT_VISIT      // Visite client
-  PROSPECTING       // Prospection
-  DELIVERY          // Livraison
-  AFTER_SALES       // SAV
-  MEETING           // Réunion
-  TRAINING          // Formation
-  TRADE_SHOW        // Salon professionnel
-  OTHER             // Autre
+  CLIENT_VISIT // Visite client
+  PROSPECTING // Prospection
+  DELIVERY // Livraison
+  AFTER_SALES // SAV
+  MEETING // Réunion
+  TRAINING // Formation
+  TRADE_SHOW // Salon professionnel
+  OTHER // Autre
 }
 
 // Trajet commercial (du check-in au check-out)
@@ -1622,17 +1629,17 @@ model Trip {
   endAddress   String?
 
   // Calculs kilométriques
-  distanceKm       Float?   @default(0) // Distance parcourue
-  estimatedKm      Float? // Distance estimée initiale
-  mileageRate      Float?   @default(0.50) // Taux kilométrique (€/km)
-  totalCost        Float?   @default(0) // Coût total (distance * taux)
-  durationMinutes  Int?     @default(0) // Durée totale en minutes
+  distanceKm      Float? @default(0) // Distance parcourue
+  estimatedKm     Float? // Distance estimée initiale
+  mileageRate     Float? @default(0.50) // Taux kilométrique (€/km)
+  totalCost       Float? @default(0) // Coût total (distance * taux)
+  durationMinutes Int?   @default(0) // Durée totale en minutes
 
   // Justificatifs
-  vehicleType        String? // Type de véhicule (voiture, moto, etc.)
+  vehicleType         String? // Type de véhicule (voiture, moto, etc.)
   vehicleRegistration String? // Immatriculation
-  hasReceipts        Boolean @default(false) // A des justificatifs (parking, péage, etc.)
-  receiptAmount      Float?  @default(0) // Montant total des justificatifs
+  hasReceipts         Boolean @default(false) // A des justificatifs (parking, péage, etc.)
+  receiptAmount       Float?  @default(0) // Montant total des justificatifs
 
   // Relations
   checkpoints TripCheckpoint[] // Points GPS le long du trajet
@@ -1644,11 +1651,11 @@ model Trip {
   photos    String[] @default([]) // Photos du trajet (justificatifs, etc.)
 
   // Validation et remboursement
-  isValidated       Boolean   @default(false)
-  validatedAt       DateTime?
-  validatedBy       String? // UserId de l'admin/manager
-  isReimbursed      Boolean   @default(false)
-  reimbursedAt      DateTime?
+  isValidated         Boolean   @default(false)
+  validatedAt         DateTime?
+  validatedBy         String? // UserId de l'admin/manager
+  isReimbursed        Boolean   @default(false)
+  reimbursedAt        DateTime?
   reimbursementAmount Float? // Montant remboursé
 
   // Metadata
@@ -1721,9 +1728,9 @@ model Visit {
   outcome   String? // Résultat (vente, devis, SAV, etc.)
 
   // Documents et photos
-  photos     String[] @default([]) // Photos de la visite
-  documents  String[] @default([]) // Documents remis/reçus
-  signature  String? // Signature client (base64)
+  photos    String[] @default([]) // Photos de la visite
+  documents String[] @default([]) // Documents remis/reçus
+  signature String? // Signature client (base64)
 
   // Commandes/Devis liés
   orderId String?
@@ -1753,98 +1760,98 @@ model Visit {
 
 // Statuts de livraison (workflow complet)
 enum DeliveryStatus {
-  CREATED      // Livraison créée
-  OFFERED      // Offerte aux coursiers disponibles
-  ACCEPTED     // Acceptée par un coursier
-  TO_PICKUP    // En route vers le point de collecte
-  AT_PICKUP    // Arrivé au point de collecte
-  PICKED_UP    // Colis récupéré
-  TO_DROPOFF   // En route vers le point de livraison
-  AT_DROPOFF   // Arrivé au point de livraison
-  DELIVERED    // Livré
-  COMPLETED    // Terminé (après validation)
-  CANCELED     // Annulé
-  FAILED       // Échec de livraison
-  INCIDENT     // Incident signalé
+  CREATED // Livraison créée
+  OFFERED // Offerte aux coursiers disponibles
+  ACCEPTED // Acceptée par un coursier
+  TO_PICKUP // En route vers le point de collecte
+  AT_PICKUP // Arrivé au point de collecte
+  PICKED_UP // Colis récupéré
+  TO_DROPOFF // En route vers le point de livraison
+  AT_DROPOFF // Arrivé au point de livraison
+  DELIVERED // Livré
+  COMPLETED // Terminé (après validation)
+  CANCELED // Annulé
+  FAILED // Échec de livraison
+  INCIDENT // Incident signalé
 }
 
 // Types d'événements de livraison (audit trail)
 enum DeliveryEventType {
-  STATUS_CHANGE    // Changement de statut
-  LOCATION_UPDATE  // Mise à jour de position
-  NOTE_ADDED       // Note ajoutée
-  PHOTO_ADDED      // Photo ajoutée
-  SIGNATURE_ADDED  // Signature ajoutée
-  REASSIGNED       // Réassignation à un autre coursier
-  INCIDENT         // Incident signalé
+  STATUS_CHANGE // Changement de statut
+  LOCATION_UPDATE // Mise à jour de position
+  NOTE_ADDED // Note ajoutée
+  PHOTO_ADDED // Photo ajoutée
+  SIGNATURE_ADDED // Signature ajoutée
+  REASSIGNED // Réassignation à un autre coursier
+  INCIDENT // Incident signalé
   CUSTOMER_CONTACT // Contact client
-  ETA_UPDATE       // Mise à jour ETA
+  ETA_UPDATE // Mise à jour ETA
 }
 
 // Statut du profil coursier
 enum CourierStatus {
-  DRAFT       // Candidature en cours de remplissage
-  SUBMITTED   // Candidature soumise
+  DRAFT // Candidature en cours de remplissage
+  SUBMITTED // Candidature soumise
   UNDER_REVIEW // En cours de vérification
-  APPROVED    // Approuvé (peut accepter des livraisons)
-  REJECTED    // Rejeté
-  SUSPENDED   // Suspendu temporairement
-  BANNED      // Banni définitivement
+  APPROVED // Approuvé (peut accepter des livraisons)
+  REJECTED // Rejeté
+  SUSPENDED // Suspendu temporairement
+  BANNED // Banni définitivement
 }
 
 // Types de véhicules
 enum VehicleType {
-  BIKE        // Vélo
-  SCOOTER     // Scooter/Moto
-  CAR         // Voiture
-  VAN         // Camionnette
-  TRUCK       // Camion
-  ON_FOOT     // À pied
+  BIKE // Vélo
+  SCOOTER // Scooter/Moto
+  CAR // Voiture
+  VAN // Camionnette
+  TRUCK // Camion
+  ON_FOOT // À pied
 }
 
 // Types de documents KYC
 enum DocumentType {
-  ID_CARD          // Carte d'identité
-  DRIVERS_LICENSE  // Permis de conduire
+  ID_CARD // Carte d'identité
+  DRIVERS_LICENSE // Permis de conduire
   VEHICLE_REGISTRATION // Carte grise
-  INSURANCE        // Assurance
-  CRIMINAL_RECORD  // Casier judiciaire
-  PROOF_ADDRESS    // Justificatif de domicile
-  BANK_RIB         // RIB
-  OTHER            // Autre
+  INSURANCE // Assurance
+  CRIMINAL_RECORD // Casier judiciaire
+  PROOF_ADDRESS // Justificatif de domicile
+  BANK_RIB // RIB
+  OTHER // Autre
 }
 
 // Statut de validation des documents
 enum DocumentStatus {
-  PENDING     // En attente de vérification
-  APPROVED    // Approuvé
-  REJECTED    // Rejeté
-  EXPIRED     // Expiré
+  PENDING // En attente de vérification
+  APPROVED // Approuvé
+  REJECTED // Rejeté
+  EXPIRED // Expiré
 }
 
 // Types de notifications
 enum NotificationType {
-  DELIVERY_ASSIGNED    // Livraison assignée
-  DELIVERY_OFFERED     // Livraison disponible
-  STATUS_UPDATED       // Statut mis à jour
-  COURIER_ARRIVED      // Coursier arrivé
-  DELIVERY_COMPLETED   // Livraison terminée
-  INCIDENT_REPORTED    // Incident signalé
-  MESSAGE_RECEIVED     // Message reçu
-  DOCUMENT_VERIFIED    // Document vérifié
-  PROFILE_APPROVED     // Profil approuvé
-  PROFILE_REJECTED     // Profil rejeté
-  PAYOUT_READY         // Paiement disponible
-  SYSTEM_ALERT         // Alerte système
+  DELIVERY_ASSIGNED // Livraison assignée
+  DELIVERY_OFFERED // Livraison disponible
+  STATUS_UPDATED // Statut mis à jour
+  COURIER_ARRIVED // Coursier arrivé
+  DELIVERY_COMPLETED // Livraison terminée
+  INCIDENT_REPORTED // Incident signalé
+  MESSAGE_RECEIVED // Message reçu
+  DOCUMENT_VERIFIED // Document vérifié
+  PROFILE_APPROVED // Profil approuvé
+  PROFILE_REJECTED // Profil rejeté
+  PAYOUT_READY // Paiement disponible
+  SYSTEM_ALERT // Alerte système
 }
 
 // Statut de paiement coursier
 enum PayoutStatus {
-  PENDING      // En attente
-  PROCESSING   // En cours de traitement
-  COMPLETED    // Complété
-  FAILED       // Échec
-  CANCELED     // Annulé
+  PENDING // En attente
+  PROCESSING // En cours de traitement
+  COMPLETED // Complété
+  FAILED // Échec
+  CANCELED // Annulé
 }
 
 // Livraison principale
@@ -1853,7 +1860,7 @@ model Delivery {
 
   // Lien avec la commande (optionnel)
   orderId String?
-  order   Order?   @relation(fields: [orderId], references: [id])
+  order   Order?  @relation(fields: [orderId], references: [id])
 
   // Client (destinataire)
   customerId String?
@@ -1861,19 +1868,19 @@ model Delivery {
 
   // Commercial assigné (celui qui gère la vente)
   salesUserId String?
-  salesUser   User?    @relation("DeliverySales", fields: [salesUserId], references: [id])
+  salesUser   User?   @relation("DeliverySales", fields: [salesUserId], references: [id])
 
   // Coursier assigné
   courierId String?
-  courier   User?    @relation("DeliveryCourier", fields: [courierId], references: [id])
+  courier   User?   @relation("DeliveryCourier", fields: [courierId], references: [id])
 
   // Statut et workflow
-  status            DeliveryStatus @default(CREATED)
-  previousStatus    DeliveryStatus?
-  statusChangedAt   DateTime       @default(now())
-  canceledReason    String?
-  failedReason      String?
-  incidentDetails   String?
+  status          DeliveryStatus  @default(CREATED)
+  previousStatus  DeliveryStatus?
+  statusChangedAt DateTime        @default(now())
+  canceledReason  String?
+  failedReason    String?
+  incidentDetails String?
 
   // Adresses
   pickupAddress      String
@@ -1891,18 +1898,18 @@ model Delivery {
   deliveryNotes        String?
 
   // Planning
-  scheduledPickupAt  DateTime?
+  scheduledPickupAt   DateTime?
   scheduledDeliveryAt DateTime?
   estimatedDeliveryAt DateTime? // ETA calculé dynamiquement
-  actualPickupAt     DateTime?
-  actualDeliveryAt   DateTime?
+  actualPickupAt      DateTime?
+  actualDeliveryAt    DateTime?
 
   // Détails de la livraison
-  packageDescription String?
-  packageWeight      Float?  // en kg
-  packageDimensions  String? // Format: "LxlxH cm"
+  packageDescription  String?
+  packageWeight       Float? // en kg
+  packageDimensions   String? // Format: "LxlxH cm"
   specialInstructions String?
-  priority           Int     @default(0) // 0=normal, 1=urgent, 2=express
+  priority            Int     @default(0) // 0=normal, 1=urgent, 2=express
 
   // Preuves de livraison
   deliveryPhotos    String[] @default([]) // URLs ou Base64
@@ -1911,20 +1918,21 @@ model Delivery {
   deliveryCode      String? // Code de vérification
 
   // Tarification
-  deliveryFee       Float? // Frais de livraison
-  courierEarnings   Float? // Gains du coursier
-  currency          String @default("EUR")
+  deliveryFee     Float? // Frais de livraison
+  courierEarnings Float? // Gains du coursier
+  currency        String @default("EUR")
 
   // Distance et durée (calculés)
   estimatedDistance Float? // en km
   actualDistance    Float? // en km
-  estimatedDuration Int?   // en minutes
-  actualDuration    Int?   // en minutes
+  estimatedDuration Int? // en minutes
+  actualDuration    Int? // en minutes
 
   // Relations
-  events         DeliveryEvent[]
+  events           DeliveryEvent[]
   courierLocations CourierLocation[]
-  notifications  Notification[]
+  notifications    Notification[]
+  deliveryProof    DeliveryProof? // Preuve de livraison avec signature
 
   // Metadata
   createdAt DateTime @default(now())
@@ -1957,8 +1965,8 @@ model DeliveryEvent {
   newStatus DeliveryStatus?
 
   // Acteur de l'événement
-  userId String?
-  user   User?   @relation("DeliveryEventUser", fields: [userId], references: [id])
+  userId    String?
+  user      User?     @relation("DeliveryEventUser", fields: [userId], references: [id])
   actorRole UserRole? // Role de l'acteur au moment de l'événement
 
   // Géolocalisation (pour les événements liés à la position)
@@ -1967,7 +1975,7 @@ model DeliveryEvent {
   accuracy  Float?
 
   // Photos et documents
-  photos String[] @default([])
+  photos    String[] @default([])
   documents String[] @default([])
 
   // Timestamp (IMMUTABLE - append-only)
@@ -1995,26 +2003,26 @@ model CourierProfile {
   rejectedReason String?
 
   // Disponibilité
-  isAvailable      Boolean @default(false)
-  currentLatitude  Float?
-  currentLongitude Float?
+  isAvailable        Boolean   @default(false)
+  currentLatitude    Float?
+  currentLongitude   Float?
   lastLocationUpdate DateTime?
 
   // Informations personnelles complémentaires
-  dateOfBirth   DateTime?
-  nationality   String?
-  address       String?
-  city          String?
-  postalCode    String?
-  country       String    @default("France")
+  dateOfBirth DateTime?
+  nationality String?
+  address     String?
+  city        String?
+  postalCode  String?
+  country     String    @default("France")
 
   // Informations véhicule
-  vehicleType         VehicleType?
-  vehicleBrand        String?
-  vehicleModel        String?
-  vehicleYear         Int?
-  vehiclePlateNumber  String?
-  vehicleColor        String?
+  vehicleType        VehicleType?
+  vehicleBrand       String?
+  vehicleModel       String?
+  vehicleYear        Int?
+  vehiclePlateNumber String?
+  vehicleColor       String?
 
   // Informations bancaires
   iban          String?
@@ -2023,25 +2031,25 @@ model CourierProfile {
   accountHolder String?
 
   // Préférences de travail
-  maxDeliveriesPerDay Int? @default(10)
-  maxRadius           Float? @default(20.0) // Rayon max en km
+  maxDeliveriesPerDay Int?     @default(10)
+  maxRadius           Float?   @default(20.0) // Rayon max en km
   workingDays         String[] @default([]) // ["Monday", "Tuesday", ...]
   workingHoursStart   String? // Format "09:00"
   workingHoursEnd     String? // Format "18:00"
 
   // Statistiques
-  totalDeliveries      Int     @default(0)
-  completedDeliveries  Int     @default(0)
-  canceledDeliveries   Int     @default(0)
-  failedDeliveries     Int     @default(0)
+  totalDeliveries      Int    @default(0)
+  completedDeliveries  Int    @default(0)
+  canceledDeliveries   Int    @default(0)
+  failedDeliveries     Int    @default(0)
   averageRating        Float?
-  totalEarnings        Float   @default(0.0)
-  currentMonthEarnings Float   @default(0.0)
+  totalEarnings        Float  @default(0.0)
+  currentMonthEarnings Float  @default(0.0)
 
   // Scores de performance (calculés)
-  onTimeRate       Float? // Pourcentage de livraisons à temps
-  acceptanceRate   Float? // Pourcentage d'offres acceptées
-  completionRate   Float? // Pourcentage de livraisons complétées
+  onTimeRate           Float? // Pourcentage de livraisons à temps
+  acceptanceRate       Float? // Pourcentage d'offres acceptées
+  completionRate       Float? // Pourcentage de livraisons complétées
   customerSatisfaction Float? // Note moyenne clients
 
   // Documents KYC
@@ -2075,10 +2083,10 @@ model CourierDocument {
   fileMimeType String?
 
   // Validation
-  verifiedAt DateTime?
-  verifiedBy String? // userId de l'admin qui a vérifié
+  verifiedAt     DateTime?
+  verifiedBy     String? // userId de l'admin qui a vérifié
   rejectedReason String?
-  expiresAt  DateTime? // Date d'expiration (permis, assurance, etc.)
+  expiresAt      DateTime? // Date d'expiration (permis, assurance, etc.)
 
   // Notes admin
   adminNotes String?
@@ -2145,16 +2153,16 @@ model Notification {
   delivery   Delivery? @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
 
   // État
-  isRead  Boolean  @default(false)
-  readAt  DateTime?
-  isSent  Boolean  @default(false)
-  sentAt  DateTime?
+  isRead Boolean   @default(false)
+  readAt DateTime?
+  isSent Boolean   @default(false)
+  sentAt DateTime?
 
   // Priorité
   priority Int @default(0) // 0=normal, 1=high, 2=urgent
 
   // Metadata
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   expiresAt DateTime? // Expiration de la notification
 
   @@index([userId])
@@ -2174,21 +2182,21 @@ model Payout {
   courier   User   @relation("PayoutCourier", fields: [courierId], references: [id], onDelete: Cascade)
 
   // Montant
-  amount        Float
-  currency      String @default("EUR")
-  taxAmount     Float? // Montant des taxes/commissions
-  netAmount     Float  // Montant net reçu par le coursier
+  amount    Float
+  currency  String @default("EUR")
+  taxAmount Float? // Montant des taxes/commissions
+  netAmount Float // Montant net reçu par le coursier
 
   // Période couverte
   periodStart DateTime
   periodEnd   DateTime
 
   // Statut
-  status         PayoutStatus @default(PENDING)
-  processedAt    DateTime?
-  completedAt    DateTime?
-  failedReason   String?
-  transactionId  String? // ID de transaction externe (Stripe, etc.)
+  status        PayoutStatus @default(PENDING)
+  processedAt   DateTime?
+  completedAt   DateTime?
+  failedReason  String?
+  transactionId String? // ID de transaction externe (Stripe, etc.)
 
   // Détails bancaires (snapshot au moment du paiement)
   iban          String?
@@ -2217,14 +2225,14 @@ model ShopBanner {
   id String @id @default(uuid())
 
   // Type de bannière
-  bannerType      String  @default("hero") // "hero", "flash_deals", "vacances", "offre_jour", "category_promo"
+  bannerType String @default("hero") // "hero", "flash_deals", "vacances", "offre_jour", "category_promo"
 
   // Configuration de base
-  title           String? // Titre principal (ex: "Cyber Monday")
-  subtitle        String? // Sous-titre (ex: "Fin de la promo : 31 décembre")
-  description     String? // Description/texte additionnel
-  ctaText         String? // Texte du bouton d'action (ex: "Voir les offres")
-  ctaLink         String? // Lien du bouton
+  title       String? // Titre principal (ex: "Cyber Monday")
+  subtitle    String? // Sous-titre (ex: "Fin de la promo : 31 décembre")
+  description String? // Description/texte additionnel
+  ctaText     String? // Texte du bouton d'action (ex: "Voir les offres")
+  ctaLink     String? // Lien du bouton
 
   // Style visuel
   backgroundType  String  @default("gradient") // "gradient", "image", "color"
@@ -2237,34 +2245,34 @@ model ShopBanner {
   secondaryImages String[] @default([]) // Images secondaires
 
   // Mise en page
-  layout          String  @default("horizontal") // "horizontal", "vertical", "centered"
-  height          String  @default("medium") // "small", "medium", "large", "custom"
-  customHeight    String? // Hauteur personnalisée (ex: "400px")
+  layout       String  @default("horizontal") // "horizontal", "vertical", "centered"
+  height       String  @default("medium") // "small", "medium", "large", "custom"
+  customHeight String? // Hauteur personnalisée (ex: "400px")
 
   // Positionnement des éléments (JSON pour flexibilité)
-  positioning     Json? // {textAlign: "left", imagePosition: "right", etc.}
+  positioning Json? // {textAlign: "left", imagePosition: "right", etc.}
 
   // Badge de promotion
-  showBadge       Boolean @default(false)
-  badgeText       String? // Texte du badge (ex: "-70%")
-  badgeColor      String? @default("#EF4444") // Rouge par défaut
+  showBadge  Boolean @default(false)
+  badgeText  String? // Texte du badge (ex: "-70%")
+  badgeColor String? @default("#EF4444") // Rouge par défaut
 
   // Dates de validité
-  startDate       DateTime?
-  endDate         DateTime?
-  showCountdown   Boolean @default(false) // Afficher un compte à rebours
+  startDate     DateTime?
+  endDate       DateTime?
+  showCountdown Boolean   @default(false) // Afficher un compte à rebours
 
   // Placement sur la page
-  placement       String  @default("top") // "top", "after_categories", "middle_products", "before_footer"
+  placement String @default("top") // "top", "after_categories", "middle_products", "before_footer"
 
   // État et priorité
-  isActive        Boolean @default(true)
-  priority        Int     @default(0) // Pour afficher plusieurs bannières (0 = plus haute priorité)
+  isActive Boolean @default(true)
+  priority Int     @default(0) // Pour afficher plusieurs bannières (0 = plus haute priorité)
 
   // Metadata
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  createdBy       String? // UserId de l'admin qui a créé
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String? // UserId de l'admin qui a créé
 
   @@index([isActive])
   @@index([priority])
@@ -2279,32 +2287,32 @@ model ShopBanner {
 // ========================================
 
 enum TaskType {
-  RECEPTION_INBOUND    // Réception marchandise en provenance de France
-  DELIVERY_LAST_MILE   // Livraison locale
-  SHIP_LAST_MILE       // Expédition locale (si external carrier)
+  RECEPTION_INBOUND // Réception marchandise en provenance de France
+  DELIVERY_LAST_MILE // Livraison locale
+  SHIP_LAST_MILE // Expédition locale (si external carrier)
 }
 
 enum TaskStatus {
-  TODO         // À faire
-  IN_PROGRESS  // En cours
-  DONE         // Terminé (waiting validation)
-  APPROVED     // Approuvé par SUB_ADMIN
-  REJECTED     // Rejeté par SUB_ADMIN
-  ISSUE        // Incident signalé
+  TODO // À faire
+  IN_PROGRESS // En cours
+  DONE // Terminé (waiting validation)
+  APPROVED // Approuvé par SUB_ADMIN
+  REJECTED // Rejeté par SUB_ADMIN
+  ISSUE // Incident signalé
 }
 
 enum TaskProofType {
-  PHOTO      // Photo de preuve
-  SIGNATURE  // Signature électronique
-  GPS        // Position GPS
-  NOTE       // Note textuelle
-  DOCUMENT   // Document attaché
+  PHOTO // Photo de preuve
+  SIGNATURE // Signature électronique
+  GPS // Position GPS
+  NOTE // Note textuelle
+  DOCUMENT // Document attaché
 }
 
 enum TaskReviewStatus {
-  APPROVED      // Validé
-  REJECTED      // Rejeté
-  PENDING_INFO  // En attente d'infos
+  APPROVED // Validé
+  REJECTED // Rejeté
+  PENDING_INFO // En attente d'infos
 }
 
 // Task/Intervention principale
@@ -2321,10 +2329,10 @@ model Task {
 
   // Assignment
   assignedToId String?
-  assignedTo   User?    @relation("TaskAssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
+  assignedTo   User?   @relation("TaskAssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
 
   assignedById String?
-  assignedBy   User?    @relation("TaskAssignedBy", fields: [assignedById], references: [id], onDelete: SetNull)
+  assignedBy   User?   @relation("TaskAssignedBy", fields: [assignedById], references: [id], onDelete: SetNull)
 
   assignedAt DateTime?
 
@@ -2382,7 +2390,7 @@ model TaskProof {
 
   // Metadata
   uploadedById String?
-  uploadedBy   User?    @relation("TaskProofUploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
+  uploadedBy   User?   @relation("TaskProofUploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
 
   uploadedAt DateTime @default(now())
 
@@ -2415,4 +2423,256 @@ model TaskReview {
   @@index([reviewedById])
   @@index([status])
   @@map("task_reviews")
+}
+
+// ========================================
+// B2B SYSTEM - PRO CUSTOMERS
+// ========================================
+
+// Configuration B2B pour un client professionnel
+model ProCustomerProfile {
+  id String @id @default(uuid())
+
+  // Lien avec le customer
+  customerId String   @unique
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  // Statut du compte PRO
+  status         ProCustomerStatus @default(PENDING)
+  statusNote     String? // Raison de rejet ou notes
+  approvedAt     DateTime?
+  approvedBy     String? // userId de l'admin qui a approuvé
+  rejectedAt     DateTime?
+  rejectedReason String?
+
+  // Conditions de paiement
+  paymentTerms PaymentTerms @default(IMMEDIATE) // IMMEDIATE, NET30, NET45, NET60
+  creditLimit  Float?       @default(0) // Limite de crédit accordée
+
+  // Remise par défaut (en plus des règles de pricing)
+  defaultDiscount Float? @default(0) // En pourcentage
+
+  // Contact comptabilité
+  accountingEmail   String?
+  accountingPhone   String?
+  accountingContact String? // Nom du contact compta
+
+  // Documents uploadés
+  documents ProDocument[]
+
+  // Adresses de livraison multiples
+  shippingAddresses ShippingAddress[]
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("pro_customer_profiles")
+}
+
+enum ProCustomerStatus {
+  PENDING // En attente d'approbation
+  APPROVED // Approuvé
+  REJECTED // Rejeté
+  SUSPENDED // Suspendu
+}
+
+enum PaymentTerms {
+  IMMEDIATE // Paiement immédiat
+  NET15 // 15 jours
+  NET30 // 30 jours
+  NET45 // 45 jours
+  NET60 // 60 jours
+  NET90 // 90 jours
+}
+
+// Documents PRO (KBIS, RIB, ID, etc.)
+model ProDocument {
+  id String @id @default(uuid())
+
+  profileId String
+  profile   ProCustomerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  // Type de document
+  type ProDocumentType
+
+  // Fichier
+  fileUrl  String
+  fileName String?
+  fileSize Int? // En bytes
+
+  // Statut de validation
+  status         ProDocumentStatus @default(PENDING)
+  validatedAt    DateTime?
+  validatedBy    String? // userId de l'admin
+  rejectedReason String?
+
+  // Metadata
+  uploadedAt DateTime  @default(now())
+  expiresAt  DateTime? // Pour docs avec date d'expiration
+
+  @@index([profileId])
+  @@index([type])
+  @@index([status])
+  @@map("pro_documents")
+}
+
+enum ProDocumentType {
+  KBIS // Extrait KBIS
+  RIB // Relevé d'Identité Bancaire
+  ID // Pièce d'identité
+  VAT_CERT // Certificat TVA
+  OTHER // Autre document
+}
+
+enum ProDocumentStatus {
+  PENDING // En attente de validation
+  APPROVED // Approuvé
+  REJECTED // Rejeté
+  EXPIRED // Expiré
+}
+
+// Adresses de livraison multiples pour clients PRO
+model ShippingAddress {
+  id String @id @default(uuid())
+
+  profileId String
+  profile   ProCustomerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  // Nom de l'adresse (ex: "Entrepôt principal", "Magasin Paris")
+  label String
+
+  // Adresse
+  address      String
+  addressLine2 String?
+  city         String
+  postalCode   String
+  country      String  @default("France")
+
+  // Contact
+  contactName  String?
+  contactPhone String?
+  contactEmail String?
+
+  // GPS
+  latitude  Float?
+  longitude Float?
+
+  // Par défaut
+  isDefault Boolean @default(false)
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([profileId])
+  @@map("shipping_addresses")
+}
+
+// ========================================
+// B2B PRICING SYSTEM
+// ========================================
+
+// Règles de tarification B2B
+model B2BPricingRule {
+  id String @id @default(uuid())
+
+  // Nom de la règle (pour l'admin)
+  name        String
+  description String?
+
+  // Scope de la règle
+  scope B2BPricingScope // GLOBAL, CATEGORY, PRODUCT, CUSTOMER
+
+  // IDs cibles selon le scope
+  targetId   String? // categoryId ou productId
+  customerId String? // Si scope = CUSTOMER
+
+  // Type de pricing
+  priceType B2BPriceType // FIXED, DISCOUNT_PERCENT, TIERS
+
+  // Base de calcul
+  basePrice B2BBasePrice @default(CURRENT_PRICE) // MSRP, COST, CURRENT_PRICE
+
+  // Valeur (si type = FIXED ou DISCOUNT_PERCENT)
+  value Float?
+
+  // Paliers (tiers) - JSON si type = TIERS
+  // Format: [{"min": 1, "max": 10, "discount": 5}, {"min": 11, "max": 50, "discount": 10}, ...]
+  tiersJson Json?
+
+  // MOQ (Minimum Order Quantity)
+  minimumQuantity Int? @default(1)
+
+  // Priorité (plus élevé = prioritaire)
+  priority Int @default(0)
+
+  // Validité
+  validFrom DateTime?
+  validTo   DateTime?
+
+  // Actif
+  isActive Boolean @default(true)
+
+  // Metadata
+  createdBy String? // userId
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([scope])
+  @@index([targetId])
+  @@index([customerId])
+  @@index([isActive])
+  @@map("b2b_pricing_rules")
+}
+
+enum B2BPricingScope {
+  GLOBAL // Tous les produits
+  CATEGORY // Une catégorie
+  PRODUCT // Un produit spécifique
+  CUSTOMER // Client spécifique
+}
+
+enum B2BPriceType {
+  FIXED // Prix fixe
+  DISCOUNT_PERCENT // Remise en pourcentage
+  TIERS // Paliers de quantité
+}
+
+enum B2BBasePrice {
+  MSRP // Prix de vente conseillé
+  COST // Prix de revient
+  CURRENT_PRICE // Prix actuel du produit
+}
+
+// ========================================
+// DELIVERY PROOF & SIGNATURE
+// ========================================
+
+// Preuve de livraison avec signature
+model DeliveryProof {
+  id String @id @default(uuid())
+
+  deliveryId String   @unique
+  delivery   Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+
+  // Signature
+  signedBy        String? // Nom de la personne qui a signé
+  signatureImage  String? // URL de l'image de signature
+  signatureVector Json? // Données vectorielles de la signature (optionnel)
+
+  // Photos de preuve
+  photos String[] @default([])
+
+  // Notes
+  notes String?
+
+  // Document PDF généré
+  pdfUrl String?
+
+  // Metadata
+  signedAt  DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@map("delivery_proofs")
 }
