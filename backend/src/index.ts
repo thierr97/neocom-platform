@@ -44,6 +44,8 @@ import courierRoutes from './routes/courier.routes';
 import shopBannerRoutes from './routes/shop-banner.routes';
 import taskRoutes from './routes/task.routes';
 import logisticsRoutes from './routes/logistics.routes';
+import proRoutes from './routes/pro.routes';
+import adminB2BRoutes from './routes/adminB2B.routes';
 
 // Load environment variables
 dotenv.config();
@@ -169,6 +171,8 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/ai-manager', aiManagerRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/logistics', logisticsRoutes);
+app.use('/api/pro', proRoutes);
+app.use('/api/admin/b2b', adminB2BRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
