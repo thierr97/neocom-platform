@@ -58,13 +58,13 @@ export default function DashboardScreen({ navigation }: any) {
       }
 
       // Load only the 3 most recent documents of each type
-      if (quotesResponse.success) {
+      if (quotesResponse.success && Array.isArray(quotesResponse.data)) {
         setRecentQuotes(quotesResponse.data.slice(0, 3));
       }
-      if (invoicesResponse.success) {
+      if (invoicesResponse.success && Array.isArray(invoicesResponse.data)) {
         setRecentInvoices(invoicesResponse.data.slice(0, 3));
       }
-      if (deliveryNotesResponse.success) {
+      if (deliveryNotesResponse.success && Array.isArray(deliveryNotesResponse.data)) {
         setRecentDeliveryNotes(deliveryNotesResponse.data.slice(0, 3));
       }
     } catch (error: any) {

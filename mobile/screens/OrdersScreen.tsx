@@ -9,10 +9,7 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
-
-const API_URL = 'http://localhost:4000/api';
+import api from '../src/services/api';
 
 interface Order {
   id: string;
@@ -45,16 +42,16 @@ export default function OrdersScreen({ navigation }: any) {
 
   const loadOrders = async () => {
     try {
-      const token = await AsyncStorage.getItem('userToken');
-      const response = await axios.get(`${API_URL}/orders`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await api.get('/orders');
 
-      if (response.data.success) {
+      if (response?.data?.success && Array.isArray(response.data.data)) {
         setOrders(response.data.data);
+      } else {
+        setOrders([]);
       }
     } catch (error: any) {
       console.error('Error loading orders:', error);
+      setOrders([]);
       Alert.alert('Erreur', 'Impossible de charger les commandes');
     } finally {
       setLoading(false);
@@ -63,11 +60,16 @@ export default function OrdersScreen({ navigation }: any) {
   };
 
   const filterOrders = () => {
+    if (!orders || !Array.isArray(orders)) {
+      setFilteredOrders([]);
+      return;
+    }
+
     let filtered = [...orders];
 
     // Filter by status
     if (statusFilter !== 'ALL') {
-      filtered = filtered.filter(order => order.status === statusFilter);
+      filtered = filtered.filter(order => order?.status === statusFilter);
     }
 
     // Filter by search query
@@ -75,10 +77,10 @@ export default function OrdersScreen({ navigation }: any) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
         order =>
-          order.orderNumber.toLowerCase().includes(query) ||
-          order.customer.firstName.toLowerCase().includes(query) ||
-          order.customer.lastName.toLowerCase().includes(query) ||
-          order.customer.companyName?.toLowerCase().includes(query)
+          order?.orderNumber?.toLowerCase().includes(query) ||
+          order?.customer?.firstName?.toLowerCase().includes(query) ||
+          order?.customer?.lastName?.toLowerCase().includes(query) ||
+          order?.customer?.companyName?.toLowerCase().includes(query)
       );
     }
 
@@ -140,36 +142,40 @@ export default function OrdersScreen({ navigation }: any) {
     }).format(amount);
   };
 
-  const renderOrderItem = ({ item }: { item: Order }) => (
-    <TouchableOpacity
-      style={styles.orderCard}
-      onPress={() => navigation.navigate('OrderDetail', { orderId: item.id })}
-    >
-      <View style={styles.orderHeader}>
-        <Text style={styles.orderNumber}>{item.orderNumber}</Text>
-        <View
-          style={[
-            styles.statusBadge,
-            { backgroundColor: getStatusColor(item.status) },
-          ]}
-        >
-          <Text style={styles.statusText}>{getStatusLabel(item.status)}</Text>
+  const renderOrderItem = ({ item }: { item: Order }) => {
+    if (!item || !item.id) return null;
+
+    return (
+      <TouchableOpacity
+        style={styles.orderCard}
+        onPress={() => navigation.navigate('OrderDetail', { orderId: item.id })}
+      >
+        <View style={styles.orderHeader}>
+          <Text style={styles.orderNumber}>{item.orderNumber || 'N/A'}</Text>
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: getStatusColor(item.status || 'DRAFT') },
+            ]}
+          >
+            <Text style={styles.statusText}>{getStatusLabel(item.status || 'DRAFT')}</Text>
+          </View>
         </View>
-      </View>
 
-      <View style={styles.orderInfo}>
-        <Text style={styles.customerName}>
-          {item.customer.companyName || `${item.customer.firstName} ${item.customer.lastName}`}
-        </Text>
-        <Text style={styles.orderDate}>{formatDate(item.createdAt)}</Text>
-      </View>
+        <View style={styles.orderInfo}>
+          <Text style={styles.customerName}>
+            {item.customer?.companyName || `${item.customer?.firstName || ''} ${item.customer?.lastName || ''}` || 'Client'}
+          </Text>
+          <Text style={styles.orderDate}>{item.createdAt ? formatDate(item.createdAt) : ''}</Text>
+        </View>
 
-      <View style={styles.orderFooter}>
-        <Text style={styles.orderAmount}>{formatAmount(item.totalAmount)}</Text>
-        <Text style={styles.viewDetails}>Voir détails ›</Text>
-      </View>
-    </TouchableOpacity>
-  );
+        <View style={styles.orderFooter}>
+          <Text style={styles.orderAmount}>{formatAmount(item.totalAmount || 0)}</Text>
+          <Text style={styles.viewDetails}>Voir détails ›</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   const StatusFilterButton = ({ status, label }: { status: string; label: string }) => (
     <TouchableOpacity
@@ -266,13 +272,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
-    gap: 8,
   },
   filterButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     backgroundColor: '#f3f4f6',
+    marginRight: 8,
   },
   filterButtonActive: {
     backgroundColor: '#2563eb',

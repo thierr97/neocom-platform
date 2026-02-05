@@ -31,6 +31,7 @@ import CreateQuoteScreen from './screens/CreateQuoteScreen';
 import CreateInvoiceScreen from './screens/CreateInvoiceScreen';
 import CreateCustomerScreen from './screens/CreateCustomerScreen';
 import CustomerDetailScreen from './screens/CustomerDetailScreen';
+import PaymentScreen from './screens/PaymentScreen';
 import TripHistoryScreen from './screens/TripHistoryScreen';
 // Customer screens
 import ShopHomeScreen from './screens/ShopHomeScreen';
@@ -369,6 +370,11 @@ export default function App() {
           name="CustomerDetail"
           component={CustomerDetailScreen}
           options={{ title: 'Détail client', headerShown: false }}
+        />
+        <Stack.Screen
+          name="Payment"
+          component={PaymentScreen}
+          options={{ headerShown: false }}
         />
         <Stack.Screen
           name="TripHistory"

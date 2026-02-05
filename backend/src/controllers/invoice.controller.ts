@@ -93,6 +93,21 @@ export const getInvoiceById = async (req: Request, res: Response) => {
             email: true,
           },
         },
+        payments: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+          },
+          orderBy: {
+            paidAt: 'desc',
+          },
+        },
       },
     });
 
@@ -483,6 +498,152 @@ export const createInvoiceFromCart = async (req: Request, res: Response) => {
       success: false,
       message: 'Erreur lors de la création de la facture',
       error: error.message,
+    });
+  }
+};
+
+// Add payment to invoice
+export const addPaymentToInvoice = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = (req as any).user?.userId;
+    const { amount, method, cardLastFourDigits, checkNumber, bankName, reference, notes, paidAt } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Non authentifié',
+      });
+    }
+
+    // Validate payment amount
+    if (!amount || amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Montant de paiement invalide',
+      });
+    }
+
+    // Validate payment method
+    const validMethods = ['CREDIT_CARD', 'CASH', 'CHECK', 'BANK_TRANSFER', 'STRIPE', 'PAYPAL', 'PAYLIB'];
+    if (!method || !validMethods.includes(method)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Méthode de paiement invalide',
+      });
+    }
+
+    // Get invoice
+    const invoice = await prisma.invoice.findUnique({
+      where: { id },
+      include: {
+        payments: true,
+      },
+    });
+
+    if (!invoice) {
+      return res.status(404).json({
+        success: false,
+        message: 'Facture non trouvée',
+      });
+    }
+
+    // Calculate total paid amount
+    const totalPaid = invoice.payments.reduce((sum, p) => sum + p.amount, 0) + amount;
+
+    if (totalPaid > invoice.total) {
+      return res.status(400).json({
+        success: false,
+        message: 'Le montant total des paiements dépasse le montant de la facture',
+      });
+    }
+
+    // Create payment
+    const payment = await prisma.payment.create({
+      data: {
+        invoiceId: id,
+        amount,
+        method,
+        status: 'COMPLETED',
+        cardLastFourDigits,
+        checkNumber,
+        bankName,
+        reference,
+        notes,
+        paidBy: userId,
+        paidAt: paidAt ? new Date(paidAt) : new Date(),
+      },
+    });
+
+    // Update invoice paidAmount and status
+    const newPaidAmount = totalPaid;
+    const newStatus = newPaidAmount >= invoice.total ? 'PAID' : invoice.status;
+
+    await prisma.invoice.update({
+      where: { id },
+      data: {
+        paidAmount: newPaidAmount,
+        status: newStatus,
+        paidAt: newStatus === 'PAID' ? new Date() : null,
+      },
+    });
+
+    // Create activity log
+    await prisma.activity.create({
+      data: {
+        type: 'PAYMENT_RECEIVED',
+        description: `Paiement de ${amount}€ enregistré pour la facture ${invoice.number} (${method})`,
+        userId,
+        customerId: invoice.customerId,
+      },
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Paiement enregistré avec succès',
+      data: payment,
+    });
+  } catch (error: any) {
+    console.error('Error adding payment:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de l\'enregistrement du paiement',
+      error: error.message,
+    });
+  }
+};
+
+// Get invoice payments
+export const getInvoicePayments = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const payments = await prisma.payment.findMany({
+      where: { invoiceId: id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        paidAt: 'desc',
+      },
+    });
+
+    return res.json({
+      success: true,
+      data: payments,
+    });
+  } catch (error: any) {
+    console.error('Error getting payments:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des paiements',
     });
   }
 };

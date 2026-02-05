@@ -47,11 +47,11 @@ export default function ShopHomeScreen({ navigation }: any) {
         bannerAPI.getActive(),
       ]);
 
-      if (categoriesRes.success) {
+      if (categoriesRes.success && Array.isArray(categoriesRes.data)) {
         // Top 4 catégories avec produits
         const topCategories = categoriesRes.data
-          .filter(c => !c.parentId && c._count.products > 0)
-          .sort((a, b) => b._count.products - a._count.products)
+          .filter(c => !c.parentId && c._count?.products > 0)
+          .sort((a, b) => (b._count?.products || 0) - (a._count?.products || 0))
           .slice(0, 4);
         setCategories(topCategories);
       }

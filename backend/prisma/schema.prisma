@@ -55,6 +55,7 @@ model User {
   orders          Order[]
   quotes          Quote[]
   invoices        Invoice[]
+  payments        Payment[]        // Paiements encaissés par le commercial
   gpsTrackings    GpsTracking[]
   activities      Activity[]
   importHistory   ImportHistory[]
@@ -746,6 +747,16 @@ model Payment {
   transactionId   String?
   stripePaymentId String?
   paypalOrderId   String?
+
+  // Payment info for field collection (mobile)
+  cardLastFourDigits String? // Last 4 digits for card payments
+  checkNumber        String? // Check number
+  bankName           String? // Bank name for checks/transfers
+  reference          String? // Reference for transfers or other methods
+
+  // Commercial who collected payment
+  paidBy String?
+  user   User?   @relation(fields: [paidBy], references: [id])
 
   // Metadata
   metadata Json?

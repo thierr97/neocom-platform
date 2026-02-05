@@ -42,6 +42,8 @@ const ProductSelectionScreen: React.FC<Props> = ({ navigation, route }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [showCategories, setShowCategories] = useState(false);
+  const [customerHistory, setCustomerHistory] = useState<any[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
 
   // Récupérer les paramètres de navigation
   const { documentType, customerId, customerName, customer } = route.params || {};
@@ -53,6 +55,12 @@ const ProductSelectionScreen: React.FC<Props> = ({ navigation, route }) => {
   useEffect(() => {
     loadProducts();
   }, [selectedCategoryId]);
+
+  useEffect(() => {
+    if (customerId) {
+      loadCustomerHistory();
+    }
+  }, [customerId]);
 
   const loadData = async () => {
     await Promise.all([loadCategories(), loadProducts()]);
@@ -92,22 +100,55 @@ const ProductSelectionScreen: React.FC<Props> = ({ navigation, route }) => {
   const loadProducts = async () => {
     try {
       setLoading(true);
+      console.log('🔄 Chargement des produits...');
       const params: any = { limit: 100 };
 
       if (selectedCategoryId) {
         params.category = selectedCategoryId;
+        console.log('📁 Filtre catégorie:', selectedCategoryId);
       }
 
       const response = await productsAPI.getAll(params);
+      console.log('📦 Réponse API produits:', response);
 
-      if (response.success) {
+      if (response.success && Array.isArray(response.data)) {
+        console.log(`✅ ${response.data.length} produits chargés`);
         setProducts(response.data);
+      } else {
+        console.warn('⚠️ Format de réponse invalide:', response);
+        setProducts([]);
       }
-    } catch (error) {
-      console.error('Error loading products:', error);
+    } catch (error: any) {
+      console.error('❌ Erreur chargement produits:', error);
+      console.error('Détails:', error.response?.data || error.message);
       Alert.alert('Erreur', 'Impossible de charger les produits');
+      setProducts([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadCustomerHistory = async () => {
+    if (!customerId) return;
+
+    try {
+      console.log('📊 Chargement historique client:', customerId);
+      const response = await api.get(`/customers/${customerId}/purchase-history`);
+      console.log('📦 Réponse historique:', response.data);
+
+      if (response.data.success && Array.isArray(response.data.products)) {
+        setCustomerHistory(response.data.products);
+        console.log(`✅ ${response.data.products.length} produits dans l'historique`);
+      } else if (Array.isArray(response.data)) {
+        setCustomerHistory(response.data);
+        console.log(`✅ ${response.data.length} produits dans l'historique`);
+      } else {
+        setCustomerHistory([]);
+      }
+    } catch (error: any) {
+      console.error('❌ Erreur chargement historique client:', error);
+      // Ne pas afficher d'alerte, l'historique est optionnel
+      setCustomerHistory([]);
     }
   };
 
@@ -125,6 +166,19 @@ const ProductSelectionScreen: React.FC<Props> = ({ navigation, route }) => {
         ...selectedProducts,
         { ...product, quantity: 1, discount: 0 },
       ]);
+    }
+  };
+
+  const handleHistoryProductPress = (historyItem: any) => {
+    // Trouver le produit complet dans la liste
+    const product = products.find(p => p.id === historyItem.productId || p.id === historyItem.id);
+
+    if (product) {
+      handleProductPress(product);
+    } else {
+      // Si le produit n'est pas dans la liste actuelle, utiliser les données de l'historique
+      const productData = historyItem.product || historyItem;
+      handleProductPress(productData);
     }
   };
 
@@ -225,10 +279,24 @@ const ProductSelectionScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const selectedCategory = allCategories.find(c => c.id === selectedCategoryId);
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.sku?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Recherche intelligente dans plusieurs champs
+  const filteredProducts = products.filter(product => {
+    if (!searchQuery.trim()) return true; // Pas de recherche, tout afficher
+
+    const query = searchQuery.toLowerCase().trim();
+    const searchTerms = query.split(' ').filter(term => term.length > 0);
+
+    // Champs à rechercher
+    const searchFields = [
+      product.name?.toLowerCase() || '',
+      product.sku?.toLowerCase() || '',
+      product.description?.toLowerCase() || '',
+      product.barcode?.toLowerCase() || '',
+    ].join(' ');
+
+    // Tous les termes de recherche doivent être trouvés (recherche ET)
+    return searchTerms.every(term => searchFields.includes(term));
+  });
 
   const renderSelectedProduct = ({ item }: { item: SelectedProduct }) => (
     <View style={styles.selectedProductCard}>
@@ -307,6 +375,43 @@ const ProductSelectionScreen: React.FC<Props> = ({ navigation, route }) => {
     );
   };
 
+  const renderHistoryItem = ({ item }: { item: any }) => {
+    const product = item.product || item;
+    const isSelected = selectedProducts.some(p => p.id === (item.productId || item.id));
+    const imageUri = product.imageUrl || product.thumbnail || product.images?.[0];
+
+    return (
+      <TouchableOpacity
+        style={[styles.historyCard, isSelected && styles.historyCardSelected]}
+        onPress={() => handleHistoryProductPress(item)}
+      >
+        {imageUri ? (
+          <Image source={{ uri: imageUri }} style={styles.historyImage} />
+        ) : (
+          <View style={styles.historyImagePlaceholder}>
+            <Ionicons name="time-outline" size={24} color="#999" />
+          </View>
+        )}
+        <View style={styles.historyInfo}>
+          <Text style={styles.historyProductName} numberOfLines={2}>
+            {product.name}
+          </Text>
+          <Text style={styles.historyDetails}>
+            Qté totale: {item.totalQuantity || 1}
+          </Text>
+          {item.lastOrderDate && (
+            <Text style={styles.historyDate}>
+              Dernier achat: {new Date(item.lastOrderDate).toLocaleDateString('fr-FR')}
+            </Text>
+          )}
+        </View>
+        <View style={styles.historyAction}>
+          <Ionicons name="add-circle" size={32} color="#007AFF" />
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
   if (loading) {
     return (
       <View style={styles.centerContainer}>
@@ -337,6 +442,39 @@ const ProductSelectionScreen: React.FC<Props> = ({ navigation, route }) => {
         </View>
       )}
 
+      {/* Customer Purchase History */}
+      {customerHistory.length > 0 && (
+        <View style={styles.historySection}>
+          <TouchableOpacity
+            style={styles.historyHeader}
+            onPress={() => setShowHistory(!showHistory)}
+          >
+            <View style={styles.historyHeaderLeft}>
+              <Ionicons name="time" size={20} color="#FF9500" />
+              <Text style={styles.historyTitle}>
+                Achats précédents ({customerHistory.length})
+              </Text>
+            </View>
+            <Ionicons
+              name={showHistory ? 'chevron-up' : 'chevron-down'}
+              size={20}
+              color="#FF9500"
+            />
+          </TouchableOpacity>
+
+          {showHistory && (
+            <FlatList
+              data={customerHistory}
+              renderItem={renderHistoryItem}
+              keyExtractor={(item, index) => item.id || item.productId || `history-${index}`}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.historyList}
+            />
+          )}
+        </View>
+      )}
+
       {/* Search Bar */}
       <View style={styles.searchBar}>
         <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
@@ -352,6 +490,15 @@ const ProductSelectionScreen: React.FC<Props> = ({ navigation, route }) => {
           </TouchableOpacity>
         )}
       </View>
+
+      {/* Search Results Count */}
+      {searchQuery.length > 0 && (
+        <View style={styles.searchResults}>
+          <Text style={styles.searchResultsText}>
+            {filteredProducts.length} résultat{filteredProducts.length > 1 ? 's' : ''} trouvé{filteredProducts.length > 1 ? 's' : ''}
+          </Text>
+        </View>
+      )}
 
       {/* Category Filter */}
       {categories.length > 0 && (
@@ -523,6 +670,16 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 44,
     fontSize: 16,
+  },
+  searchResults: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#f5f5f5',
+  },
+  searchResultsText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
   },
   selectedSection: {
     backgroundColor: '#fff',
@@ -745,6 +902,84 @@ const styles = StyleSheet.create({
   categoryItemTextSelected: {
     color: '#007AFF',
     fontWeight: '600',
+  },
+  historySection: {
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  historyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    backgroundColor: '#FFF9E6',
+  },
+  historyHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  historyTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FF9500',
+  },
+  historyList: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  historyCard: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    padding: 10,
+    marginRight: 12,
+    width: 200,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  historyCardSelected: {
+    borderColor: '#34C759',
+    borderWidth: 2,
+    backgroundColor: '#E8F5E9',
+  },
+  historyImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 4,
+  },
+  historyImagePlaceholder: {
+    width: 50,
+    height: 50,
+    borderRadius: 4,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  historyInfo: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  historyProductName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  historyDetails: {
+    fontSize: 11,
+    color: '#666',
+    marginBottom: 2,
+  },
+  historyDate: {
+    fontSize: 10,
+    color: '#999',
+    fontStyle: 'italic',
+  },
+  historyAction: {
+    marginLeft: 8,
   },
 });
 

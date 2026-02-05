@@ -182,7 +182,7 @@ export const startBackgroundLocationTracking = async (): Promise<void> => {
       timeInterval: 10000, // 10 secondes
       distanceInterval: 10, // 10 mètres
       foregroundService: {
-        notificationTitle: 'NEOSERV - Tracking actif',
+        notificationTitle: 'NEOSERV - Trajet en cours',
         notificationBody: 'Suivi de votre position en cours',
       },
     });

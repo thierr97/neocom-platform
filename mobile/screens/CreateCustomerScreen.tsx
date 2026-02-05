@@ -28,7 +28,7 @@ const CreateCustomerScreen: React.FC<Props> = ({ navigation, route }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [type, setType] = useState<CustomerType>('INDIVIDUAL');
+  const [type, setType] = useState<CustomerType>('COMPANY');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [zipCode, setZipCode] = useState('');
@@ -151,28 +151,6 @@ const CreateCustomerScreen: React.FC<Props> = ({ navigation, route }) => {
             <TouchableOpacity
               style={[
                 styles.typeButton,
-                type === 'INDIVIDUAL' && styles.typeButtonActive,
-              ]}
-              onPress={() => setType('INDIVIDUAL')}
-            >
-              <Ionicons
-                name="person"
-                size={24}
-                color={type === 'INDIVIDUAL' ? '#007AFF' : '#666'}
-              />
-              <Text
-                style={[
-                  styles.typeText,
-                  type === 'INDIVIDUAL' && styles.typeTextActive,
-                ]}
-              >
-                Particulier
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.typeButton,
                 type === 'COMPANY' && styles.typeButtonActive,
               ]}
               onPress={() => setType('COMPANY')}
@@ -189,6 +167,28 @@ const CreateCustomerScreen: React.FC<Props> = ({ navigation, route }) => {
                 ]}
               >
                 Entreprise
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.typeButton,
+                type === 'INDIVIDUAL' && styles.typeButtonActive,
+              ]}
+              onPress={() => setType('INDIVIDUAL')}
+            >
+              <Ionicons
+                name="person"
+                size={24}
+                color={type === 'INDIVIDUAL' ? '#007AFF' : '#666'}
+              />
+              <Text
+                style={[
+                  styles.typeText,
+                  type === 'INDIVIDUAL' && styles.typeTextActive,
+                ]}
+              >
+                Particulier
               </Text>
             </TouchableOpacity>
           </View>

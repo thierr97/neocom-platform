@@ -17,9 +17,12 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.neoserv.mobile",
+      "buildNumber": "3",
       "infoPlist": {
-        "NSCameraUsageDescription": "Cette application nécessite l'accès à la caméra pour scanner les codes-barres des produits.",
-        "NSLocationWhenInUseUsageDescription": "Cette application nécessite l'accès à votre localisation pour enregistrer vos visites clients."
+        "NSCameraUsageDescription": "Cette application nécessite l'accès à la caméra pour prendre des photos lors des visites clients et scanner les codes-barres.",
+        "NSPhotoLibraryUsageDescription": "Cette application nécessite l'accès à votre galerie pour ajouter des photos de vos visites clients.",
+        "NSLocationWhenInUseUsageDescription": "Cette application nécessite l'accès à votre localisation pour enregistrer vos visites clients.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -31,7 +34,10 @@
       "permissions": [
         "CAMERA",
         "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
+        "ACCESS_COARSE_LOCATION",
+        "READ_MEDIA_IMAGES",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
       ]
     },
     "web": {
@@ -41,7 +47,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Permettre à NEOSERV d'accéder à votre caméra pour scanner les codes-barres."
+          "cameraPermission": "Permettre à NEOSERV d'accéder à votre caméra pour scanner les codes-barres et prendre des photos."
         }
       ],
       [
@@ -49,12 +55,19 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Permettre à NEOSERV d'accéder à votre localisation pour enregistrer vos visites clients."
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permettre à NEOSERV d'accéder à vos photos pour documenter vos visites clients."
+        }
       ]
     ],
     "extra": {
       "eas": {
-        "projectId": "neoserv-mobile"
+        "projectId": "2239a90d-e7e7-449e-b037-81cbb9c8ef78"
       }
-    }
+    },
+    "owner": "thierr97"
   }
 }

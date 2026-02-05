@@ -10,6 +10,8 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system';
 import api from '../src/services/api';
 
 interface Product {
@@ -46,6 +48,7 @@ interface Invoice {
   number: string;
   status: string;
   total: number;
+  paidAmount: number;
   issueDate: string;
 }
 
@@ -103,6 +106,39 @@ export default function CustomerDetailScreen({ route, navigation }: any) {
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
+  };
+
+  const handleShareDocument = async (type: 'quote' | 'invoice' | 'order', docId: string, docNumber: string) => {
+    try {
+      const endpoint = type === 'quote' ? 'quotes' : type === 'invoice' ? 'invoices' : 'orders';
+      const response = await api.get(`/${endpoint}/${docId}/pdf`, { responseType: 'arraybuffer' });
+
+      const filename = `${type === 'quote' ? 'Devis' : type === 'invoice' ? 'Facture' : 'Commande'}-${docNumber}.pdf`;
+      const fileUri = `${FileSystem.documentDirectory}${filename}`;
+
+      await FileSystem.writeAsStringAsync(fileUri, response.data as string, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(fileUri);
+      } else {
+        Alert.alert('Erreur', 'Le partage n\'est pas disponible sur cet appareil');
+      }
+    } catch (error: any) {
+      console.error('Error sharing document:', error);
+      Alert.alert('Erreur', 'Impossible de partager le document');
+    }
+  };
+
+  const handleCollectPayment = (invoice: Invoice) => {
+    navigation.navigate('Payment', {
+      invoiceId: invoice.id,
+      invoiceNumber: invoice.number,
+      totalAmount: invoice.total,
+      paidAmount: invoice.paidAmount || 0,
+    });
   };
 
   const formatCurrency = (amount: number) => {
@@ -308,22 +344,31 @@ export default function CustomerDetailScreen({ route, navigation }: any) {
               </View>
             ) : (
               customer.quotes.map((quote) => (
-                <TouchableOpacity
-                  key={quote.id}
-                  style={styles.card}
-                  onPress={() => navigation.navigate('QuoteDetail', { quoteId: quote.id })}
-                >
-                  <View style={styles.cardHeader}>
-                    <Text style={styles.docNumber}>{quote.number}</Text>
-                    <Text style={styles.docAmount}>{formatCurrency(quote.total)}</Text>
-                  </View>
-                  <View style={styles.docInfo}>
-                    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(quote.status) }]}>
-                      <Text style={styles.statusText}>{quote.status}</Text>
+                <View key={quote.id} style={styles.card}>
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate('QuoteDetail', { quoteId: quote.id })}
+                  >
+                    <View style={styles.cardHeader}>
+                      <Text style={styles.docNumber}>{quote.number}</Text>
+                      <Text style={styles.docAmount}>{formatCurrency(quote.total)}</Text>
                     </View>
-                    <Text style={styles.docDate}>{formatDate(quote.createdAt)}</Text>
+                    <View style={styles.docInfo}>
+                      <View style={[styles.statusBadge, { backgroundColor: getStatusColor(quote.status) }]}>
+                        <Text style={styles.statusText}>{quote.status}</Text>
+                      </View>
+                      <Text style={styles.docDate}>{formatDate(quote.createdAt)}</Text>
+                    </View>
+                  </TouchableOpacity>
+                  <View style={styles.actionButtons}>
+                    <TouchableOpacity
+                      style={styles.shareButton}
+                      onPress={() => handleShareDocument('quote', quote.id, quote.number)}
+                    >
+                      <Ionicons name="share-outline" size={20} color="#2563EB" />
+                      <Text style={styles.shareButtonText}>Partager</Text>
+                    </TouchableOpacity>
                   </View>
-                </TouchableOpacity>
+                </View>
               ))
             )}
           </View>
@@ -340,22 +385,31 @@ export default function CustomerDetailScreen({ route, navigation }: any) {
               </View>
             ) : (
               customer.orders.map((order) => (
-                <TouchableOpacity
-                  key={order.id}
-                  style={styles.card}
-                  onPress={() => navigation.navigate('OrderDetail', { orderId: order.id })}
-                >
-                  <View style={styles.cardHeader}>
-                    <Text style={styles.docNumber}>{order.number}</Text>
-                    <Text style={styles.docAmount}>{formatCurrency(order.total)}</Text>
-                  </View>
-                  <View style={styles.docInfo}>
-                    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(order.status) }]}>
-                      <Text style={styles.statusText}>{order.status}</Text>
+                <View key={order.id} style={styles.card}>
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate('OrderDetail', { orderId: order.id })}
+                  >
+                    <View style={styles.cardHeader}>
+                      <Text style={styles.docNumber}>{order.number}</Text>
+                      <Text style={styles.docAmount}>{formatCurrency(order.total)}</Text>
                     </View>
-                    <Text style={styles.docDate}>{formatDate(order.createdAt)}</Text>
+                    <View style={styles.docInfo}>
+                      <View style={[styles.statusBadge, { backgroundColor: getStatusColor(order.status) }]}>
+                        <Text style={styles.statusText}>{order.status}</Text>
+                      </View>
+                      <Text style={styles.docDate}>{formatDate(order.createdAt)}</Text>
+                    </View>
+                  </TouchableOpacity>
+                  <View style={styles.actionButtons}>
+                    <TouchableOpacity
+                      style={styles.shareButton}
+                      onPress={() => handleShareDocument('order', order.id, order.number)}
+                    >
+                      <Ionicons name="share-outline" size={20} color="#2563EB" />
+                      <Text style={styles.shareButtonText}>Partager</Text>
+                    </TouchableOpacity>
                   </View>
-                </TouchableOpacity>
+                </View>
               ))
             )}
           </View>
@@ -371,24 +425,61 @@ export default function CustomerDetailScreen({ route, navigation }: any) {
                 <Text style={styles.emptyText}>Aucune facture</Text>
               </View>
             ) : (
-              customer.invoices.map((invoice) => (
-                <TouchableOpacity
-                  key={invoice.id}
-                  style={styles.card}
-                  onPress={() => navigation.navigate('InvoiceDetail', { invoiceId: invoice.id })}
-                >
-                  <View style={styles.cardHeader}>
-                    <Text style={styles.docNumber}>{invoice.number}</Text>
-                    <Text style={styles.docAmount}>{formatCurrency(invoice.total)}</Text>
-                  </View>
-                  <View style={styles.docInfo}>
-                    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(invoice.status) }]}>
-                      <Text style={styles.statusText}>{invoice.status}</Text>
+              customer.invoices.map((invoice) => {
+                const paidAmount = invoice.paidAmount || 0;
+                const isPaid = paidAmount >= invoice.total;
+                const remaining = invoice.total - paidAmount;
+
+                return (
+                  <View key={invoice.id} style={styles.card}>
+                    <TouchableOpacity
+                      onPress={() => navigation.navigate('InvoiceDetail', { invoiceId: invoice.id })}
+                    >
+                      <View style={styles.cardHeader}>
+                        <Text style={styles.docNumber}>{invoice.number}</Text>
+                        <Text style={styles.docAmount}>{formatCurrency(invoice.total)}</Text>
+                      </View>
+                      <View style={styles.docInfo}>
+                        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(invoice.status) }]}>
+                          <Text style={styles.statusText}>{invoice.status}</Text>
+                        </View>
+                        <View style={[styles.paymentBadge, { backgroundColor: isPaid ? '#D1FAE5' : '#FEE2E2' }]}>
+                          <Text style={[styles.paymentText, { color: isPaid ? '#059669' : '#DC2626' }]}>
+                            {isPaid ? 'Payée' : 'Non payée'}
+                          </Text>
+                        </View>
+                        <Text style={styles.docDate}>{formatDate(invoice.issueDate)}</Text>
+                      </View>
+                      {!isPaid && (
+                        <View style={styles.paymentInfo}>
+                          <Text style={styles.paymentLabel}>
+                            Payé: {formatCurrency(paidAmount)} / {formatCurrency(invoice.total)}
+                          </Text>
+                          <Text style={styles.remainingAmount}>Reste: {formatCurrency(remaining)}</Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                    <View style={styles.actionButtons}>
+                      <TouchableOpacity
+                        style={styles.shareButton}
+                        onPress={() => handleShareDocument('invoice', invoice.id, invoice.number)}
+                      >
+                        <Ionicons name="share-outline" size={20} color="#2563EB" />
+                        <Text style={styles.shareButtonText}>Partager</Text>
+                      </TouchableOpacity>
+                      {!isPaid && (
+                        <TouchableOpacity
+                          style={styles.collectButton}
+                          onPress={() => handleCollectPayment(invoice)}
+                        >
+                          <Ionicons name="cash-outline" size={20} color="#fff" />
+                          <Text style={styles.collectButtonText}>Encaisser</Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
-                    <Text style={styles.docDate}>{formatDate(invoice.issueDate)}</Text>
                   </View>
-                </TouchableOpacity>
-              ))
+                );
+              })
             )}
           </View>
         )}
@@ -615,5 +706,73 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#9CA3AF',
     marginTop: 12,
+  },
+  paymentBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 8,
+  },
+  paymentText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  paymentInfo: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  paymentLabel: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  remainingAmount: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#DC2626',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    gap: 8,
+  },
+  shareButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#2563EB',
+  },
+  shareButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2563EB',
+    marginLeft: 6,
+  },
+  collectButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#10B981',
+  },
+  collectButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+    marginLeft: 6,
   },
 });

@@ -8,10 +8,13 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import * as Location from 'expo-location';
+import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../src/services/api';
+import { Ionicons } from '@expo/vector-icons';
 
 interface Customer {
   id: string;
@@ -26,7 +29,9 @@ export default function CustomerVisitScreen({ navigation }: any) {
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [visitTitle, setVisitTitle] = useState('');
   const [notes, setNotes] = useState('');
+  const [photo, setPhoto] = useState<string | null>(null);
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [locationPermission, setLocationPermission] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
@@ -83,6 +88,11 @@ export default function CustomerVisitScreen({ navigation }: any) {
   };
 
   const filterCustomers = () => {
+    if (!customers || !Array.isArray(customers)) {
+      setFilteredCustomers([]);
+      return;
+    }
+
     if (!searchQuery) {
       setFilteredCustomers(customers.slice(0, 50)); // Limit to 50 for performance
       return;
@@ -91,18 +101,99 @@ export default function CustomerVisitScreen({ navigation }: any) {
     const query = searchQuery.toLowerCase();
     const filtered = customers.filter(
       customer =>
-        customer.firstName.toLowerCase().includes(query) ||
-        customer.lastName.toLowerCase().includes(query) ||
-        customer.companyName?.toLowerCase().includes(query) ||
-        customer.email.toLowerCase().includes(query)
+        customer?.firstName?.toLowerCase().includes(query) ||
+        customer?.lastName?.toLowerCase().includes(query) ||
+        customer?.companyName?.toLowerCase().includes(query) ||
+        customer?.email?.toLowerCase().includes(query)
     );
 
     setFilteredCustomers(filtered.slice(0, 50));
   };
 
+  const takePhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+
+      if (status !== 'granted') {
+        Alert.alert('Permission refusée', 'Nous avons besoin de la permission d\'accéder à la caméra');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.7,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setPhoto(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      Alert.alert('Erreur', 'Impossible de prendre la photo');
+    }
+  };
+
+  const pickImageFromGallery = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (status !== 'granted') {
+        Alert.alert('Permission refusée', 'Nous avons besoin de la permission d\'accéder à la galerie');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.7,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setPhoto(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Erreur', 'Impossible de sélectionner l\'image');
+    }
+  };
+
+  const showPhotoOptions = () => {
+    Alert.alert(
+      'Ajouter une photo',
+      'Choisissez une option',
+      [
+        {
+          text: 'Prendre une photo',
+          onPress: takePhoto,
+        },
+        {
+          text: 'Choisir depuis la galerie',
+          onPress: pickImageFromGallery,
+        },
+        {
+          text: 'Annuler',
+          style: 'cancel',
+        },
+      ]
+    );
+  };
+
   const handleSubmitVisit = async () => {
     if (!selectedCustomer) {
       Alert.alert('Erreur', 'Veuillez sélectionner un client');
+      return;
+    }
+
+    if (!visitTitle.trim()) {
+      Alert.alert('Erreur', 'Veuillez ajouter un titre à votre visite');
+      return;
+    }
+
+    if (!notes.trim()) {
+      Alert.alert('Erreur', 'Veuillez ajouter une description de votre visite');
       return;
     }
 
@@ -116,17 +207,35 @@ export default function CustomerVisitScreen({ navigation }: any) {
     try {
       const userId = await AsyncStorage.getItem('userId');
 
-      const visitData = {
-        customerId: selectedCustomer.id,
-        userId: userId,
-        visitDate: new Date().toISOString(),
-        notes: notes || undefined,
-        latitude: location?.coords.latitude,
-        longitude: location?.coords.longitude,
-        accuracy: location?.coords.accuracy,
-      };
+      // Préparer les données avec FormData pour gérer la photo
+      const formData = new FormData();
+      formData.append('customerId', selectedCustomer.id);
+      formData.append('userId', userId || '');
+      formData.append('visitDate', new Date().toISOString());
+      formData.append('title', visitTitle);
+      if (notes) formData.append('notes', notes);
+      if (location?.coords.latitude) formData.append('latitude', location.coords.latitude.toString());
+      if (location?.coords.longitude) formData.append('longitude', location.coords.longitude.toString());
+      if (location?.coords.accuracy) formData.append('accuracy', location.coords.accuracy.toString());
 
-      const response = await api.post('/gps/visits', visitData);
+      // Ajouter la photo si présente
+      if (photo) {
+        const filename = photo.split('/').pop();
+        const match = /\.(\w+)$/.exec(filename || '');
+        const type = match ? `image/${match[1]}` : `image/jpeg`;
+
+        formData.append('photo', {
+          uri: photo,
+          name: filename || 'photo.jpg',
+          type,
+        } as any);
+      }
+
+      const response = await api.post('/gps/visits', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
 
       if (response.data.success) {
         Alert.alert(
@@ -138,7 +247,9 @@ export default function CustomerVisitScreen({ navigation }: any) {
               onPress: () => {
                 // Reset form
                 setSelectedCustomer(null);
+                setVisitTitle('');
                 setNotes('');
+                setPhoto(null);
                 setSearchQuery('');
                 navigation.goBack();
               },
@@ -283,12 +394,53 @@ export default function CustomerVisitScreen({ navigation }: any) {
         )}
       </View>
 
+      {/* Visit Title */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>📋 Titre de la visite *</Text>
+        <TextInput
+          style={styles.titleInput}
+          placeholder="Ex: Prospection, Suivi commande, Livraison..."
+          value={visitTitle}
+          onChangeText={setVisitTitle}
+          placeholderTextColor="#9ca3af"
+        />
+      </View>
+
+      {/* Photo Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>📷 Photo de la visite</Text>
+
+        {photo ? (
+          <View style={styles.photoContainer}>
+            <Image source={{ uri: photo }} style={styles.photoPreview} />
+            <TouchableOpacity
+              style={styles.removePhotoButton}
+              onPress={() => setPhoto(null)}
+            >
+              <Ionicons name="close-circle" size={32} color="#ef4444" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.changePhotoButton}
+              onPress={showPhotoOptions}
+            >
+              <Ionicons name="camera" size={20} color="#fff" />
+              <Text style={styles.changePhotoText}>Changer la photo</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity style={styles.addPhotoButton} onPress={showPhotoOptions}>
+            <Ionicons name="camera-outline" size={48} color="#2563eb" />
+            <Text style={styles.addPhotoText}>Ajouter une photo</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
       {/* Visit Notes */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>📝 Notes de visite</Text>
+        <Text style={styles.sectionTitle}>📝 Description de la visite *</Text>
         <TextInput
           style={styles.notesInput}
-          placeholder="Ajoutez des notes sur cette visite..."
+          placeholder="Décrivez ce que vous avez fait chez le client..."
           value={notes}
           onChangeText={setNotes}
           multiline
@@ -482,6 +634,73 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: '#6b7280',
     padding: 5,
+  },
+  titleInput: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 15,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  photoContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 15,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  photoPreview: {
+    width: '100%',
+    height: 250,
+    borderRadius: 8,
+    resizeMode: 'cover',
+  },
+  removePhotoButton: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+  },
+  changePhotoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2563eb',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 12,
+  },
+  changePhotoText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  addPhotoButton: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 40,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+    borderStyle: 'dashed',
+  },
+  addPhotoText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#2563eb',
+    fontWeight: '600',
   },
   notesInput: {
     backgroundColor: '#fff',

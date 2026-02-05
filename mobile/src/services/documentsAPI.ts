@@ -10,47 +10,32 @@ import { getAuthToken } from './auth.service';
 
 /**
  * Fonction pour réveiller le backend Render s'il est en sommeil
- * Cela évite les timeouts lors du téléchargement de PDF
+ * Version optimisée : 1 seul ping rapide au lieu de 3 + attente
  */
 async function wakeUpBackend(): Promise<void> {
   try {
     const baseURL = api.defaults.baseURL?.replace('/api', '') || 'https://neocom-backend.onrender.com';
 
-    console.log('🔄 Réveil du backend...');
+    console.log('🔄 Réveil backend...');
 
-    // Faire plusieurs tentatives de ping pour s'assurer que le backend se réveille
-    for (let i = 0; i < 3; i++) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 secondes de timeout
+    // 1 seul ping rapide pour réveiller le backend
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 secondes max
 
-        await fetch(`${baseURL}/health`, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-          },
-          signal: controller.signal,
-        });
+    await fetch(`${baseURL}/health`, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      signal: controller.signal,
+    }).catch(() => {
+      // Si le ping échoue, ce n'est pas grave, le download va réveiller le backend
+      console.log('⏳ Backend en cours de réveil...');
+    });
 
-        clearTimeout(timeoutId);
-        console.log(`✅ Ping ${i + 1}/3 réussi`);
-      } catch (pingError) {
-        console.log(`⏳ Ping ${i + 1}/3 (backend en cours de réveil...)`);
-      }
-
-      // Attendre entre chaque ping
-      if (i < 2) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      }
-    }
-
-    // Attendre 8 secondes supplémentaires pour être sûr que le backend est complètement réveillé
-    console.log('⏳ Attente de stabilisation du backend...');
-    await new Promise(resolve => setTimeout(resolve, 8000));
-    console.log('✅ Backend prêt');
+    clearTimeout(timeoutId);
+    console.log('✅ Backend contacté');
   } catch (error) {
-    console.log('⚠️  Erreur wake-up (on continue quand même):', error);
-    // On ne throw pas l'erreur car on veut quand même essayer le téléchargement
+    console.log('⏳ Backend se réveille...');
+    // On ne throw pas l'erreur car le download réveillera le backend si besoin
   }
 }
 
@@ -156,6 +141,7 @@ const documentsAPI = {
             headers: {
               Authorization: `Bearer ${token}`,
             },
+            sessionType: FileSystem.FileSystemSessionType.BACKGROUND,
           }
         );
 
@@ -228,6 +214,7 @@ const documentsAPI = {
             headers: {
               Authorization: `Bearer ${token}`,
             },
+            sessionType: FileSystem.FileSystemSessionType.BACKGROUND,
           }
         );
 
@@ -302,6 +289,7 @@ const documentsAPI = {
             headers: {
               Authorization: `Bearer ${token}`,
             },
+            sessionType: FileSystem.FileSystemSessionType.BACKGROUND,
           }
         );
 
