@@ -232,7 +232,7 @@ export async function notifyNewB2BOrder(orderId: string) {
             <tr>
               <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.product.name}</td>
               <td style="padding: 10px; text-align: right; border-bottom: 1px solid #eee;">${item.quantity}</td>
-              <td style="padding: 10px; text-align: right; border-bottom: 1px solid #eee;">${item.price.toFixed(2)} €</td>
+              <td style="padding: 10px; text-align: right; border-bottom: 1px solid #eee;">${item.unitPrice.toFixed(2)} €</td>
             </tr>
           `
             )

@@ -381,7 +381,7 @@ export const rejectDocument = async (req: Request, res: Response) => {
         status: 'REJECTED',
         validatedAt: new Date(),
         validatedBy: user.userId,
-        rejectionReason,
+        rejectedReason: rejectionReason,
       },
     });
 
@@ -654,7 +654,7 @@ export const getB2BOrders = async (req: Request, res: Response) => {
                 select: {
                   id: true,
                   name: true,
-                  image: true,
+                  images: true,
                 },
               },
             },
@@ -918,8 +918,13 @@ export const generateInvoice = async (req: Request, res: Response) => {
 
     const invoice = await prisma.invoice.create({
       data: {
+        customerId: order.customerId,
+        userId: order.userId,
         orderId,
         number: `INV-${Date.now()}`,
+        subtotal: order.subtotal,
+        taxAmount: order.taxAmount,
+        discount: order.discount,
         total: order.total,
         paidAmount: 0,
         status: 'DRAFT',

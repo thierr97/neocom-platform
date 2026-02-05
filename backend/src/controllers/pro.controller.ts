@@ -94,7 +94,7 @@ export const getDashboard = async (req: Request, res: Response) => {
             id: true,
             name: true,
             price: true,
-            image: true,
+            images: true,
             stock: true,
           },
         });
@@ -424,7 +424,7 @@ export const getOrders = async (req: Request, res: Response) => {
                 select: {
                   id: true,
                   name: true,
-                  image: true,
+                  images: true,
                 },
               },
             },
@@ -552,7 +552,7 @@ export const createOrder = async (req: Request, res: Response) => {
         number: `ORD-${Date.now()}`,
         status: 'PENDING',
         total: cartPricing.totalTTC,
-        subtotal: cartPricing.totalHT,
+        subtotal: cartPricing.subtotalHT,
         taxAmount: cartPricing.totalTVA,
         isB2B: true,
         paymentTerms: proProfile.paymentTerms,
@@ -562,7 +562,7 @@ export const createOrder = async (req: Request, res: Response) => {
           create: items.map((item: any, index: number) => ({
             productId: item.productId,
             quantity: item.quantity,
-            price: cartPricing.items[index].unitPriceHT,
+            unitPrice: cartPricing.items[index].unitPriceHT,
             total: cartPricing.items[index].totalHT,
           })),
         },
@@ -737,7 +737,7 @@ export const getInvoiceDetail = async (req: Request, res: Response) => {
           },
         },
         payments: {
-          orderBy: { paymentDate: 'desc' },
+          orderBy: { createdAt: 'desc' },
         },
       },
     });

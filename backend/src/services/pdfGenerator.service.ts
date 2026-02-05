@@ -132,7 +132,7 @@ export async function generateDeliveryNote(orderId: string): Promise<string> {
         .text(item.product.sku || 'N/A', 50, y, { width: 90 })
         .text(item.product.name, 150, y, { width: 240 })
         .text(item.quantity.toString(), 400, y, { width: 50, align: 'right' })
-        .text(`${item.price.toFixed(2)} €`, 460, y, { width: 80, align: 'right' });
+        .text(`${item.unitPrice.toFixed(2)} €`, 460, y, { width: 80, align: 'right' });
 
       y += 25;
     });
@@ -143,7 +143,7 @@ export async function generateDeliveryNote(orderId: string): Promise<string> {
     y += 20;
 
     // Total HT
-    const totalHT = order.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const totalHT = order.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
     const tva = totalHT * 0.2;
     const totalTTC = totalHT + tva;
 
@@ -216,7 +216,7 @@ export async function generateInvoice(invoiceId: string): Promise<string> {
     throw new Error('Facture non trouvée');
   }
 
-  const filename = `FACTURE-${invoice.invoiceNumber}-${Date.now()}.pdf`;
+  const filename = `FACTURE-${invoice.number}-${Date.now()}.pdf`;
   const filepath = join(PDF_DIR, filename);
 
   return new Promise((resolve, reject) => {
@@ -248,7 +248,7 @@ export async function generateInvoice(invoiceId: string): Promise<string> {
     doc
       .fontSize(12)
       .font('Helvetica-Bold')
-      .text(`Facture N°: ${invoice.invoiceNumber}`, 350, 120)
+      .text(`Facture N°: ${invoice.number}`, 350, 120)
       .font('Helvetica')
       .fontSize(10)
       .text(`Date: ${new Date(invoice.createdAt).toLocaleDateString('fr-FR')}`, 350, 140)
@@ -306,14 +306,14 @@ export async function generateInvoice(invoiceId: string): Promise<string> {
         y = 50;
       }
 
-      const lineTotal = item.price * item.quantity;
+      const lineTotal = item.unitPrice * item.quantity;
       totalHT += lineTotal;
 
       doc
         .fontSize(9)
         .text(item.product.name, 50, y, { width: 290 })
         .text(item.quantity.toString(), 350, y, { width: 50, align: 'right' })
-        .text(`${item.price.toFixed(2)} €`, 410, y, { width: 80, align: 'right' })
+        .text(`${item.unitPrice.toFixed(2)} €`, 410, y, { width: 80, align: 'right' })
         .text(`${lineTotal.toFixed(2)} €`, 500, y, { width: 80, align: 'right' });
 
       y += 25;
@@ -621,7 +621,7 @@ export async function generateOrderSummary(orderId: string): Promise<string> {
         .fontSize(9)
         .text(item.product.name, 50, y, { width: 340 })
         .text(item.quantity.toString(), 400, y)
-        .text(`${item.price.toFixed(2)} €`, 480, y);
+        .text(`${item.unitPrice.toFixed(2)} €`, 480, y);
       y += 20;
     });
 
