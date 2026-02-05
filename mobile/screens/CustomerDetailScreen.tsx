@@ -109,6 +109,11 @@ export default function CustomerDetailScreen({ route, navigation }: any) {
   };
 
   const handleShareDocument = async (type: 'quote' | 'invoice' | 'order', docId: string, docNumber: string) => {
+    if (!docId || !docNumber) {
+      Alert.alert('Erreur', 'Document invalide');
+      return;
+    }
+
     try {
       const endpoint = type === 'quote' ? 'quotes' : type === 'invoice' ? 'invoices' : 'orders';
       const response = await api.get(`/${endpoint}/${docId}/pdf`, { responseType: 'arraybuffer' });
@@ -133,6 +138,11 @@ export default function CustomerDetailScreen({ route, navigation }: any) {
   };
 
   const handleCollectPayment = (invoice: Invoice) => {
+    if (!invoice || !invoice.id || !invoice.number) {
+      Alert.alert('Erreur', 'Facture invalide');
+      return;
+    }
+
     navigation.navigate('Payment', {
       invoiceId: invoice.id,
       invoiceNumber: invoice.number,
@@ -343,7 +353,7 @@ export default function CustomerDetailScreen({ route, navigation }: any) {
                 <Text style={styles.emptyText}>Aucun devis</Text>
               </View>
             ) : (
-              customer.quotes.map((quote) => (
+              customer.quotes.filter(quote => quote && quote.id).map((quote) => (
                 <View key={quote.id} style={styles.card}>
                   <TouchableOpacity
                     onPress={() => navigation.navigate('QuoteDetail', { quoteId: quote.id })}
@@ -384,7 +394,7 @@ export default function CustomerDetailScreen({ route, navigation }: any) {
                 <Text style={styles.emptyText}>Aucune commande</Text>
               </View>
             ) : (
-              customer.orders.map((order) => (
+              customer.orders.filter(order => order && order.id).map((order) => (
                 <View key={order.id} style={styles.card}>
                   <TouchableOpacity
                     onPress={() => navigation.navigate('OrderDetail', { orderId: order.id })}
@@ -425,7 +435,7 @@ export default function CustomerDetailScreen({ route, navigation }: any) {
                 <Text style={styles.emptyText}>Aucune facture</Text>
               </View>
             ) : (
-              customer.invoices.map((invoice) => {
+              customer.invoices.filter(invoice => invoice && invoice.id).map((invoice) => {
                 const paidAmount = invoice.paidAmount || 0;
                 const isPaid = paidAmount >= invoice.total;
                 const remaining = invoice.total - paidAmount;
