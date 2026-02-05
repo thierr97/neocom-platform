@@ -30,6 +30,8 @@ import DeliveryNoteDetailScreen from './screens/DeliveryNoteDetailScreen';
 import CreateQuoteScreen from './screens/CreateQuoteScreen';
 import CreateInvoiceScreen from './screens/CreateInvoiceScreen';
 import CreateCustomerScreen from './screens/CreateCustomerScreen';
+import CustomerDetailScreen from './screens/CustomerDetailScreen';
+import TripHistoryScreen from './screens/TripHistoryScreen';
 // Customer screens
 import ShopHomeScreen from './screens/ShopHomeScreen';
 import MyInvoicesScreen from './screens/MyInvoicesScreen';
@@ -105,8 +107,8 @@ function MainTabs() {
         name="TrackingTab"
         component={GPSTrackingScreen}
         options={{
-          title: 'Tracking',
-          headerTitle: 'GPS Tracking',
+          title: 'Trajet',
+          headerTitle: 'Mon Trajet',
           headerShown: false,
         }}
       />
@@ -362,6 +364,16 @@ export default function App() {
           name="CreateCustomer"
           component={CreateCustomerScreen}
           options={{ title: 'Nouveau client', headerShown: false }}
+        />
+        <Stack.Screen
+          name="CustomerDetail"
+          component={CustomerDetailScreen}
+          options={{ title: 'Détail client', headerShown: false }}
+        />
+        <Stack.Screen
+          name="TripHistory"
+          component={TripHistoryScreen}
+          options={{ title: 'Historique des trajets', headerShown: false }}
         />
         <Stack.Screen
           name="ShopProductDetail"
