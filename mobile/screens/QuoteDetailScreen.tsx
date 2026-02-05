@@ -12,8 +12,25 @@ import { Ionicons } from '@expo/vector-icons';
 import documentsAPI from '../src/services/documentsAPI';
 
 export default function QuoteDetailScreen({ route, navigation }: any) {
-  const { quote } = route.params;
+  const { quote } = route.params || {};
   const [sharing, setSharing] = useState(false);
+
+  if (!quote) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={64} color="#EF4444" />
+          <Text style={styles.errorText}>Devis introuvable</Text>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.backButtonText}>Retour</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   const handleSharePDF = async () => {
     try {
@@ -345,6 +362,30 @@ const styles = StyleSheet.create({
     backgroundColor: '#34C759',
   },
   pdfButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 18,
+    color: '#EF4444',
+    marginTop: 16,
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  backButton: {
+    backgroundColor: '#2563EB',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  backButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
