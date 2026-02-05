@@ -392,3 +392,219 @@ export const resetAdminPassword = async (req: Request, res: Response) => {
     });
   }
 };
+
+// ============================================
+// CUSTOMER AUTHENTICATION
+// ============================================
+
+// Inscription client
+export const registerCustomer = async (req: Request, res: Response) => {
+  try {
+    const {
+      email,
+      password,
+      type,
+      firstName,
+      lastName,
+      companyName,
+      phone,
+      address,
+      city,
+      postalCode,
+      siret,
+      vatNumber,
+    } = req.body;
+
+    // Validation
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email et mot de passe requis',
+      });
+    }
+
+    if (type === 'COMPANY' && !companyName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Nom de l\'entreprise requis pour un compte professionnel',
+      });
+    }
+
+    if (type === 'INDIVIDUAL' && (!firstName || !lastName)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Nom et prénom requis pour un compte particulier',
+      });
+    }
+
+    // Vérifier si l'email existe déjà
+    const existingCustomer = await prisma.customer.findUnique({
+      where: { email },
+    });
+
+    if (existingCustomer) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cet email est déjà utilisé',
+      });
+    }
+
+    // Hash du mot de passe
+    const hashedPassword = await hashPassword(password);
+
+    // Trouver un commercial par défaut pour assigner le client
+    // (nécessaire car customer.userId est required)
+    const defaultCommercial = await prisma.user.findFirst({
+      where: { role: 'COMMERCIAL', status: 'ACTIVE' },
+    });
+
+    if (!defaultCommercial) {
+      return res.status(500).json({
+        success: false,
+        message: 'Service temporairement indisponible. Veuillez réessayer plus tard.',
+      });
+    }
+
+    // Créer le client
+    const customer = await prisma.customer.create({
+      data: {
+        email,
+        password: hashedPassword,
+        type: type || 'INDIVIDUAL',
+        firstName: type === 'INDIVIDUAL' ? firstName : undefined,
+        lastName: type === 'INDIVIDUAL' ? lastName : undefined,
+        companyName: type === 'COMPANY' ? companyName : undefined,
+        siret: type === 'COMPANY' ? siret : undefined,
+        vatNumber: type === 'COMPANY' ? vatNumber : undefined,
+        phone,
+        address,
+        city,
+        postalCode,
+        status: 'ACTIVE',
+        userId: defaultCommercial.id, // Assigner au commercial par défaut
+      },
+      select: {
+        id: true,
+        email: true,
+        type: true,
+        firstName: true,
+        lastName: true,
+        companyName: true,
+        phone: true,
+        address: true,
+        city: true,
+        postalCode: true,
+        status: true,
+        createdAt: true,
+      },
+    });
+
+    // Générer les tokens (rôle CUSTOMER pour différencier des users internes)
+    const tokens = generateTokens({
+      userId: customer.id,
+      email: customer.email,
+      role: 'CUSTOMER' as any, // Type spécial pour les clients
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Compte client créé avec succès',
+      customer,
+      tokens,
+    });
+  } catch (error: any) {
+    console.error('Error in registerCustomer:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la création du compte',
+      error: error.message,
+    });
+  }
+};
+
+// Connexion client
+export const loginCustomer = async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email et mot de passe requis',
+      });
+    }
+
+    // Chercher le client
+    const customer = await prisma.customer.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        password: true,
+        type: true,
+        firstName: true,
+        lastName: true,
+        companyName: true,
+        phone: true,
+        address: true,
+        city: true,
+        postalCode: true,
+        status: true,
+      },
+    });
+
+    if (!customer) {
+      return res.status(401).json({
+        success: false,
+        message: 'Email ou mot de passe incorrect',
+      });
+    }
+
+    if (customer.status !== 'ACTIVE') {
+      return res.status(403).json({
+        success: false,
+        message: 'Compte désactivé ou suspendu',
+      });
+    }
+
+    if (!customer.password) {
+      return res.status(401).json({
+        success: false,
+        message: 'Veuillez contacter votre commercial pour activer votre compte',
+      });
+    }
+
+    // Vérifier le mot de passe
+    const isPasswordValid = await comparePassword(password, customer.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: 'Email ou mot de passe incorrect',
+      });
+    }
+
+    // Générer les tokens
+    const tokens = generateTokens({
+      userId: customer.id,
+      email: customer.email,
+      role: 'CUSTOMER' as any,
+    });
+
+    // Retirer le password de la réponse
+    const { password: _, ...customerData } = customer;
+
+    return res.json({
+      success: true,
+      message: 'Connexion réussie',
+      customer: customerData,
+      tokens,
+    });
+  } catch (error: any) {
+    console.error('Error in loginCustomer:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la connexion',
+      error: error.message,
+    });
+  }
+};
