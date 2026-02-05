@@ -82,7 +82,7 @@ export async function notifyProCustomerRegistration(customerId: string) {
 
   // Email aux admins
   const admins = await prisma.user.findMany({
-    where: { role: { in: ['ADMIN', 'SUPER_ADMIN'] } },
+    where: { role: { in: ['ADMIN', 'SUB_ADMIN'] } },
   });
 
   const adminHtml = `
@@ -191,7 +191,6 @@ export async function notifyNewB2BOrder(orderId: string) {
       customer: {
         include: {
           proProfile: true,
-          assignedCommercial: true,
         },
       },
       items: {
@@ -212,9 +211,9 @@ export async function notifyNewB2BOrder(orderId: string) {
       <p>Votre commande a bien été enregistrée.</p>
       <h3>Récapitulatif :</h3>
       <ul>
-        <li><strong>N° de commande :</strong> ${order.orderNumber}</li>
+        <li><strong>N° de commande :</strong> ${order.number}</li>
         <li><strong>Date :</strong> ${new Date(order.createdAt).toLocaleDateString('fr-FR')}</li>
-        <li><strong>Montant TTC :</strong> ${order.totalPrice.toFixed(2)} €</li>
+        <li><strong>Montant TTC :</strong> ${order.total.toFixed(2)} €</li>
         <li><strong>Conditions :</strong> ${order.customer.proProfile?.paymentTerms || 'N/A'}</li>
       </ul>
       <h3>Articles commandés :</h3>
@@ -247,31 +246,31 @@ export async function notifyNewB2BOrder(orderId: string) {
 
   await sendEmail(
     order.customer.email,
-    `Confirmation de commande ${order.orderNumber}`,
+    `Confirmation de commande ${order.number}`,
     customerHtml
   );
 
-  // Email au commercial assigné
-  if (order.customer.assignedCommercial) {
-    const commercialHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2c3e50;">Nouvelle commande B2B</h2>
-        <p>Votre client ${order.customer.companyName} vient de passer une commande.</p>
-        <ul>
-          <li><strong>N° :</strong> ${order.orderNumber}</li>
-          <li><strong>Montant :</strong> ${order.totalPrice.toFixed(2)} € TTC</li>
-          <li><strong>Articles :</strong> ${order.items.length}</li>
-        </ul>
-        <p><a href="${process.env.FRONTEND_URL}/admin/b2b/orders/${orderId}" style="background-color: #3498db; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Voir la commande</a></p>
-      </div>
-    `;
+  // TODO: Email au commercial assigné (assignedCommercial relation not yet implemented)
+  // if (order.customer.assignedCommercial) {
+  //   const commercialHtml = `
+  //     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+  //       <h2 style="color: #2c3e50;">Nouvelle commande B2B</h2>
+  //       <p>Votre client ${order.customer.companyName} vient de passer une commande.</p>
+  //       <ul>
+  //         <li><strong>N° :</strong> ${order.number}</li>
+  //         <li><strong>Montant :</strong> ${order.total.toFixed(2)} € TTC</li>
+  //         <li><strong>Articles :</strong> ${order.items.length}</li>
+  //       </ul>
+  //       <p><a href="${process.env.FRONTEND_URL}/admin/b2b/orders/${orderId}" style="background-color: #3498db; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Voir la commande</a></p>
+  //     </div>
+  //   `;
 
-    await sendEmail(
-      order.customer.assignedCommercial.email,
-      `Nouvelle commande ${order.orderNumber}`,
-      commercialHtml
-    );
-  }
+  //   await sendEmail(
+  //     order.customer.assignedCommercial.email,
+  //     `Nouvelle commande ${order.number}`,
+  //     commercialHtml
+  //   );
+  // }
 }
 
 /**
@@ -299,7 +298,7 @@ export async function notifyOrderStatusChange(orderId: string, newStatus: string
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <h2 style="color: #2c3e50;">Mise à jour de votre commande</h2>
       <p>Bonjour ${order.customer.companyName},</p>
-      <p><strong>Commande ${order.orderNumber}</strong></p>
+      <p><strong>Commande ${order.number}</strong></p>
       <p>${statusMessages[newStatus] || 'Le statut de votre commande a été mis à jour.'}</p>
       <p><a href="${process.env.FRONTEND_URL}/pro/orders/${orderId}" style="background-color: #3498db; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Voir ma commande</a></p>
     </div>
@@ -307,7 +306,7 @@ export async function notifyOrderStatusChange(orderId: string, newStatus: string
 
   await sendEmail(
     order.customer.email,
-    `Commande ${order.orderNumber} - ${newStatus}`,
+    `Commande ${order.number} - ${newStatus}`,
     html
   );
 }
@@ -324,7 +323,6 @@ export async function notifyDeliveryComplete(deliveryId: string) {
           customer: {
             include: {
               proProfile: true,
-              assignedCommercial: true,
             },
           },
         },
@@ -340,9 +338,9 @@ export async function notifyDeliveryComplete(deliveryId: string) {
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <h2 style="color: #27ae60;">✓ Livraison effectuée</h2>
       <p>Bonjour ${delivery.order.customer.companyName},</p>
-      <p>Votre commande <strong>${delivery.order.orderNumber}</strong> a été livrée avec succès.</p>
+      <p>Votre commande <strong>${delivery.order.number}</strong> a été livrée avec succès.</p>
       <ul>
-        <li><strong>Date de livraison :</strong> ${new Date(delivery.deliveredAt!).toLocaleDateString('fr-FR')} à ${new Date(delivery.deliveredAt!).toLocaleTimeString('fr-FR')}</li>
+        <li><strong>Date de livraison :</strong> ${new Date(delivery.actualDeliveryAt!).toLocaleDateString('fr-FR')} à ${new Date(delivery.actualDeliveryAt!).toLocaleTimeString('fr-FR')}</li>
         <li><strong>Reçu par :</strong> ${delivery.deliveryProof.signedBy || 'N/A'}</li>
       </ul>
       <p>Le bon de livraison signé et la facture sont disponibles dans votre espace client.</p>
@@ -352,28 +350,29 @@ export async function notifyDeliveryComplete(deliveryId: string) {
 
   await sendEmail(
     delivery.order.customer.email,
-    `Livraison effectuée - Commande ${delivery.order.orderNumber}`,
+    `Livraison effectuée - Commande ${delivery.order.number}`,
     customerHtml
   );
 
-  // Email à la comptabilité (CC au commercial)
+  // Email à la comptabilité
   const accountingEmail = delivery.order.customer.proProfile?.accountingEmail;
   const ccEmails = [];
 
-  if (delivery.order.customer.assignedCommercial) {
-    ccEmails.push(delivery.order.customer.assignedCommercial.email);
-  }
+  // TODO: Add assignedCommercial email when relation is implemented
+  // if (delivery.order.customer.assignedCommercial) {
+  //   ccEmails.push(delivery.order.customer.assignedCommercial.email);
+  // }
 
   if (accountingEmail) {
     const accountingHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #2c3e50;">Livraison effectuée - À facturer</h2>
-        <p>La commande <strong>${delivery.order.orderNumber}</strong> a été livrée.</p>
+        <p>La commande <strong>${delivery.order.number}</strong> a été livrée.</p>
         <ul>
           <li><strong>Client :</strong> ${delivery.order.customer.companyName}</li>
-          <li><strong>Montant TTC :</strong> ${delivery.order.totalPrice.toFixed(2)} €</li>
+          <li><strong>Montant TTC :</strong> ${delivery.order.total.toFixed(2)} €</li>
           <li><strong>Conditions :</strong> ${delivery.order.customer.proProfile?.paymentTerms || 'N/A'}</li>
-          <li><strong>Livré le :</strong> ${new Date(delivery.deliveredAt!).toLocaleDateString('fr-FR')}</li>
+          <li><strong>Livré le :</strong> ${new Date(delivery.actualDeliveryAt!).toLocaleDateString('fr-FR')}</li>
         </ul>
         <p>La facture peut maintenant être générée.</p>
         <p><a href="${process.env.FRONTEND_URL}/admin/b2b/orders/${delivery.orderId}/invoice" style="background-color: #3498db; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Générer la facture</a></p>
@@ -382,7 +381,7 @@ export async function notifyDeliveryComplete(deliveryId: string) {
 
     await sendEmail(
       accountingEmail,
-      `[COMPTABILITÉ] Livraison ${delivery.order.orderNumber}`,
+      `[COMPTABILITÉ] Livraison ${delivery.order.number}`,
       accountingHtml,
       ccEmails
     );
@@ -414,10 +413,10 @@ export async function notifyInvoiceGenerated(invoiceId: string) {
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <h2 style="color: #2c3e50;">Nouvelle facture disponible</h2>
       <p>Bonjour ${invoice.order.customer.companyName},</p>
-      <p>Votre facture pour la commande <strong>${invoice.order.orderNumber}</strong> est disponible.</p>
+      <p>Votre facture pour la commande <strong>${invoice.order.number}</strong> est disponible.</p>
       <ul>
-        <li><strong>N° de facture :</strong> ${invoice.invoiceNumber}</li>
-        <li><strong>Montant TTC :</strong> ${invoice.amount.toFixed(2)} €</li>
+        <li><strong>N° de facture :</strong> ${invoice.number}</li>
+        <li><strong>Montant TTC :</strong> ${invoice.total.toFixed(2)} €</li>
         <li><strong>Date d'échéance :</strong> ${invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString('fr-FR') : 'N/A'}</li>
       </ul>
       <p><a href="${process.env.FRONTEND_URL}/pro/invoices/${invoiceId}" style="background-color: #3498db; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Voir la facture</a></p>
@@ -426,14 +425,14 @@ export async function notifyInvoiceGenerated(invoiceId: string) {
 
   await sendEmail(
     invoice.order.customer.email,
-    `Facture ${invoice.invoiceNumber}`,
+    `Facture ${invoice.number}`,
     html
   );
 
   // Envoyer aussi à l'email comptabilité si renseigné
   const accountingEmail = invoice.order.customer.proProfile?.accountingEmail;
   if (accountingEmail && accountingEmail !== invoice.order.customer.email) {
-    await sendEmail(accountingEmail, `Facture ${invoice.invoiceNumber}`, html);
+    await sendEmail(accountingEmail, `Facture ${invoice.number}`, html);
   }
 }
 
@@ -466,11 +465,11 @@ export async function notifyInvoiceDueReminder(invoiceId: string) {
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <h2 style="color: #e67e22;">Rappel: Échéance de facture</h2>
       <p>Bonjour ${invoice.order.customer.companyName},</p>
-      <p>Nous vous rappelons que la facture <strong>${invoice.invoiceNumber}</strong> arrive à échéance dans ${daysUntilDue} jours.</p>
+      <p>Nous vous rappelons que la facture <strong>${invoice.number}</strong> arrive à échéance dans ${daysUntilDue} jours.</p>
       <ul>
-        <li><strong>Montant TTC :</strong> ${invoice.amount.toFixed(2)} €</li>
+        <li><strong>Montant TTC :</strong> ${invoice.total.toFixed(2)} €</li>
         <li><strong>Montant payé :</strong> ${(invoice.paidAmount || 0).toFixed(2)} €</li>
-        <li><strong>Reste à payer :</strong> ${(invoice.amount - (invoice.paidAmount || 0)).toFixed(2)} €</li>
+        <li><strong>Reste à payer :</strong> ${(invoice.total - (invoice.paidAmount || 0)).toFixed(2)} €</li>
         <li><strong>Date d'échéance :</strong> ${new Date(invoice.dueDate).toLocaleDateString('fr-FR')}</li>
       </ul>
       <p><a href="${process.env.FRONTEND_URL}/pro/invoices/${invoiceId}" style="background-color: #e67e22; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Voir la facture</a></p>
@@ -479,7 +478,7 @@ export async function notifyInvoiceDueReminder(invoiceId: string) {
 
   await sendEmail(
     invoice.order.customer.email,
-    `Rappel: Échéance facture ${invoice.invoiceNumber}`,
+    `Rappel: Échéance facture ${invoice.number}`,
     html
   );
 }

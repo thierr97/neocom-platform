@@ -53,7 +53,7 @@ export const getDashboard = async (req: Request, res: Response) => {
           isB2B: true,
           status: { not: 'CANCELLED' },
         },
-        _sum: { totalPrice: true },
+        _sum: { total: true },
       }),
       // Commandes récentes
       prisma.order.findMany({
@@ -62,9 +62,9 @@ export const getDashboard = async (req: Request, res: Response) => {
         orderBy: { createdAt: 'desc' },
         select: {
           id: true,
-          orderNumber: true,
+          number: true,
           status: true,
-          totalPrice: true,
+          total: true,
           createdAt: true,
         },
       }),
@@ -94,7 +94,7 @@ export const getDashboard = async (req: Request, res: Response) => {
             id: true,
             name: true,
             price: true,
-            imageUrl: true,
+            image: true,
             stock: true,
           },
         });
@@ -134,11 +134,10 @@ export const getDashboard = async (req: Request, res: Response) => {
           pendingOrders,
           deliveredOrders,
           unpaidInvoices,
-          totalSpent: totalSpent._sum.totalPrice || 0,
+          totalSpent: totalSpent._sum.total || 0,
         },
         recentOrders,
         reorderSuggestions: reorderSuggestions.filter((s) => s !== null),
-        commercial: customer.assignedCommercial,
       },
     });
   } catch (error) {
@@ -196,7 +195,6 @@ export const getProfile = async (req: Request, res: Response) => {
         },
         documents,
         shippingAddresses,
-        commercial: customer.assignedCommercial,
       },
     });
   } catch (error) {
@@ -269,7 +267,7 @@ export const updateProfile = async (req: Request, res: Response) => {
 export const addShippingAddress = async (req: Request, res: Response) => {
   try {
     const proProfile = (req as any).proProfile;
-    const { name, address, city, postalCode, country, phone, isDefault } = req.body;
+    const { label, address, city, postalCode, country, contactPhone, isDefault } = req.body;
 
     // Si c'est l'adresse par défaut, désactiver les autres
     if (isDefault) {
@@ -282,12 +280,12 @@ export const addShippingAddress = async (req: Request, res: Response) => {
     const shippingAddress = await prisma.shippingAddress.create({
       data: {
         profileId: proProfile.id,
-        name,
+        label,
         address,
         city,
         postalCode,
         country: country || 'France',
-        phone,
+        contactPhone,
         isDefault: isDefault || false,
       },
     });
@@ -426,23 +424,22 @@ export const getOrders = async (req: Request, res: Response) => {
                 select: {
                   id: true,
                   name: true,
-                  imageUrl: true,
+                  image: true,
                 },
               },
             },
           },
-          delivery: {
+          deliveries: {
             select: {
               id: true,
-              trackingNumber: true,
               status: true,
-              deliveredAt: true,
+              actualDeliveryAt: true,
             },
           },
           invoice: {
             select: {
               id: true,
-              invoiceNumber: true,
+              number: true,
               status: true,
               paidAmount: true,
               dueDate: true,
@@ -495,7 +492,7 @@ export const getOrderDetail = async (req: Request, res: Response) => {
             product: true,
           },
         },
-        delivery: {
+        deliveries: {
           include: {
             deliveryProof: true,
           },
@@ -551,18 +548,22 @@ export const createOrder = async (req: Request, res: Response) => {
     const order = await prisma.order.create({
       data: {
         customerId: customer.id,
-        orderNumber: `ORD-${Date.now()}`,
+        userId: customer.id, // Required field
+        number: `ORD-${Date.now()}`,
         status: 'PENDING',
-        totalPrice: cartPricing.totalTTC,
+        total: cartPricing.totalTTC,
+        subtotal: cartPricing.totalHT,
+        taxAmount: cartPricing.totalTVA,
         isB2B: true,
         paymentTerms: proProfile.paymentTerms,
-        proPricesSnapshot: cartPricing,
+        proPricesSnapshot: cartPricing as any,
         notes,
         items: {
           create: items.map((item: any, index: number) => ({
             productId: item.productId,
             quantity: item.quantity,
             price: cartPricing.items[index].unitPriceHT,
+            total: cartPricing.items[index].totalHT,
           })),
         },
       },
@@ -617,8 +618,8 @@ export const getDeliveries = async (req: Request, res: Response) => {
           order: {
             select: {
               id: true,
-              orderNumber: true,
-              totalPrice: true,
+              number: true,
+              total: true,
             },
           },
           deliveryProof: true,
@@ -677,8 +678,8 @@ export const getInvoices = async (req: Request, res: Response) => {
           order: {
             select: {
               id: true,
-              orderNumber: true,
-              totalPrice: true,
+              number: true,
+              total: true,
             },
           },
           payments: true,
@@ -789,7 +790,7 @@ export const declarePayment = async (req: Request, res: Response) => {
     }
 
     // Vérifier que le montant est valide
-    const remainingAmount = invoice.amount - (invoice.paidAmount || 0);
+    const remainingAmount = invoice.total - (invoice.paidAmount || 0);
     if (amount > remainingAmount) {
       return res.status(400).json({
         success: false,
@@ -802,17 +803,15 @@ export const declarePayment = async (req: Request, res: Response) => {
       data: {
         invoiceId: invoice.id,
         amount,
-        paymentMethod,
+        method: paymentMethod,
         reference,
-        notes,
-        paidBy: customer.companyName,
         status: 'PENDING', // En attente de validation admin
       },
     });
 
     // Mettre à jour le montant payé de la facture
     const newPaidAmount = (invoice.paidAmount || 0) + amount;
-    const newStatus = newPaidAmount >= invoice.amount ? 'PAID' : 'PARTIAL';
+    const newStatus = newPaidAmount >= invoice.total ? 'PAID' : 'SENT';
 
     await prisma.invoice.update({
       where: { id: invoice.id },

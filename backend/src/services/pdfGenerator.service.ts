@@ -34,7 +34,7 @@ export async function generateDeliveryNote(orderId: string): Promise<string> {
           product: true,
         },
       },
-      delivery: true,
+      deliveries: true,
     },
   });
 
@@ -42,7 +42,7 @@ export async function generateDeliveryNote(orderId: string): Promise<string> {
     throw new Error('Commande non trouvée');
   }
 
-  const filename = `BL-${order.orderNumber}-${Date.now()}.pdf`;
+  const filename = `BL-${order.number}-${Date.now()}.pdf`;
   const filepath = join(PDF_DIR, filename);
 
   return new Promise((resolve, reject) => {
@@ -73,10 +73,10 @@ export async function generateDeliveryNote(orderId: string): Promise<string> {
     // Numéro et date
     doc
       .fontSize(12)
-      .text(`BL N°: ${order.orderNumber}`, 50, 150)
+      .text(`BL N°: ${order.number}`, 50, 150)
       .text(`Date: ${new Date(order.createdAt).toLocaleDateString('fr-FR')}`, 50, 165)
       .text(
-        `Commande N°: ${order.orderNumber}`,
+        `Commande N°: ${order.number}`,
         50,
         180
       );
@@ -252,7 +252,7 @@ export async function generateInvoice(invoiceId: string): Promise<string> {
       .font('Helvetica')
       .fontSize(10)
       .text(`Date: ${new Date(invoice.createdAt).toLocaleDateString('fr-FR')}`, 350, 140)
-      .text(`Commande N°: ${invoice.order.orderNumber}`, 350, 155);
+      .text(`Commande N°: ${invoice.order.number}`, 350, 155);
 
     if (invoice.dueDate) {
       doc.text(
@@ -412,7 +412,7 @@ export async function generateDeliveryProof(deliveryId: string): Promise<string>
     throw new Error('Preuve de livraison non trouvée');
   }
 
-  const filename = `PREUVE-${delivery.trackingNumber}-${Date.now()}.pdf`;
+  const filename = `PREUVE-${delivery.id}-${Date.now()}.pdf`;
   const filepath = join(PDF_DIR, filename);
 
   return new Promise((resolve, reject) => {
@@ -437,10 +437,10 @@ export async function generateDeliveryProof(deliveryId: string): Promise<string>
       .text('Informations de livraison', 50, 120)
       .font('Helvetica')
       .fontSize(10)
-      .text(`N° de suivi: ${delivery.trackingNumber}`, 50, 140)
-      .text(`Commande N°: ${delivery.order.orderNumber}`, 50, 155)
+      .text(`Livraison ID: ${delivery.id}`, 50, 140)
+      .text(`Commande N°: ${delivery.order.number}`, 50, 155)
       .text(
-        `Date de livraison: ${new Date(delivery.deliveredAt!).toLocaleDateString('fr-FR')}`,
+        `Date de livraison: ${new Date(delivery.actualDeliveryAt!).toLocaleDateString('fr-FR')}`,
         50,
         170
       );
@@ -559,7 +559,7 @@ export async function generateOrderSummary(orderId: string): Promise<string> {
     throw new Error('Commande non trouvée');
   }
 
-  const filename = `RECAP-${order.orderNumber}-${Date.now()}.pdf`;
+  const filename = `RECAP-${order.number}-${Date.now()}.pdf`;
   const filepath = join(PDF_DIR, filename);
 
   return new Promise((resolve, reject) => {
@@ -580,7 +580,7 @@ export async function generateOrderSummary(orderId: string): Promise<string> {
     // Informations
     doc
       .fontSize(12)
-      .text(`Commande N°: ${order.orderNumber}`, 50, 120)
+      .text(`Commande N°: ${order.number}`, 50, 120)
       .text(
         `Date: ${new Date(order.createdAt).toLocaleDateString('fr-FR')}`,
         50,
@@ -633,7 +633,7 @@ export async function generateOrderSummary(orderId: string): Promise<string> {
     doc
       .fontSize(11)
       .font('Helvetica-Bold')
-      .text(`Total TTC: ${order.totalPrice.toFixed(2)} €`, 400, y);
+      .text(`Total TTC: ${order.total.toFixed(2)} €`, 400, y);
 
     doc.end();
   });

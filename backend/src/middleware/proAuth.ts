@@ -39,15 +39,6 @@ export const authenticateProCustomer = async (
         where: { id: decoded.userId },
         include: {
           proProfile: true,
-          assignedCommercial: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              email: true,
-              phone: true,
-            },
-          },
         },
       });
 

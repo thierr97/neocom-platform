@@ -86,18 +86,7 @@ export const getProCustomerDetail = async (req: Request, res: Response) => {
     const profile = await prisma.proCustomerProfile.findFirst({
       where: { customerId },
       include: {
-        customer: {
-          include: {
-            assignedCommercial: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true,
-              },
-            },
-          },
-        },
+        customer: true,
         documents: true,
         shippingAddresses: true,
       },
@@ -121,14 +110,14 @@ export const getProCustomerDetail = async (req: Request, res: Response) => {
           isB2B: true,
           status: { not: 'CANCELLED' },
         },
-        _sum: { totalPrice: true },
+        _sum: { total: true },
       }),
       prisma.invoice.aggregate({
         where: {
           order: { customerId },
           status: { not: 'PAID' },
         },
-        _sum: { amount: true },
+        _sum: { total: true },
       }),
     ]);
 
@@ -138,8 +127,8 @@ export const getProCustomerDetail = async (req: Request, res: Response) => {
         profile,
         stats: {
           totalOrders,
-          totalSpent: totalSpent._sum.totalPrice || 0,
-          unpaidAmount: unpaidInvoices._sum.amount || 0,
+          totalSpent: totalSpent._sum.total || 0,
+          unpaidAmount: unpaidInvoices._sum.total || 0,
         },
       },
     });
@@ -665,12 +654,12 @@ export const getB2BOrders = async (req: Request, res: Response) => {
                 select: {
                   id: true,
                   name: true,
-                  imageUrl: true,
+                  image: true,
                 },
               },
             },
           },
-          delivery: true,
+          deliveries: true,
           invoice: true,
         },
         orderBy: { createdAt: 'desc' },
@@ -745,12 +734,12 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
 export const createDelivery = async (req: Request, res: Response) => {
   try {
     const { orderId } = req.params;
-    const { trackingNumber, courierName, estimatedDelivery, notes } = req.body;
+    const { pickupAddress, deliveryAddress, estimatedDeliveryAt, specialInstructions, courierId, priority } = req.body;
 
     // Vérifier que la commande existe et n'a pas déjà de livraison
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      include: { delivery: true },
+      include: { deliveries: true, customer: true },
     });
 
     if (!order) {
@@ -760,7 +749,7 @@ export const createDelivery = async (req: Request, res: Response) => {
       });
     }
 
-    if (order.delivery) {
+    if (order.deliveries && order.deliveries.length > 0) {
       return res.status(400).json({
         success: false,
         message: 'Cette commande a déjà une livraison',
@@ -770,11 +759,14 @@ export const createDelivery = async (req: Request, res: Response) => {
     const delivery = await prisma.delivery.create({
       data: {
         orderId,
-        trackingNumber,
-        courierName,
-        status: 'PENDING',
-        estimatedDelivery: estimatedDelivery ? new Date(estimatedDelivery) : null,
-        notes,
+        customerId: order.customerId,
+        pickupAddress: pickupAddress || 'Adresse d\'enlèvement par défaut',
+        deliveryAddress: deliveryAddress || order.shippingAddress || 'Adresse de livraison',
+        status: 'CREATED',
+        estimatedDeliveryAt: estimatedDeliveryAt ? new Date(estimatedDeliveryAt) : null,
+        specialInstructions: specialInstructions || order.notes,
+        courierId: courierId || null,
+        priority: priority || 0,
       },
     });
 
@@ -850,7 +842,7 @@ export const recordDeliveryProof = async (req: Request, res: Response) => {
       where: { id: deliveryId },
       data: {
         status: 'DELIVERED',
-        deliveredAt: new Date(),
+        actualDeliveryAt: new Date(),
       },
     });
 
@@ -927,10 +919,10 @@ export const generateInvoice = async (req: Request, res: Response) => {
     const invoice = await prisma.invoice.create({
       data: {
         orderId,
-        invoiceNumber: `INV-${Date.now()}`,
-        amount: order.totalPrice,
+        number: `INV-${Date.now()}`,
+        total: order.total,
         paidAmount: 0,
-        status: 'UNPAID',
+        status: 'DRAFT',
         dueDate: calculatedDueDate,
         notes,
       },
