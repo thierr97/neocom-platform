@@ -142,6 +142,79 @@ export const getProCustomerDetail = async (req: Request, res: Response) => {
 };
 
 /**
+ * Convertir un client standard en client PRO
+ */
+export const convertToProCustomer = async (req: Request, res: Response) => {
+  try {
+    const { customerId } = req.params;
+    const {
+      legalForm,
+      vatNumber,
+      businessSector,
+      estimatedAnnualRevenue,
+      accountingEmail,
+      accountingPhone,
+      accountingContact,
+    } = req.body;
+
+    // Vérifier que le client existe
+    const customer = await prisma.customer.findUnique({
+      where: { id: customerId },
+    });
+
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Client non trouvé',
+      });
+    }
+
+    // Vérifier qu'il n'a pas déjà un profil PRO
+    const existingProfile = await prisma.proCustomerProfile.findFirst({
+      where: { customerId },
+    });
+
+    if (existingProfile) {
+      return res.status(400).json({
+        success: false,
+        message: 'Ce client a déjà un profil PRO',
+        data: existingProfile,
+      });
+    }
+
+    // Créer le profil PRO
+    const proProfile = await prisma.proCustomerProfile.create({
+      data: {
+        customerId,
+        status: 'PENDING',
+        legalForm,
+        vatNumber,
+        businessSector,
+        estimatedAnnualRevenue,
+        accountingEmail,
+        accountingPhone,
+        accountingContact,
+      },
+      include: {
+        customer: true,
+      },
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Client converti en PRO avec succès',
+      data: proProfile,
+    });
+  } catch (error) {
+    console.error('Error in convertToProCustomer:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la conversion du client en PRO',
+    });
+  }
+};
+
+/**
  * Approuver un client PRO
  */
 export const approveProCustomer = async (req: Request, res: Response) => {

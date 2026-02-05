@@ -27,6 +27,12 @@ router.get('/customers', adminB2BController.getProCustomers);
 router.get('/customers/:customerId', adminB2BController.getProCustomerDetail);
 
 /**
+ * Convertir un client standard en client PRO
+ * POST /api/admin/b2b/customers/:customerId/convert-to-pro
+ */
+router.post('/customers/:customerId/convert-to-pro', adminB2BController.convertToProCustomer);
+
+/**
  * Approuver un client PRO
  * POST /api/admin/b2b/customers/:customerId/approve
  */
