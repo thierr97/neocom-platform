@@ -10,9 +10,8 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
 import api from '../src/services/api';
+import documentsAPI from '../src/services/documentsAPI';
 
 interface Product {
   productId: string;
@@ -115,25 +114,17 @@ export default function CustomerDetailScreen({ route, navigation }: any) {
     }
 
     try {
-      const endpoint = type === 'quote' ? 'quotes' : type === 'invoice' ? 'invoices' : 'orders';
-      const response = await api.get(`/${endpoint}/${docId}/pdf`, { responseType: 'arraybuffer' });
-
-      const filename = `${type === 'quote' ? 'Devis' : type === 'invoice' ? 'Facture' : 'Commande'}-${docNumber}.pdf`;
-      const fileUri = `${FileSystem.documentDirectory}${filename}`;
-
-      await FileSystem.writeAsStringAsync(fileUri, response.data as string, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-
-      const canShare = await Sharing.isAvailableAsync();
-      if (canShare) {
-        await Sharing.shareAsync(fileUri);
+      if (type === 'quote') {
+        await documentsAPI.quotes.sharePDF(docId, docNumber);
+      } else if (type === 'invoice') {
+        await documentsAPI.invoices.sharePDF(docId, docNumber);
       } else {
-        Alert.alert('Erreur', 'Le partage n\'est pas disponible sur cet appareil');
+        // Pour les orders, utiliser l'ancienne méthode (pas encore dans documentsAPI)
+        Alert.alert('Info', 'Le partage de commandes sera disponible prochainement');
       }
     } catch (error: any) {
       console.error('Error sharing document:', error);
-      Alert.alert('Erreur', 'Impossible de partager le document');
+      Alert.alert('Erreur', error.message || 'Impossible de partager le document');
     }
   };
 
@@ -356,7 +347,7 @@ export default function CustomerDetailScreen({ route, navigation }: any) {
               customer.quotes.filter(quote => quote && quote.id).map((quote) => (
                 <View key={quote.id} style={styles.card}>
                   <TouchableOpacity
-                    onPress={() => navigation.navigate('QuoteDetail', { quoteId: quote.id })}
+                    onPress={() => navigation.navigate('QuoteDetail', { quote: quote })}
                   >
                     <View style={styles.cardHeader}>
                       <Text style={styles.docNumber}>{quote.number}</Text>
@@ -397,7 +388,7 @@ export default function CustomerDetailScreen({ route, navigation }: any) {
               customer.orders.filter(order => order && order.id).map((order) => (
                 <View key={order.id} style={styles.card}>
                   <TouchableOpacity
-                    onPress={() => navigation.navigate('OrderDetail', { orderId: order.id })}
+                    onPress={() => navigation.navigate('OrderDetail', { order: order })}
                   >
                     <View style={styles.cardHeader}>
                       <Text style={styles.docNumber}>{order.number}</Text>
@@ -443,7 +434,7 @@ export default function CustomerDetailScreen({ route, navigation }: any) {
                 return (
                   <View key={invoice.id} style={styles.card}>
                     <TouchableOpacity
-                      onPress={() => navigation.navigate('InvoiceDetail', { invoiceId: invoice.id })}
+                      onPress={() => navigation.navigate('InvoiceDetail', { invoice: invoice })}
                     >
                       <View style={styles.cardHeader}>
                         <Text style={styles.docNumber}>{invoice.number}</Text>
