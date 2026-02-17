@@ -187,10 +187,6 @@ export const convertToProCustomer = async (req: Request, res: Response) => {
       data: {
         customerId,
         status: 'PENDING',
-        legalForm,
-        vatNumber,
-        businessSector,
-        estimatedAnnualRevenue,
         accountingEmail,
         accountingPhone,
         accountingContact,
