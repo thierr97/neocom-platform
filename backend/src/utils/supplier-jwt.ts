@@ -8,31 +8,23 @@ export interface SupplierTokenPayload {
 }
 
 export const generateSupplierAccessToken = (payload: SupplierTokenPayload): string => {
-  const secret = process.env.SUPPLIER_JWT_SECRET || process.env.JWT_SECRET;
+  const secret: string = (process.env.SUPPLIER_JWT_SECRET || process.env.JWT_SECRET) as string;
   if (!secret) {
     throw new Error('JWT_SECRET is not defined in environment variables');
   }
-  return jwt.sign(
-    payload,
-    secret,
-    { expiresIn: process.env.SUPPLIER_JWT_EXPIRES_IN || '1d' }
-  );
+  return jwt.sign(payload, secret, { expiresIn: process.env.SUPPLIER_JWT_EXPIRES_IN || '1d' });
 };
 
 export const generateSupplierRefreshToken = (payload: SupplierTokenPayload): string => {
-  const secret = process.env.SUPPLIER_JWT_REFRESH_SECRET || process.env.JWT_REFRESH_SECRET;
+  const secret: string = (process.env.SUPPLIER_JWT_REFRESH_SECRET || process.env.JWT_REFRESH_SECRET) as string;
   if (!secret) {
     throw new Error('JWT_REFRESH_SECRET is not defined in environment variables');
   }
-  return jwt.sign(
-    payload,
-    secret,
-    { expiresIn: process.env.SUPPLIER_JWT_REFRESH_EXPIRES_IN || '30d' }
-  );
+  return jwt.sign(payload, secret, { expiresIn: process.env.SUPPLIER_JWT_REFRESH_EXPIRES_IN || '30d' });
 };
 
 export const verifySupplierAccessToken = (token: string): SupplierTokenPayload => {
-  const secret = process.env.SUPPLIER_JWT_SECRET || process.env.JWT_SECRET;
+  const secret: string = (process.env.SUPPLIER_JWT_SECRET || process.env.JWT_SECRET) as string;
   if (!secret) {
     throw new Error('JWT_SECRET is not defined in environment variables');
   }
@@ -40,7 +32,7 @@ export const verifySupplierAccessToken = (token: string): SupplierTokenPayload =
 };
 
 export const verifySupplierRefreshToken = (token: string): SupplierTokenPayload => {
-  const secret = process.env.SUPPLIER_JWT_REFRESH_SECRET || process.env.JWT_REFRESH_SECRET;
+  const secret: string = (process.env.SUPPLIER_JWT_REFRESH_SECRET || process.env.JWT_REFRESH_SECRET) as string;
   if (!secret) {
     throw new Error('JWT_REFRESH_SECRET is not defined in environment variables');
   }
