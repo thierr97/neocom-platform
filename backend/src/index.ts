@@ -135,6 +135,8 @@ app.get('/health', (req: Request, res: Response) => {
 });
 
 // API Routes
+// IMPORTANT: Routes plus spécifiques en premier pour éviter les conflits de matching
+app.use('/api/suppliers/auth', supplierAuthRoutes); // DOIT venir AVANT /api/suppliers
 app.use('/api/auth', authRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/products', productRoutes);
@@ -174,7 +176,6 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/logistics', logisticsRoutes);
 app.use('/api/pro', proRoutes);
 app.use('/api/admin/b2b', adminB2BRoutes);
-app.use('/api/suppliers/auth', supplierAuthRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
