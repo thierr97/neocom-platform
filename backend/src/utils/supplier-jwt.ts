@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken';
+import jwt, { Secret } from 'jsonwebtoken';
 
 export interface SupplierTokenPayload {
   supplierId: string;
@@ -8,7 +8,7 @@ export interface SupplierTokenPayload {
 }
 
 export const generateSupplierAccessToken = (payload: SupplierTokenPayload): string => {
-  const secret: string = (process.env.SUPPLIER_JWT_SECRET || process.env.JWT_SECRET) as string;
+  const secret = (process.env.SUPPLIER_JWT_SECRET || process.env.JWT_SECRET) as Secret;
   if (!secret) {
     throw new Error('JWT_SECRET is not defined in environment variables');
   }
@@ -16,7 +16,7 @@ export const generateSupplierAccessToken = (payload: SupplierTokenPayload): stri
 };
 
 export const generateSupplierRefreshToken = (payload: SupplierTokenPayload): string => {
-  const secret: string = (process.env.SUPPLIER_JWT_REFRESH_SECRET || process.env.JWT_REFRESH_SECRET) as string;
+  const secret = (process.env.SUPPLIER_JWT_REFRESH_SECRET || process.env.JWT_REFRESH_SECRET) as Secret;
   if (!secret) {
     throw new Error('JWT_REFRESH_SECRET is not defined in environment variables');
   }
@@ -24,7 +24,7 @@ export const generateSupplierRefreshToken = (payload: SupplierTokenPayload): str
 };
 
 export const verifySupplierAccessToken = (token: string): SupplierTokenPayload => {
-  const secret: string = (process.env.SUPPLIER_JWT_SECRET || process.env.JWT_SECRET) as string;
+  const secret = (process.env.SUPPLIER_JWT_SECRET || process.env.JWT_SECRET) as Secret;
   if (!secret) {
     throw new Error('JWT_SECRET is not defined in environment variables');
   }
@@ -32,7 +32,7 @@ export const verifySupplierAccessToken = (token: string): SupplierTokenPayload =
 };
 
 export const verifySupplierRefreshToken = (token: string): SupplierTokenPayload => {
-  const secret: string = (process.env.SUPPLIER_JWT_REFRESH_SECRET || process.env.JWT_REFRESH_SECRET) as string;
+  const secret = (process.env.SUPPLIER_JWT_REFRESH_SECRET || process.env.JWT_REFRESH_SECRET) as Secret;
   if (!secret) {
     throw new Error('JWT_REFRESH_SECRET is not defined in environment variables');
   }
