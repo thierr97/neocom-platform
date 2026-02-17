@@ -194,25 +194,32 @@ model Customer {
 // ========================================
 
 enum SupplierStatus {
+  PENDING // En attente de validation (marketplace)
   ACTIVE
   INACTIVE
   BLOCKED
+  REJECTED // Candidature rejetée (marketplace)
 }
 
 model Supplier {
   id String @id @default(uuid())
 
   // Company Info
-  companyName   String
-  contactPerson String?
-  siret         String?
-  vatNumber     String?
+  companyName    String
+  contactPerson  String?
+  siret          String?
+  vatNumber      String?
+  legalForm      String? // SARL, SAS, EURL, etc. (marketplace)
+  businessSector String? // Secteur d'activité (marketplace)
 
   // Contact
   email   String  @unique
   phone   String?
   mobile  String?
   website String?
+
+  // Authentication (for marketplace suppliers)
+  password String? // Mot de passe hashé (marketplace)
 
   // Address
   address      String?
@@ -224,14 +231,37 @@ model Supplier {
   // Status
   status SupplierStatus @default(ACTIVE)
 
-  // Payment Terms
+  // Marketplace validation
+  approvedAt     DateTime?
+  approvedBy     String? // userId de l'admin
+  rejectedAt     DateTime?
+  rejectedReason String?
+
+  // Payment Terms (existing - for traditional suppliers)
   paymentTerms  String? // e.g., "30 jours fin de mois"
   paymentMethod String? // e.g., "Virement", "Chèque"
+
+  // Marketplace Commission & Payouts
+  commissionRate   Float?  @default(10) // % de commission NEOSERV (marketplace)
+  paymentFrequency String? @default("MONTHLY") // DAILY, WEEKLY, MONTHLY (marketplace)
+
+  // Banking info for payouts (marketplace)
+  stripeAccountId String? // Compte Stripe Connect
+  bankName        String?
+  iban            String?
+  bic             String?
+  accountHolder   String?
+
+  // Estimated revenue (for approval)
+  estimatedMonthlyRevenue Float? // Chiffre d'affaires mensuel estimé
 
   // Relations
   products          Product[]
   purchaseInvoices  PurchaseInvoice[]
   accountingEntries AccountingEntry[]
+  sessions          SupplierSession[] // Sessions d'authentification (marketplace)
+  notifications     SupplierNotification[] // Notifications (marketplace)
+  payouts           SupplierPayout[] // Paiements reçus (marketplace)
 
   // Notes
   notes String?
@@ -244,14 +274,110 @@ model Supplier {
   @@map("suppliers")
 }
 
+// Sessions d'authentification pour fournisseurs
+model SupplierSession {
+  id String @id @default(uuid())
+
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  // Token JWT
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+
+  // Metadata
+  createdAt DateTime @default(now())
+
+  @@index([supplierId])
+  @@index([expiresAt])
+  @@map("supplier_sessions")
+}
+
+// Notifications pour fournisseurs
+model SupplierNotification {
+  id String @id @default(uuid())
+
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  // Type et contenu
+  type    String // PRODUCT_APPROVED, PRODUCT_REJECTED, ORDER_RECEIVED, PAYOUT_READY, etc.
+  title   String
+  message String
+  data    Json? // Données additionnelles
+
+  // État
+  isRead Boolean   @default(false)
+  readAt DateTime?
+
+  // Metadata
+  createdAt DateTime  @default(now())
+  expiresAt DateTime? // Expiration de la notification
+
+  @@index([supplierId])
+  @@index([type])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("supplier_notifications")
+}
+
+// Paiements aux fournisseurs (marketplace)
+model SupplierPayout {
+  id String @id @default(uuid())
+
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  // Montant
+  amount           Float
+  currency         String @default("EUR")
+  commissionAmount Float // Commission retenue par NEOSERV
+  netAmount        Float // Montant net versé au fournisseur
+
+  // Période couverte
+  periodStart DateTime
+  periodEnd   DateTime
+
+  // Statut
+  status        String    @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  processedAt   DateTime?
+  completedAt   DateTime?
+  failedReason  String?
+  transactionId String? // ID de transaction Stripe
+
+  // Détails bancaires (snapshot au moment du paiement)
+  iban           String?
+  bic            String?
+  accountHolder  String?
+  stripePayoutId String? // ID du payout Stripe
+
+  // Orders incluses dans ce paiement
+  orderIds String[] @default([]) // Liste des IDs de commandes
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([supplierId])
+  @@index([status])
+  @@index([periodStart])
+  @@index([periodEnd])
+  @@map("supplier_payouts")
+}
+
 // ========================================
 // PRODUCTS & INVENTORY
 // ========================================
 
 enum ProductStatus {
+  DRAFT // Brouillon (marketplace)
+  PENDING_REVIEW // En attente de validation (marketplace)
   ACTIVE
   INACTIVE
   OUT_OF_STOCK
+  REJECTED // Rejeté par l'admin (marketplace)
 }
 
 enum AvailabilityStatus {
@@ -315,6 +441,14 @@ model Product {
   supplierId String?
   supplier   Supplier? @relation(fields: [supplierId], references: [id])
 
+  // Marketplace validation
+  reviewedAt      DateTime?
+  reviewedBy      String? // userId de l'admin qui a validé/rejeté
+  rejectionReason String? // Raison du rejet (marketplace)
+
+  // Product variants (marketplace)
+  variants ProductVariant[]
+
   // Dimensions & Shipping
   weight Float?
   width  Float?
@@ -346,6 +480,45 @@ model Product {
   updatedAt DateTime @updatedAt
 
   @@map("products")
+}
+
+// Variantes de produits (marketplace)
+model ProductVariant {
+  id String @id @default(uuid())
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  // Nom de la variante (ex: "Rouge - L", "32GB - Noir")
+  name String
+
+  // Options (JSON pour flexibilité)
+  // Ex: {"color": "Rouge", "size": "L"}
+  options Json
+
+  // SKU unique pour cette variante
+  sku String @unique
+
+  // Prix spécifique (peut surcharger le prix du produit parent)
+  price          Float?
+  compareAtPrice Float?
+
+  // Stock spécifique
+  stock Int @default(0)
+
+  // Images spécifiques (optionnel)
+  images String[] @default([])
+
+  // Actif
+  isActive Boolean @default(true)
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  @@index([sku])
+  @@map("product_variants")
 }
 
 // ========================================
