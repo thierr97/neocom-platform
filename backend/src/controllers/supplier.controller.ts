@@ -302,3 +302,43 @@ export const deleteSupplier = async (req: AuthRequest, res: Response) => {
     });
   }
 };
+
+// TEMPORARY: Activate supplier by email (for testing)
+export const activateSupplierByEmail = async (req: any, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email requis',
+      });
+    }
+
+    const supplier = await prisma.supplier.update({
+      where: { email },
+      data: {
+        status: 'ACTIVE',
+        updatedAt: new Date(),
+      },
+    });
+
+    res.json({
+      success: true,
+      message: 'Fournisseur activé avec succès',
+      supplier: {
+        id: supplier.id,
+        email: supplier.email,
+        companyName: supplier.companyName,
+        status: supplier.status,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error in activateSupplierByEmail:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de l\'activation du fournisseur',
+      error: error.message,
+    });
+  }
+};

@@ -137,6 +137,13 @@ app.get('/health', (req: Request, res: Response) => {
 // API Routes
 // IMPORTANT: Routes plus spécifiques en premier pour éviter les conflits de matching
 app.use('/api/suppliers/auth', supplierAuthRoutes); // DOIT venir AVANT /api/suppliers
+
+// TEMPORARY: Endpoint pour activer un fournisseur (pour testing)
+app.post('/api/suppliers/activate-temp', async (req, res) => {
+  const { activateSupplierByEmail } = await import('./controllers/supplier.controller');
+  activateSupplierByEmail(req, res);
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/products', productRoutes);
