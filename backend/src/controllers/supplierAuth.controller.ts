@@ -332,35 +332,54 @@ export const updateSupplierProfile = async (req: any, res: Response) => {
       city,
       postalCode,
       country,
+      legalForm,
+      vatNumber,
+      businessSector,
       bankName,
       iban,
       bic,
       accountHolder,
     } = req.body;
 
+    // Build update data object, only including fields that are provided
+    const updateData: any = {};
+    if (contactPerson !== undefined) updateData.contactPerson = contactPerson;
+    if (phone !== undefined) updateData.phone = phone;
+    if (mobile !== undefined) updateData.mobile = mobile;
+    if (website !== undefined) updateData.website = website;
+    if (address !== undefined) updateData.address = address;
+    if (addressLine2 !== undefined) updateData.addressLine2 = addressLine2;
+    if (city !== undefined) updateData.city = city;
+    if (postalCode !== undefined) updateData.postalCode = postalCode;
+    if (country !== undefined) updateData.country = country;
+    if (legalForm !== undefined) updateData.legalForm = legalForm;
+    if (vatNumber !== undefined) updateData.vatNumber = vatNumber;
+    if (businessSector !== undefined) updateData.businessSector = businessSector;
+    if (bankName !== undefined) updateData.bankName = bankName;
+    if (iban !== undefined) updateData.iban = iban;
+    if (bic !== undefined) updateData.bic = bic;
+    if (accountHolder !== undefined) updateData.accountHolder = accountHolder;
+
     const supplier = await prisma.supplier.update({
       where: { id: supplierId },
-      data: {
-        contactPerson,
-        phone,
-        mobile,
-        website,
-        address,
-        addressLine2,
-        city,
-        postalCode,
-        country,
-        bankName,
-        iban,
-        bic,
-        accountHolder,
-      },
+      data: updateData,
       select: {
         id: true,
         email: true,
         companyName: true,
         contactPerson: true,
         phone: true,
+        mobile: true,
+        website: true,
+        address: true,
+        addressLine2: true,
+        city: true,
+        postalCode: true,
+        country: true,
+        legalForm: true,
+        siret: true,
+        vatNumber: true,
+        businessSector: true,
         status: true,
         updatedAt: true,
       },
