@@ -22,11 +22,12 @@ export const getAllQuotes = async (req: Request, res: Response) => {
       });
     }
 
+    // FIXME: Temporairement désactivé - Tous les utilisateurs voient tous les devis
     // Admin voir tous, commercial voir seulement les siens
     const where: any = {};
-    if (userRole === 'COMMERCIAL') {
-      where.userId = userId;
-    }
+    // if (userRole === 'COMMERCIAL') {
+    //   where.userId = userId;
+    // }
 
     const quotes = await prisma.quote.findMany({
       where,
