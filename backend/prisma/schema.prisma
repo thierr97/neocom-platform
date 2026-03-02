@@ -645,11 +645,6 @@ model Order {
   status        OrderStatus   @default(PENDING)
   paymentStatus PaymentStatus @default(PENDING)
 
-  // B2B Fields
-  isB2B             Boolean       @default(false) // Commande B2B ou B2C
-  paymentTerms      PaymentTerms? // Conditions de paiement si B2B
-  proPricesSnapshot Json? // Snapshot des prix B2B appliqués au moment de la commande
-
   // Items
   items OrderItem[]
 
