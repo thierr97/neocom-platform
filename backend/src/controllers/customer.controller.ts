@@ -103,12 +103,14 @@ export const getCustomerById = async (req: AuthRequest, res: Response) => {
     }
 
     // Check access
-    if (req.user!.role === 'COMMERCIAL' && customer.userId !== req.user!.userId) {
-      return res.status(403).json({
-        success: false,
-        message: 'Accès non autorisé',
-      });
-    }
+    // FIXME: Désactivé temporairement pour permettre à tous les utilisateurs de voir tous les clients
+    // À réactiver plus tard avec une gestion des rôles plus fine
+    // if (req.user!.role === 'COMMERCIAL' && customer.userId !== req.user!.userId) {
+    //   return res.status(403).json({
+    //     success: false,
+    //     message: 'Accès non autorisé',
+    //   });
+    // }
 
     res.json({
       success: true,
