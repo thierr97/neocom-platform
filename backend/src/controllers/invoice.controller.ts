@@ -5,6 +5,7 @@ import { generateInvoiceNumber } from '../utils/generateNumber';
 import { PDFService } from '../services/pdf.service';
 import { generateSaleInvoiceEntry, generatePaymentReceivedEntry } from '../services/auto-accounting.service';
 import { getCompanySettings, getBankInfo } from '../utils/getCompanySettings';
+import { validateInvoice } from '../services/validation.service';
 
 const prisma = new PrismaClient();
 
@@ -157,13 +158,13 @@ export const createInvoice = async (req: Request, res: Response) => {
     const taxAmount = subtotal * (getDefaultTaxRate() / 100); // 8.5% TVA Guadeloupe
     const total = subtotal + taxAmount;
 
-    // Generate invoice number
-    const invoiceNumber = await generateInvoiceNumber();
+    // DRAFT: number reste null jusqu'à validation
+    // Le numéro sera attribué lors de la validation via l'endpoint /validate
 
     // Create invoice
     const invoice = await prisma.invoice.create({
       data: {
-        number: invoiceNumber,
+        number: null, // Pas de numéro pour les DRAFT
         customerId,
         userId,
         status: 'DRAFT',
@@ -644,6 +645,149 @@ export const getInvoicePayments = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des paiements',
+    });
+  }
+};
+
+// Validate invoice (DRAFT → FINAL)
+export const validateInvoiceEndpoint = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { version } = req.body;
+    const userId = (req as any).user.userId;
+
+    if (typeof version !== 'number') {
+      return res.status(400).json({
+        success: false,
+        message: 'Version requise pour la validation (optimistic locking)',
+      });
+    }
+
+    const result = await validateInvoice(id, userId, version);
+
+    if (!result.success) {
+      const statusCode =
+        result.code === 'VERSION_CONFLICT' ? 409 :
+        result.code === 'NOT_FOUND' ? 404 :
+        result.code === 'ALREADY_VALIDATED' ? 400 :
+        result.code === 'EMPTY_INVOICE' ? 400 :
+        500;
+
+      return res.status(statusCode).json({
+        success: false,
+        message: result.error,
+        code: result.code,
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Facture validée avec succès',
+      data: result.data,
+    });
+  } catch (error: any) {
+    console.error('Error validating invoice:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la validation de la facture',
+      error: error.message,
+    });
+  }
+};
+
+// Upsert invoice draft (autosave)
+export const upsertInvoiceDraft = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { customerId, items, notes, dueDate, version } = req.body;
+    const userId = (req as any).user.userId;
+
+    // Verify invoice exists and is not validated
+    const existingInvoice = await prisma.invoice.findUnique({
+      where: { id },
+    });
+
+    if (!existingInvoice) {
+      return res.status(404).json({
+        success: false,
+        message: 'Facture non trouvée',
+      });
+    }
+
+    // Block updates on validated invoices
+    if (existingInvoice.isValidated) {
+      return res.status(403).json({
+        success: false,
+        message: 'Impossible de modifier une facture validée',
+        code: 'INVOICE_LOCKED',
+      });
+    }
+
+    // Check version for optimistic locking
+    if (typeof version === 'number' && existingInvoice.version !== version) {
+      return res.status(409).json({
+        success: false,
+        message: 'La facture a été modifiée par un autre utilisateur',
+        code: 'VERSION_CONFLICT',
+        currentVersion: existingInvoice.version,
+      });
+    }
+
+    // Calculate amounts
+    let subtotal = 0;
+    if (items && items.length > 0) {
+      items.forEach((item: any) => {
+        subtotal += item.quantity * item.unitPrice;
+      });
+    }
+
+    const taxAmount = subtotal * (getDefaultTaxRate() / 100);
+    const total = subtotal + taxAmount;
+
+    // Update invoice (DRAFT only, no number assignment)
+    const updatedInvoice = await prisma.invoice.update({
+      where: { id },
+      data: {
+        customerId: customerId || existingInvoice.customerId,
+        subtotal,
+        taxAmount,
+        total,
+        dueDate: dueDate ? new Date(dueDate) : existingInvoice.dueDate,
+        notes: notes !== undefined ? notes : existingInvoice.notes,
+        version: { increment: 1 },
+        items: items ? {
+          deleteMany: {},
+          create: items.map((item: any) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            taxRate: getDefaultTaxRate(),
+            discount: item.discount || 0,
+            total: item.quantity * item.unitPrice,
+          })),
+        } : undefined,
+      },
+      include: {
+        customer: true,
+        items: {
+          include: {
+            product: true,
+          },
+        },
+      },
+    });
+
+    return res.json({
+      success: true,
+      message: 'Brouillon sauvegardé',
+      data: updatedInvoice,
+    });
+  } catch (error: any) {
+    console.error('Error upserting invoice draft:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la sauvegarde du brouillon',
+      error: error.message,
     });
   }
 };

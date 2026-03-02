@@ -10,6 +10,11 @@ router.get('/', quoteController.getAllQuotes);
 router.get('/:id', quoteController.getQuoteById);
 router.post('/', quoteController.createQuote);
 router.post('/from-cart', quoteController.createQuoteFromCart);
+
+// DRAFT/VALIDATION system
+router.patch('/:id/draft', quoteController.upsertQuoteDraft); // Autosave (DRAFT only)
+router.post('/:id/validate', quoteController.validateQuoteEndpoint); // DRAFT → FINAL
+
 router.patch('/:id/status', quoteController.updateQuoteStatus);
 router.post('/:id/convert', quoteController.convertQuoteToOrder);
 router.get('/:id/pdf', quoteController.generateQuotePDF);

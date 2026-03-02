@@ -534,8 +534,8 @@ enum QuoteStatus {
 }
 
 model Quote {
-  id     String @id @default(uuid())
-  number String @unique
+  id     String  @id @default(uuid())
+  number String? @unique // Nullable - attribué seulement à la validation
 
   // Customer
   customerId String
@@ -547,6 +547,12 @@ model Quote {
 
   // Status
   status QuoteStatus @default(DRAFT)
+
+  // Validation & Locking
+  version      Int      @default(1) // Optimistic locking
+  isValidated  Boolean  @default(false) // true = FINAL (locked)
+  validatedBy  String? // userId qui a validé
+  validatedAt  DateTime? // Date de validation
 
   // Items
   items QuoteItem[]
@@ -578,6 +584,8 @@ model Quote {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([isValidated])
+  @@index([version])
   @@map("quotes")
 }
 
@@ -745,8 +753,8 @@ enum InvoiceStatus {
 }
 
 model Invoice {
-  id     String @id @default(uuid())
-  number String @unique
+  id     String  @id @default(uuid())
+  number String? @unique // Nullable - attribué seulement à la validation
 
   // Customer
   customerId String
@@ -762,6 +770,12 @@ model Invoice {
 
   // Status
   status InvoiceStatus @default(DRAFT)
+
+  // Validation & Locking
+  version      Int      @default(1) // Optimistic locking
+  isValidated  Boolean  @default(false) // true = FINAL (locked)
+  validatedBy  String? // userId qui a validé
+  validatedAt  DateTime? // Date de validation
 
   // Items
   items InvoiceItem[]
@@ -800,6 +814,8 @@ model Invoice {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([isValidated])
+  @@index([version])
   @@map("invoices")
 }
 

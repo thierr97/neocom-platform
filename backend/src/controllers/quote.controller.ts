@@ -5,6 +5,7 @@ import { PDFService } from '../services/pdf.service';
 import { getDefaultTaxRate } from '../config/tax.config';
 import { getCompanySettings, getBankInfo } from '../utils/getCompanySettings';
 import nodemailer from 'nodemailer';
+import { validateQuote } from '../services/validation.service';
 
 const prisma = new PrismaClient();
 
@@ -143,13 +144,13 @@ export const createQuote = async (req: Request, res: Response) => {
     const taxAmount = subtotal * (getDefaultTaxRate() / 100); // TVA Guadeloupe
     const total = subtotal + taxAmount;
 
-    // Generate quote number
-    const quoteNumber = await generateQuoteNumber();
+    // DRAFT: number reste null jusqu'à validation
+    // Le numéro sera attribué lors de la validation via l'endpoint /validate
 
     // Create quote
     const quote = await prisma.quote.create({
       data: {
-        number: quoteNumber,
+        number: null, // Pas de numéro pour les DRAFT
         customerId,
         userId,
         status: 'DRAFT',
@@ -605,6 +606,150 @@ export const sendQuoteByEmail = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'envoi du devis par email',
+      error: error.message,
+    });
+  }
+};
+
+// Validate quote (DRAFT → FINAL)
+export const validateQuoteEndpoint = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { version } = req.body;
+    const userId = (req as any).user.userId;
+
+    if (typeof version !== 'number') {
+      return res.status(400).json({
+        success: false,
+        message: 'Version requise pour la validation (optimistic locking)',
+      });
+    }
+
+    const result = await validateQuote(id, userId, version);
+
+    if (!result.success) {
+      const statusCode =
+        result.code === 'VERSION_CONFLICT' ? 409 :
+        result.code === 'NOT_FOUND' ? 404 :
+        result.code === 'ALREADY_VALIDATED' ? 400 :
+        result.code === 'EMPTY_QUOTE' ? 400 :
+        500;
+
+      return res.status(statusCode).json({
+        success: false,
+        message: result.error,
+        code: result.code,
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Devis validé avec succès',
+      data: result.data,
+    });
+  } catch (error: any) {
+    console.error('Error validating quote:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la validation du devis',
+      error: error.message,
+    });
+  }
+};
+
+// Upsert quote draft (autosave)
+export const upsertQuoteDraft = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { customerId, items, notes, termsConditions, validUntil, version } = req.body;
+    const userId = (req as any).user.userId;
+
+    // Verify quote exists and is not validated
+    const existingQuote = await prisma.quote.findUnique({
+      where: { id },
+    });
+
+    if (!existingQuote) {
+      return res.status(404).json({
+        success: false,
+        message: 'Devis non trouvé',
+      });
+    }
+
+    // Block updates on validated quotes
+    if (existingQuote.isValidated) {
+      return res.status(403).json({
+        success: false,
+        message: 'Impossible de modifier un devis validé',
+        code: 'QUOTE_LOCKED',
+      });
+    }
+
+    // Check version for optimistic locking
+    if (typeof version === 'number' && existingQuote.version !== version) {
+      return res.status(409).json({
+        success: false,
+        message: 'Le devis a été modifié par un autre utilisateur',
+        code: 'VERSION_CONFLICT',
+        currentVersion: existingQuote.version,
+      });
+    }
+
+    // Calculate amounts
+    let subtotal = 0;
+    if (items && items.length > 0) {
+      items.forEach((item: any) => {
+        subtotal += item.quantity * item.unitPrice;
+      });
+    }
+
+    const taxAmount = subtotal * (getDefaultTaxRate() / 100);
+    const total = subtotal + taxAmount;
+
+    // Update quote (DRAFT only, no number assignment)
+    const updatedQuote = await prisma.quote.update({
+      where: { id },
+      data: {
+        customerId: customerId || existingQuote.customerId,
+        subtotal,
+        taxAmount,
+        total,
+        validUntil: validUntil ? new Date(validUntil) : existingQuote.validUntil,
+        notes: notes !== undefined ? notes : existingQuote.notes,
+        termsConditions: termsConditions !== undefined ? termsConditions : existingQuote.termsConditions,
+        version: { increment: 1 },
+        items: items ? {
+          deleteMany: {},
+          create: items.map((item: any) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            taxRate: getDefaultTaxRate(),
+            discount: item.discount || 0,
+            total: item.quantity * item.unitPrice,
+          })),
+        } : undefined,
+      },
+      include: {
+        customer: true,
+        items: {
+          include: {
+            product: true,
+          },
+        },
+      },
+    });
+
+    return res.json({
+      success: true,
+      message: 'Brouillon sauvegardé',
+      data: updatedQuote,
+    });
+  } catch (error: any) {
+    console.error('Error upserting quote draft:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la sauvegarde du brouillon',
       error: error.message,
     });
   }
