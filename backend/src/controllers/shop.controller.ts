@@ -69,6 +69,7 @@ export const getPublicProducts = async (req: Request, res: Response) => {
       where.OR = [
         { name: { contains: search as string, mode: 'insensitive' } },
         { description: { contains: search as string, mode: 'insensitive' } },
+        { sku: { contains: search as string, mode: 'insensitive' } },
         { tags: { has: search as string } },
       ];
     }
