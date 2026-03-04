@@ -521,13 +521,8 @@ export const importProductsFromExcel = async (req: Request, res: Response) => {
 
         const thumbnail = placeholderImages[product.category] || placeholderImages['Nouveaux Produits'];
 
-        // IMPORTANT: product.stock représente la quantité de conditionnement, pas le stock réel!
-        // Ex: 12 = vendu par conditionnement de 12 unités
-        const packagingQty = product.stock || 1;
-        const unitPrice = packagingQty > 1 ? parseFloat((product.price / packagingQty).toFixed(2)) : product.price;
-
-        // Stock réel disponible (en nombre d'unités, pas de conditionnements)
-        const actualStock = 100; // Stock par défaut: 100 unités disponibles
+        // Stock par défaut
+        const defaultStock = 100;
 
         // Créer le produit
         await prisma.product.create({
@@ -538,11 +533,11 @@ export const importProductsFromExcel = async (req: Request, res: Response) => {
             slug: slug,
             description: `${product.name} - Référence ${product.sku}`,
             shortDescription: product.name,
-            price: product.price, // Prix du conditionnement complet
+            price: product.price,
             costPrice: product.costPrice,
             compareAtPrice: null,
-            stock: actualStock, // Stock réel en unités
-            minStock: packagingQty * 2, // Stock minimum = 2 conditionnements
+            stock: defaultStock,
+            minStock: 10,
             status: 'ACTIVE',
             availabilityStatus: 'AVAILABLE',
             isVisible: true,
@@ -554,12 +549,7 @@ export const importProductsFromExcel = async (req: Request, res: Response) => {
             weight: null,
             width: null,
             height: null,
-            length: null,
-            // Champs de conditionnement
-            packagingQuantity: packagingQty,
-            sellByUnit: true, // Permettre vente à l'unité
-            sellByPackage: true, // Permettre vente par conditionnement
-            unitPrice: unitPrice // Prix à l'unité calculé
+            length: null
           }
         });
 
