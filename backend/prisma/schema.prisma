@@ -423,6 +423,10 @@ model Product {
   minStock Int? @default(5)
   maxStock Int?
 
+  // Conditionnement (packaging) - système double pack/unité comme TOOERP
+  packSize Int?    // Nombre d'unités par pack (ex: 24 pour "1 carton × 24")
+  packUnit String? // Type de pack (ex: "carton", "箱", "boîte")
+
   // Status
   status             ProductStatus      @default(ACTIVE)
   availabilityStatus AvailabilityStatus @default(AVAILABLE)
