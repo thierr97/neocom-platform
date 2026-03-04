@@ -423,6 +423,12 @@ model Product {
   minStock Int? @default(5)
   maxStock Int?
 
+  // Conditionnement / Packaging
+  packagingQuantity Int?     @default(1) // Nombre d'unités par conditionnement (ex: 12, 24, 50)
+  sellByUnit        Boolean  @default(true) // Peut-on vendre à l'unité ?
+  sellByPackage     Boolean  @default(true) // Peut-on vendre par conditionnement complet ?
+  unitPrice         Float? // Prix à l'unité (si différent du prix du conditionnement divisé)
+
   // Status
   status             ProductStatus      @default(ACTIVE)
   availabilityStatus AvailabilityStatus @default(AVAILABLE)

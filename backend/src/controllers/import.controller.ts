@@ -521,6 +521,14 @@ export const importProductsFromExcel = async (req: Request, res: Response) => {
 
         const thumbnail = placeholderImages[product.category] || placeholderImages['Nouveaux Produits'];
 
+        // IMPORTANT: product.stock représente la quantité de conditionnement, pas le stock réel!
+        // Ex: 12 = vendu par conditionnement de 12 unités
+        const packagingQty = product.stock || 1;
+        const unitPrice = packagingQty > 1 ? parseFloat((product.price / packagingQty).toFixed(2)) : product.price;
+
+        // Stock réel disponible (en nombre d'unités, pas de conditionnements)
+        const actualStock = 100; // Stock par défaut: 100 unités disponibles
+
         // Créer le produit
         await prisma.product.create({
           data: {
@@ -530,13 +538,13 @@ export const importProductsFromExcel = async (req: Request, res: Response) => {
             slug: slug,
             description: `${product.name} - Référence ${product.sku}`,
             shortDescription: product.name,
-            price: product.price,
+            price: product.price, // Prix du conditionnement complet
             costPrice: product.costPrice,
             compareAtPrice: null,
-            stock: product.stock,
-            minStock: 5,
+            stock: actualStock, // Stock réel en unités
+            minStock: packagingQty * 2, // Stock minimum = 2 conditionnements
             status: 'ACTIVE',
-            availabilityStatus: product.stock > 0 ? 'AVAILABLE' : 'UNAVAILABLE',
+            availabilityStatus: 'AVAILABLE',
             isVisible: true,
             isFeatured: product.category === 'Nouveaux Produits', // Mettre en avant les nouveaux produits
             images: [thumbnail],
@@ -546,7 +554,12 @@ export const importProductsFromExcel = async (req: Request, res: Response) => {
             weight: null,
             width: null,
             height: null,
-            length: null
+            length: null,
+            // Champs de conditionnement
+            packagingQuantity: packagingQty,
+            sellByUnit: true, // Permettre vente à l'unité
+            sellByPackage: true, // Permettre vente par conditionnement
+            unitPrice: unitPrice // Prix à l'unité calculé
           }
         });
 
