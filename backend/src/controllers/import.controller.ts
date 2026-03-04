@@ -345,6 +345,264 @@ export const importProducts = async (req: Request, res: Response) => {
   }
 };
 
+// Fonction pour créer un slug à partir d'un nom
+function slugify(text: string): string {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\-]+/g, '')
+    .replace(/\-\-+/g, '-');
+}
+
+// Import products from Excel (HJK DISTRIBUTION)
+export const importProductsFromExcel = async (req: Request, res: Response) => {
+  console.log('🚀 Démarrage de l\'import des produits...\n');
+
+  try {
+    // Charger les produits catégorisés
+    const products = req.body.products || [];
+
+    if (!products || !Array.isArray(products) || products.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Aucun produit à importer',
+      });
+    }
+
+    // Catégories à créer
+    const categoriesToCreate = [
+      {
+        name: 'Nouveaux Produits',
+        slug: 'nouveaux-produits',
+        description: 'Découvrez nos dernières nouveautés',
+        image: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=400',
+        isVisible: true
+      },
+      {
+        name: 'Cuisine & Maison',
+        slug: 'cuisine-maison',
+        description: 'Tout pour votre cuisine et votre maison',
+        image: 'https://images.unsplash.com/photo-1556911220-bff31c812dba?w=400',
+        isVisible: true
+      },
+      {
+        name: 'Fleurs & Plantes Artificielles',
+        slug: 'fleurs-plantes-artificielles',
+        description: 'Décorez votre intérieur avec nos fleurs artificielles',
+        image: 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=400',
+        isVisible: true
+      },
+      {
+        name: 'Fête & Anniversaire',
+        slug: 'fete-anniversaire',
+        description: 'Tout pour réussir vos fêtes et anniversaires',
+        image: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=400',
+        isVisible: true
+      },
+      {
+        name: 'Décorations de Noël',
+        slug: 'decorations-noel',
+        description: 'Illuminez vos fêtes de fin d\'année',
+        image: 'https://images.unsplash.com/photo-1512389142860-9c449e58a543?w=400',
+        isVisible: true
+      },
+      {
+        name: 'Jouets',
+        slug: 'jouets',
+        description: 'Des jouets pour petits et grands',
+        image: 'https://images.unsplash.com/photo-1558060370-d644479cb6f7?w=400',
+        isVisible: true
+      },
+      {
+        name: 'Décoration',
+        slug: 'decoration',
+        description: 'Objets déco pour embellir votre intérieur',
+        image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=400',
+        isVisible: true
+      }
+    ];
+
+    // Étape 1: Créer ou récupérer les catégories
+    console.log('📦 Création des catégories...');
+    const categoryMap: { [key: string]: string } = {};
+
+    for (const cat of categoriesToCreate) {
+      const category = await prisma.category.upsert({
+        where: { slug: cat.slug },
+        update: {},
+        create: cat
+      });
+      categoryMap[cat.name] = category.id;
+      console.log(`  ✅ ${cat.name} (ID: ${category.id})`);
+    }
+
+    console.log(`\n✅ ${Object.keys(categoryMap).length} catégories créées/mises à jour\n`);
+
+    // Étape 2: Trouver ou créer le fournisseur HJK DISTRIBUTION
+    console.log('🏪 Recherche du fournisseur HJK DISTRIBUTION...');
+    let supplier = await prisma.supplier.findFirst({
+      where: {
+        companyName: {
+          contains: 'HJK',
+          mode: 'insensitive'
+        }
+      }
+    });
+
+    if (!supplier) {
+      console.log('  ⚠️  Fournisseur non trouvé, création...');
+      supplier = await prisma.supplier.create({
+        data: {
+          companyName: 'HJK DISTRIBUTION',
+          email: 'contact@hjk-distribution.fr',
+          status: 'ACTIVE',
+          paymentTerms: 'NET_30'
+        }
+      });
+      console.log(`  ✅ Fournisseur créé (ID: ${supplier.id})`);
+    } else {
+      console.log(`  ✅ Fournisseur trouvé (ID: ${supplier.id})`);
+    }
+
+    // Étape 3: Importer les produits
+    console.log(`\n📥 Import de ${products.length} produits...\n`);
+
+    let imported = 0;
+    let skipped = 0;
+    let errors = 0;
+    const errorList: string[] = [];
+
+    for (const product of products) {
+      try {
+        const categoryId = categoryMap[product.category];
+
+        if (!categoryId) {
+          console.log(`  ⚠️  Catégorie "${product.category}" non trouvée pour ${product.name}`);
+          skipped++;
+          continue;
+        }
+
+        // Vérifier si le produit existe déjà (par SKU ou barcode)
+        const existing = await prisma.product.findFirst({
+          where: {
+            OR: [
+              { sku: product.sku },
+              ...(product.barcode ? [{ barcode: product.barcode }] : [])
+            ]
+          }
+        });
+
+        if (existing) {
+          console.log(`  ⏭️  ${product.name} (SKU: ${product.sku}) existe déjà`);
+          skipped++;
+          continue;
+        }
+
+        // Créer le slug unique
+        let slug = slugify(product.name);
+        let slugCounter = 1;
+        while (await prisma.product.findUnique({ where: { slug } })) {
+          slug = `${slugify(product.name)}-${slugCounter}`;
+          slugCounter++;
+        }
+
+        // Image placeholder basée sur la catégorie
+        const placeholderImages: { [key: string]: string } = {
+          'Nouveaux Produits': 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=600',
+          'Cuisine & Maison': 'https://images.unsplash.com/photo-1556911220-bff31c812dba?w=600',
+          'Fleurs & Plantes Artificielles': 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=600',
+          'Fête & Anniversaire': 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=600',
+          'Décorations de Noël': 'https://images.unsplash.com/photo-1512389142860-9c449e58a543?w=600',
+          'Jouets': 'https://images.unsplash.com/photo-1558060370-d644479cb6f7?w=600',
+          'Décoration': 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600'
+        };
+
+        const thumbnail = placeholderImages[product.category] || placeholderImages['Nouveaux Produits'];
+
+        // Créer le produit
+        await prisma.product.create({
+          data: {
+            sku: product.sku,
+            barcode: product.barcode || null,
+            name: product.name,
+            slug: slug,
+            description: `${product.name} - Référence ${product.sku}`,
+            shortDescription: product.name,
+            price: product.price,
+            costPrice: product.costPrice,
+            compareAtPrice: null,
+            stock: product.stock,
+            minStock: 5,
+            status: 'ACTIVE',
+            availabilityStatus: product.stock > 0 ? 'AVAILABLE' : 'OUT_OF_STOCK',
+            isVisible: true,
+            isFeatured: product.category === 'Nouveaux Produits', // Mettre en avant les nouveaux produits
+            images: [thumbnail],
+            thumbnail: thumbnail,
+            categoryId: categoryId,
+            supplierId: supplier.id,
+            weight: null,
+            width: null,
+            height: null,
+            length: null
+          }
+        });
+
+        console.log(`  ✅ ${product.name} (${product.category})`);
+        imported++;
+
+      } catch (error: any) {
+        console.error(`  ❌ Erreur pour ${product.name}:`, error.message);
+        errors++;
+        errorList.push(`${product.name}: ${error.message}`);
+      }
+    }
+
+    console.log('\n' + '='.repeat(60));
+    console.log('📊 RÉSUMÉ DE L\'IMPORT');
+    console.log('='.repeat(60));
+    console.log(`✅ Produits importés: ${imported}`);
+    console.log(`⏭️  Produits ignorés (déjà existants): ${skipped}`);
+    console.log(`❌ Erreurs: ${errors}`);
+    console.log(`📦 Total traité: ${products.length}`);
+    console.log('='.repeat(60));
+
+    // Statistiques par catégorie
+    console.log('\n📊 PRODUITS PAR CATÉGORIE:');
+    const categoryStats: { [key: string]: number } = {};
+    for (const [categoryName, categoryId] of Object.entries(categoryMap)) {
+      const count = await prisma.product.count({
+        where: { categoryId }
+      });
+      categoryStats[categoryName] = count;
+      console.log(`  ${categoryName}: ${count} produits`);
+    }
+
+    return res.json({
+      success: true,
+      message: `Import terminé: ${imported} produits importés, ${skipped} ignorés, ${errors} erreurs`,
+      data: {
+        imported,
+        skipped,
+        errors,
+        errorList,
+        totalProcessed: products.length,
+        categoryStats
+      }
+    });
+
+  } catch (error: any) {
+    console.error('\n❌ Erreur fatale:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de l\'import',
+      error: error.message,
+    });
+  }
+};
+
 // Get import history
 export const getImportHistory = async (req: Request, res: Response) => {
   try {
