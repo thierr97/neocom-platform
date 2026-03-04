@@ -466,12 +466,34 @@ export const importProductsFromExcel = async (req: Request, res: Response) => {
       console.log(`  ✅ Fournisseur trouvé (ID: ${supplier.id})`);
     }
 
-    // Étape 3: Importer les produits
+    // Étape 3: Importer les produits (OPTIMISÉ - chargement en mémoire)
     console.log(`\n📥 Import de ${products.length} produits...\n`);
 
-    let imported = 0;
+    // OPTIMISATION: Charger tous les produits existants UNE SEULE FOIS
+    console.log('⚡ Chargement des produits existants en mémoire...');
+    const existingProducts = await prisma.product.findMany({
+      select: { sku: true, barcode: true, slug: true }
+    });
+
+    const existingSkus = new Set(existingProducts.map(p => p.sku));
+    const existingBarcodes = new Set(existingProducts.map(p => p.barcode).filter(Boolean));
+    const existingSlugs = new Set(existingProducts.map(p => p.slug));
+    console.log(`  ✅ ${existingProducts.length} produits existants chargés\n`);
+
+    // Image placeholder basée sur la catégorie
+    const placeholderImages: { [key: string]: string } = {
+      'Nouveaux Produits': 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=600',
+      'Cuisine & Maison': 'https://images.unsplash.com/photo-1556911220-bff31c812dba?w=600',
+      'Fleurs & Plantes Artificielles': 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=600',
+      'Fête & Anniversaire': 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=600',
+      'Décorations de Noël': 'https://images.unsplash.com/photo-1512389142860-9c449e58a543?w=600',
+      'Jouets': 'https://images.unsplash.com/photo-1558060370-d644479cb6f7?w=600',
+      'Décoration': 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600'
+    };
+
+    // Préparer les produits à insérer
+    const productsToInsert: any[] = [];
     let skipped = 0;
-    let errors = 0;
     const errorList: string[] = [];
 
     for (const product of products) {
@@ -484,82 +506,75 @@ export const importProductsFromExcel = async (req: Request, res: Response) => {
           continue;
         }
 
-        // Vérifier si le produit existe déjà (par SKU ou barcode)
-        const existing = await prisma.product.findFirst({
-          where: {
-            OR: [
-              { sku: product.sku },
-              ...(product.barcode ? [{ barcode: product.barcode }] : [])
-            ]
-          }
-        });
-
-        if (existing) {
+        // OPTIMISATION: Vérifier en mémoire au lieu de requête DB
+        if (existingSkus.has(product.sku) || (product.barcode && existingBarcodes.has(product.barcode))) {
           console.log(`  ⏭️  ${product.name} (SKU: ${product.sku}) existe déjà`);
           skipped++;
           continue;
         }
 
-        // Créer le slug unique
+        // OPTIMISATION: Créer le slug unique en mémoire
         let slug = slugify(product.name);
         let slugCounter = 1;
-        while (await prisma.product.findUnique({ where: { slug } })) {
+        while (existingSlugs.has(slug)) {
           slug = `${slugify(product.name)}-${slugCounter}`;
           slugCounter++;
         }
-
-        // Image placeholder basée sur la catégorie
-        const placeholderImages: { [key: string]: string } = {
-          'Nouveaux Produits': 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=600',
-          'Cuisine & Maison': 'https://images.unsplash.com/photo-1556911220-bff31c812dba?w=600',
-          'Fleurs & Plantes Artificielles': 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=600',
-          'Fête & Anniversaire': 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=600',
-          'Décorations de Noël': 'https://images.unsplash.com/photo-1512389142860-9c449e58a543?w=600',
-          'Jouets': 'https://images.unsplash.com/photo-1558060370-d644479cb6f7?w=600',
-          'Décoration': 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600'
-        };
+        existingSlugs.add(slug); // Ajouter pour éviter duplicata dans ce batch
 
         const thumbnail = placeholderImages[product.category] || placeholderImages['Nouveaux Produits'];
 
-        // Stock par défaut
-        const defaultStock = 100;
-
-        // Créer le produit
-        await prisma.product.create({
-          data: {
-            sku: product.sku,
-            barcode: product.barcode || null,
-            name: product.name,
-            slug: slug,
-            description: `${product.name} - Référence ${product.sku}`,
-            shortDescription: product.name,
-            price: product.price,
-            costPrice: product.costPrice,
-            compareAtPrice: null,
-            stock: defaultStock,
-            minStock: 10,
-            status: 'ACTIVE',
-            availabilityStatus: 'AVAILABLE',
-            isVisible: true,
-            isFeatured: product.category === 'Nouveaux Produits', // Mettre en avant les nouveaux produits
-            images: [thumbnail],
-            thumbnail: thumbnail,
-            categoryId: categoryId,
-            supplierId: supplier.id,
-            weight: null,
-            width: null,
-            height: null,
-            length: null
-          }
+        // Ajouter à la liste des produits à insérer
+        productsToInsert.push({
+          sku: product.sku,
+          barcode: product.barcode || null,
+          name: product.name,
+          slug: slug,
+          description: `${product.name} - Référence ${product.sku}`,
+          shortDescription: product.name,
+          price: product.price,
+          costPrice: product.costPrice,
+          compareAtPrice: null,
+          stock: 100,
+          minStock: 10,
+          status: 'ACTIVE',
+          availabilityStatus: 'AVAILABLE',
+          isVisible: true,
+          isFeatured: product.category === 'Nouveaux Produits',
+          images: [thumbnail],
+          thumbnail: thumbnail,
+          categoryId: categoryId,
+          supplierId: supplier.id,
+          weight: null,
+          width: null,
+          height: null,
+          length: null
         });
 
         console.log(`  ✅ ${product.name} (${product.category})`);
-        imported++;
 
       } catch (error: any) {
         console.error(`  ❌ Erreur pour ${product.name}:`, error.message);
-        errors++;
         errorList.push(`${product.name}: ${error.message}`);
+      }
+    }
+
+    // OPTIMISATION: Insertion en masse avec createMany
+    let imported = 0;
+    let errors = 0;
+    if (productsToInsert.length > 0) {
+      console.log(`\n⚡ Insertion en masse de ${productsToInsert.length} produits...`);
+      try {
+        const result = await prisma.product.createMany({
+          data: productsToInsert,
+          skipDuplicates: true
+        });
+        imported = result.count;
+        console.log(`  ✅ ${imported} produits insérés avec succès`);
+      } catch (error: any) {
+        console.error(`  ❌ Erreur lors de l'insertion en masse:`, error.message);
+        errors = productsToInsert.length;
+        errorList.push(`Insertion en masse: ${error.message}`);
       }
     }
 
@@ -572,16 +587,8 @@ export const importProductsFromExcel = async (req: Request, res: Response) => {
     console.log(`📦 Total traité: ${products.length}`);
     console.log('='.repeat(60));
 
-    // Statistiques par catégorie
-    console.log('\n📊 PRODUITS PAR CATÉGORIE:');
-    const categoryStats: { [key: string]: number } = {};
-    for (const [categoryName, categoryId] of Object.entries(categoryMap)) {
-      const count = await prisma.product.count({
-        where: { categoryId }
-      });
-      categoryStats[categoryName] = count;
-      console.log(`  ${categoryName}: ${count} produits`);
-    }
+    // OPTIMISATION: Stats simplifiées (pas de requêtes DB supplémentaires)
+    console.log('\n⚡ Stats de catégorie désactivées pour performance');
 
     return res.json({
       success: true,
@@ -590,9 +597,8 @@ export const importProductsFromExcel = async (req: Request, res: Response) => {
         imported,
         skipped,
         errors,
-        errorList,
-        totalProcessed: products.length,
-        categoryStats
+        errorList: errorList.slice(0, 10), // Limiter à 10 erreurs pour éviter payload trop gros
+        totalProcessed: products.length
       }
     });
 
