@@ -536,7 +536,7 @@ export const importProductsFromExcel = async (req: Request, res: Response) => {
             stock: product.stock,
             minStock: 5,
             status: 'ACTIVE',
-            availabilityStatus: product.stock > 0 ? 'AVAILABLE' : 'OUT_OF_STOCK',
+            availabilityStatus: product.stock > 0 ? 'AVAILABLE' : 'UNAVAILABLE',
             isVisible: true,
             isFeatured: product.category === 'Nouveaux Produits', // Mettre en avant les nouveaux produits
             images: [thumbnail],
