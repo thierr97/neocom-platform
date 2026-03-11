@@ -23,12 +23,12 @@ router.post('/update-emails-to-neoserv', async (req, res) => {
   try {
     // Vérifier un secret pour la sécurité
     const { secret } = req.body;
-    const MIGRATION_SECRET = process.env.MIGRATION_SECRET || 'neoserv-migration-2024';
+    const MIGRATION_SECRET = process.env.MIGRATION_SECRET;
 
     if (secret !== MIGRATION_SECRET) {
       return res.status(401).json({
         error: 'Secret invalide',
-        message: 'Envoyez le secret dans le body: { "secret": "neoserv-migration-2024" }'
+        
       });
     }
 
@@ -120,12 +120,12 @@ router.get('/check-emails', async (req, res) => {
 router.post('/add-availability-status', async (req, res) => {
   try {
     const { secret } = req.body;
-    const MIGRATION_SECRET = process.env.MIGRATION_SECRET || 'neoserv-migration-2024';
+    const MIGRATION_SECRET = process.env.MIGRATION_SECRET;
 
     if (secret !== MIGRATION_SECRET) {
       return res.status(401).json({
         error: 'Secret invalide',
-        message: 'Envoyez le secret dans le body: { "secret": "neoserv-migration-2024" }'
+        
       });
     }
 
@@ -168,12 +168,12 @@ router.post('/add-availability-status', async (req, res) => {
 router.post('/add-search-terms', async (req, res) => {
   try {
     const { secret } = req.body;
-    const MIGRATION_SECRET = process.env.MIGRATION_SECRET || 'neoserv-migration-2024';
+    const MIGRATION_SECRET = process.env.MIGRATION_SECRET;
 
     if (secret !== MIGRATION_SECRET) {
       return res.status(401).json({
         error: 'Secret invalide',
-        message: 'Envoyez le secret dans le body: { "secret": "neoserv-migration-2024" }'
+        
       });
     }
 
@@ -207,12 +207,12 @@ router.post('/add-search-terms', async (req, res) => {
 router.post('/generate-search-terms', async (req, res) => {
   try {
     const { secret } = req.body;
-    const MIGRATION_SECRET = process.env.MIGRATION_SECRET || 'neoserv-migration-2024';
+    const MIGRATION_SECRET = process.env.MIGRATION_SECRET;
 
     if (secret !== MIGRATION_SECRET) {
       return res.status(401).json({
         error: 'Secret invalide',
-        message: 'Envoyez le secret dans le body: { "secret": "neoserv-migration-2024" }'
+        
       });
     }
 
@@ -426,12 +426,12 @@ async function notifyUnsplashDownload(downloadUrl: string): Promise<void> {
 router.post('/add-free-stock-images', async (req, res) => {
   try {
     const { secret, maxProducts = 10, imagesPerProduct = 3 } = req.body;
-    const MIGRATION_SECRET = process.env.MIGRATION_SECRET || 'neoserv-migration-2024';
+    const MIGRATION_SECRET = process.env.MIGRATION_SECRET;
 
     if (secret !== MIGRATION_SECRET) {
       return res.status(401).json({
         error: 'Secret invalide',
-        message: 'Envoyez le secret dans le body: { "secret": "neoserv-migration-2024" }'
+        
       });
     }
 
@@ -555,12 +555,12 @@ router.post('/add-free-stock-images', async (req, res) => {
 router.post('/init-company-settings', async (req, res) => {
   try {
     const { secret } = req.body;
-    const MIGRATION_SECRET = process.env.MIGRATION_SECRET || 'neoserv-migration-2024';
+    const MIGRATION_SECRET = process.env.MIGRATION_SECRET;
 
     if (secret !== MIGRATION_SECRET) {
       return res.status(401).json({
         error: 'Secret invalide',
-        message: 'Envoyez le secret dans le body: { "secret": "neoserv-migration-2024" }'
+        
       });
     }
 
