@@ -45,6 +45,7 @@ import shopBannerRoutes from './routes/shop-banner.routes';
 import taskRoutes from './routes/task.routes';
 import logisticsRoutes from './routes/logistics.routes';
 import supplierAuthRoutes from './routes/supplierAuth.routes';
+import promoBannerRoutes from './routes/promo-banner.routes';
 
 // Load environment variables
 dotenv.config();
@@ -60,17 +61,33 @@ app.use(helmet({
   contentSecurityPolicy: false,
 }));
 
-// Rate limiting - TEMPORAIREMENT DÉSACTIVÉ POUR TESTS
-// const limiter = rateLimit({
-//   windowMs: 15 * 60 * 1000, // 15 minutes
-//   max: 500, // limit each IP to 500 requests per windowMs (increased for testing/admin work)
-//   message: 'Trop de requêtes depuis cette IP, veuillez réessayer plus tard.',
-//   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-//   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-//   validate: { trustProxy: false }, // Disable validation for trust proxy - Required for Render
-// });
+// Rate limiting - general
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: 'Trop de requêtes depuis cette IP, veuillez réessayer plus tard.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: { trustProxy: false },
+});
 
-// app.use('/api/', limiter);
+// Strict rate limiting for auth endpoints (brute-force protection)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: 'Trop de tentatives de connexion. Veuillez réessayer dans 15 minutes.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: { trustProxy: false },
+});
+
+app.use('/api/', limiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+app.use('/api/client/login', authLimiter);
+app.use('/api/client/register', authLimiter);
+app.use('/api/client/google-auth', authLimiter);
+app.use('/api/suppliers/auth/login', authLimiter);
 
 // CORS configuration
 const corsOptions = {
@@ -93,8 +110,13 @@ const corsOptions = {
       return;
     }
 
-    // Allow Vercel preview deployments and neoserv.fr subdomains
-    if (origin.endsWith('.vercel.app') || origin.endsWith('neoserv.fr') || origin.includes('neoserv.fr')) {
+    // Allow Vercel preview deployments for neoserv project and neoserv.fr subdomains
+    if (origin.endsWith('.neoserv.fr') || origin === 'https://neoserv.fr' || origin === 'http://neoserv.fr') {
+      callback(null, true);
+      return;
+    }
+    // Allow Vercel preview URLs for this project only (pattern: neoserv-*.vercel.app)
+    if (/^https:\/\/neoserv(-[a-z0-9]+)*\.vercel\.app$/.test(origin)) {
       callback(null, true);
       return;
     }
@@ -179,6 +201,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/ai-manager', aiManagerRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/logistics', logisticsRoutes);
+app.use('/api/promo-banners', promoBannerRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

@@ -5,6 +5,12 @@ import jwt from 'jsonwebtoken';
 
 const prisma = new PrismaClient();
 
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error('JWT_SECRET environment variable is not set');
+  return secret;
+}
+
 // Client registration
 export const clientRegister = async (req: Request, res: Response) => {
   try {
@@ -96,7 +102,7 @@ export const clientRegister = async (req: Request, res: Response) => {
     // Generate token
     const token = jwt.sign(
       { customerId: customer.id, email: customer.email, type: 'customer' },
-      process.env.JWT_SECRET || 'secret',
+      getJwtSecret(),
       { expiresIn: '7d' }
     );
 
@@ -117,7 +123,6 @@ export const clientRegister = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'inscription',
-      error: error.message,
     });
   }
 };
@@ -174,7 +179,7 @@ export const clientGoogleAuth = async (req: Request, res: Response) => {
     // Generate token
     const token = jwt.sign(
       { customerId: customer.id, email: customer.email, type: 'customer' },
-      process.env.JWT_SECRET || 'secret',
+      getJwtSecret(),
       { expiresIn: '7d' }
     );
 
@@ -195,7 +200,6 @@ export const clientGoogleAuth = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'authentification Google',
-      error: error.message,
     });
   }
 };
@@ -245,7 +249,7 @@ export const clientLogin = async (req: Request, res: Response) => {
     // Generate token
     const token = jwt.sign(
       { customerId: customer.id, email: customer.email, type: 'customer' },
-      process.env.JWT_SECRET || 'secret',
+      getJwtSecret(),
       { expiresIn: '7d' }
     );
 
@@ -266,7 +270,6 @@ export const clientLogin = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la connexion',
-      error: error.message,
     });
   }
 };
@@ -297,7 +300,6 @@ export const getClientOrders = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des commandes',
-      error: error.message,
     });
   }
 };
@@ -339,7 +341,6 @@ export const getClientOrder = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération de la commande',
-      error: error.message,
     });
   }
 };
@@ -375,7 +376,6 @@ export const getClientInvoices = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des factures',
-      error: error.message,
     });
   }
 };
@@ -422,7 +422,6 @@ export const getClientInvoice = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération de la facture',
-      error: error.message,
     });
   }
 };
@@ -453,7 +452,6 @@ export const getClientQuotes = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des devis',
-      error: error.message,
     });
   }
 };
@@ -483,7 +481,6 @@ export const getClientProfile = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération du profil',
-      error: error.message,
     });
   }
 };
@@ -531,7 +528,6 @@ export const updateClientProfile = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la mise à jour du profil',
-      error: error.message,
     });
   }
 };
@@ -574,7 +570,6 @@ export const getClientStatistics = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des statistiques',
-      error: error.message,
     });
   }
 };

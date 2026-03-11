@@ -15,7 +15,12 @@ export const authenticateClient = (req: Request, res: Response, next: NextFuncti
     const token = authHeader.substring(7);
 
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as any;
+      const jwtSecret = process.env.JWT_SECRET;
+      if (!jwtSecret) {
+        console.error('FATAL: JWT_SECRET is not set');
+        return res.status(500).json({ success: false, message: 'Erreur de configuration serveur' });
+      }
+      const decoded = jwt.verify(token, jwtSecret) as any;
 
       if (decoded.type !== 'customer') {
         return res.status(403).json({

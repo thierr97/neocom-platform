@@ -7,7 +7,7 @@ import { randomUUID } from 'crypto';
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { email, password, firstName, lastName, phone, role } = req.body;
+    const { email, password, firstName, lastName, phone } = req.body;
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
@@ -26,7 +26,7 @@ export const register = async (req: Request, res: Response) => {
         firstName,
         lastName,
         phone,
-        role: role || 'CLIENT',
+        role: 'CLIENT', // Role is never taken from user input - always CLIENT
         status: 'ACTIVE',
       },
       select: {
@@ -58,7 +58,6 @@ export const register = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'inscription',
-      error: error.message,
     });
   }
 };

@@ -2,8 +2,13 @@ import { Router } from 'express';
 import prisma from '../config/database';
 import fetch from 'node-fetch';
 import cloudinary from 'cloudinary';
+import { authenticateToken, requireRole } from '../middleware/auth';
 
 const router = Router();
+
+// All migration routes require authentication and ADMIN role
+router.use(authenticateToken);
+router.use(requireRole('ADMIN'));
 
 // Configure Cloudinary
 cloudinary.v2.config({
@@ -88,7 +93,7 @@ router.post('/update-emails-to-neoserv', async (req, res) => {
   }
 });
 
-// Route GET pour vérifier l'état actuel
+// Route GET pour vérifier l'état actuel (ADMIN only - auth applied at router level)
 router.get('/check-emails', async (req, res) => {
   try {
     const users = await prisma.user.findMany({
@@ -105,14 +110,9 @@ router.get('/check-emails', async (req, res) => {
       neoservEmails: neoservEmails.length,
       neocomUsers: neocomEmails.map(u => u.email),
       neoservUsers: neoservEmails.map(u => u.email),
-      allUsers: users.map(u => ({
-        email: u.email,
-        name: `${u.firstName} ${u.lastName}`,
-        role: u.role
-      }))
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Erreur serveur' });
   }
 });
 
