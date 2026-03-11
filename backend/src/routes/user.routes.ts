@@ -1,5 +1,5 @@
 import express from 'express';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware, requireRole } from '../middleware/auth';
 import {
   getAllUsers,
   getUserById,
@@ -15,25 +15,16 @@ const router = express.Router();
 // All routes require authentication
 router.use(authMiddleware);
 
-// Get all users (with optional role filter)
-router.get('/', getAllUsers);
+// User management: ADMIN only (except permissions read which is self-service)
+router.get('/', requireRole('ADMIN', 'COMMERCIAL'), getAllUsers);
+router.get('/:id', requireRole('ADMIN', 'COMMERCIAL'), getUserById);
+router.post('/', requireRole('ADMIN'), createUser);
+router.put('/:id', requireRole('ADMIN'), updateUser);
+router.delete('/:id', requireRole('ADMIN'), deleteUser);
 
-// Get user by ID
-router.get('/:id', getUserById);
-
-// Create new user
-router.post('/', createUser);
-
-// Update user
-router.put('/:id', updateUser);
-
-// Delete user
-router.delete('/:id', deleteUser);
-
-// Get user permissions
+// Permissions: any authenticated user can read their own (controller should enforce self-access)
 router.get('/:id/permissions', getUserPermissions);
-
-// Update user permissions
-router.put('/:id/permissions', updateUserPermissions);
+// Only ADMIN can update permissions
+router.put('/:id/permissions', requireRole('ADMIN'), updateUserPermissions);
 
 export default router;

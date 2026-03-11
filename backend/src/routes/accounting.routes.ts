@@ -11,12 +11,13 @@ import {
   getAccountingStats,
   validateEntry,
 } from '../controllers/accounting.controller';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, requireRole } from '../middleware/auth';
 
 const router = express.Router();
 
-// All routes require authentication
+// All accounting routes require authentication and ACCOUNTANT or ADMIN role
 router.use(authenticateToken);
+router.use(requireRole('ADMIN', 'ACCOUNTANT'));
 
 // Chart of Accounts
 router.post('/initialize', initializeChartOfAccounts);
