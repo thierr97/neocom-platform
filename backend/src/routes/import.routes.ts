@@ -1,14 +1,12 @@
 import { Router } from 'express';
 import * as importController from '../controllers/import.controller';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, requireRole } from '../middleware/auth';
 
 const router = Router();
 
-// Temp: Allow products-excel without auth for one-time import
-router.post('/products-excel', importController.importProductsFromExcel);
-
-// All other import routes require authentication
+// All import routes require authentication and at least COMMERCIAL role
 router.use(authenticateToken);
+router.use(requireRole('ADMIN', 'COMMERCIAL'));
 
 // Import routes
 router.post('/customers', importController.importCustomers);

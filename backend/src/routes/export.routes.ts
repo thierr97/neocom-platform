@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import * as exportController from '../controllers/export.controller';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, requireRole } from '../middleware/auth';
 
 const router = Router();
 
-// All export routes require authentication
+// All export routes require authentication and at least COMMERCIAL or ACCOUNTANT role
 router.use(authenticateToken);
+router.use(requireRole('ADMIN', 'COMMERCIAL', 'ACCOUNTANT'));
 
 // Export routes
 router.get('/orders', exportController.exportOrders);

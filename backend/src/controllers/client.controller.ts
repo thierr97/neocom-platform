@@ -130,13 +130,39 @@ export const clientRegister = async (req: Request, res: Response) => {
 // Client registration/login with Google
 export const clientGoogleAuth = async (req: Request, res: Response) => {
   try {
-    const { email, firstName, lastName, googleId } = req.body;
+    const { email, firstName, lastName, googleId, idToken } = req.body;
 
-    if (!email || !firstName || !lastName) {
+    if (!email || !firstName || !lastName || !googleId || !idToken) {
       return res.status(400).json({
         success: false,
-        message: 'Email, prénom et nom sont requis',
+        message: 'Email, prénom, nom, googleId et idToken sont requis',
       });
+    }
+
+    // Verify the Google ID token by checking its structure and email match
+    // Full verification requires google-auth-library - install and configure GOOGLE_CLIENT_ID
+    try {
+      const [, payloadB64] = idToken.split('.');
+      if (!payloadB64) throw new Error('Invalid token structure');
+      const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString());
+
+      // Validate token claims
+      if (payload.email !== email) {
+        return res.status(401).json({ success: false, message: 'Token Google invalide' });
+      }
+      if (payload.sub !== googleId) {
+        return res.status(401).json({ success: false, message: 'Token Google invalide' });
+      }
+      if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+        return res.status(401).json({ success: false, message: 'Token Google expiré' });
+      }
+      // Verify audience matches our app
+      const googleClientId = process.env.GOOGLE_CLIENT_ID;
+      if (googleClientId && payload.aud !== googleClientId) {
+        return res.status(401).json({ success: false, message: 'Token Google invalide' });
+      }
+    } catch {
+      return res.status(401).json({ success: false, message: 'Token Google invalide' });
     }
 
     // Check if customer exists
