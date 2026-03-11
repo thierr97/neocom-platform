@@ -34,7 +34,7 @@ export const getRecommendations = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la génération des recommandations',
-      error: error.message,
+
     });
   }
 };
@@ -71,7 +71,7 @@ export const getSimilarProducts = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la recherche de produits similaires',
-      error: error.message,
+
     });
   }
 };
@@ -107,7 +107,7 @@ export const predictChurn = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'analyse de risque',
-      error: error.message,
+
     });
   }
 };
@@ -158,7 +158,7 @@ export const batchPredictChurn = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'analyse batch',
-      error: error.message,
+
     });
   }
 };
@@ -199,7 +199,7 @@ export const predictOrderQuantity = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la prédiction de quantité',
-      error: error.message,
+
     });
   }
 };
@@ -223,7 +223,7 @@ export const getTrendingProducts = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la recherche de produits tendance',
-      error: error.message,
+
     });
   }
 };
@@ -292,7 +292,7 @@ export const getAIInsights = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la génération des insights',
-      error: error.message,
+
     });
   }
 };

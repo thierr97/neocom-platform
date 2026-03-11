@@ -479,7 +479,7 @@ Donne des recommandations prioritaires, chiffrées et actionnables en français.
             productId: product.id,
             productName: product.name,
             success: false,
-            error: error.message,
+      
           });
         }
       }
@@ -499,7 +499,7 @@ Donne des recommandations prioritaires, chiffrées et actionnables en français.
     } catch (error: any) {
       results.push({
         task: 'error',
-        error: error.message,
+  
       });
     }
 

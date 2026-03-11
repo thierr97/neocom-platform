@@ -133,7 +133,7 @@ export const getAllDeliveries = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des livraisons',
-      error: error.message,
+
     });
   }
 };
@@ -240,7 +240,7 @@ export const getDeliveryById = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération de la livraison',
-      error: error.message,
+
     });
   }
 };
@@ -347,7 +347,7 @@ export const createDelivery = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la création de la livraison',
-      error: error.message,
+
     });
   }
 };
@@ -464,7 +464,7 @@ export const updateDeliveryStatus = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la mise à jour du statut',
-      error: error.message,
+
     });
   }
 };
@@ -589,7 +589,7 @@ export const assignCourier = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'assignation du coursier',
-      error: error.message,
+
     });
   }
 };
@@ -687,7 +687,7 @@ export const updateLocation = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la mise à jour de la position',
-      error: error.message,
+
     });
   }
 };
@@ -810,7 +810,7 @@ export const addDeliveryProof = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'ajout de la preuve de livraison',
-      error: error.message,
+
     });
   }
 };
@@ -924,7 +924,7 @@ export const cancelDelivery = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'annulation de la livraison',
-      error: error.message,
+
     });
   }
 };

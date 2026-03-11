@@ -35,12 +35,12 @@ async function fixFailedMigration() {
     const beforeResult = await client.query(
       `SELECT migration_name, finished_at, logs
        FROM "_prisma_migrations"
-       WHERE migration_name LIKE '%add_customer_coordinates%'
+       WHERE migration_name LIKE '%delivery_courier%'
        ORDER BY started_at DESC`
     );
 
     if (beforeResult.rows.length === 0) {
-      console.log('✅ Aucune migration add_customer_coordinates trouvée (déjà nettoyée ?)');
+      console.log('✅ Aucune migration delivery_courier trouvée (déjà nettoyée ?)');
     } else {
       console.table(beforeResult.rows.map(row => ({
         migration: row.migration_name,
@@ -53,7 +53,7 @@ async function fixFailedMigration() {
     console.log('\n🧹 Suppression de la migration échouée...');
     const deleteResult = await client.query(
       `DELETE FROM "_prisma_migrations"
-       WHERE migration_name = '20251210131500_add_customer_coordinates'
+       WHERE migration_name = '20251217010000_add_delivery_courier_system'
        RETURNING migration_name`
     );
 
@@ -63,21 +63,21 @@ async function fixFailedMigration() {
       console.log('ℹ️  Aucune migration à supprimer (déjà nettoyée)');
     }
 
-    // 3. Vérifier que les colonnes n'existent pas déjà
-    console.log('\n🔍 Vérification des colonnes dans la table customers...');
-    const columnsResult = await client.query(
-      `SELECT column_name, data_type
-       FROM information_schema.columns
-       WHERE table_name = 'customers'
-       AND column_name IN ('latitude', 'longitude')`
+    // 3. Vérifier que les tables n'existent pas déjà
+    console.log('\n🔍 Vérification des tables delivery/courier...');
+    const tablesResult = await client.query(
+      `SELECT table_name
+       FROM information_schema.tables
+       WHERE table_schema = 'public'
+       AND table_name IN ('deliveries', 'delivery_events', 'courier_profiles', 'courier_documents')`
     );
 
-    if (columnsResult.rows.length > 0) {
-      console.log('⚠️  Les colonnes existent déjà :');
-      console.table(columnsResult.rows);
-      console.log('ℹ️  La nouvelle migration sera ignorée car les colonnes existent déjà (grâce à IF NOT EXISTS)');
+    if (tablesResult.rows.length > 0) {
+      console.log('⚠️  Certaines tables existent déjà :');
+      console.table(tablesResult.rows);
+      console.log('ℹ️  La migration échouera si ces tables existent. Considérez les supprimer d\'abord.');
     } else {
-      console.log('✅ Les colonnes n\'existent pas encore - la migration les créera');
+      console.log('✅ Les tables n\'existent pas encore - la migration les créera');
     }
 
     // 4. État final
@@ -85,12 +85,12 @@ async function fixFailedMigration() {
     const afterResult = await client.query(
       `SELECT migration_name, finished_at
        FROM "_prisma_migrations"
-       WHERE migration_name LIKE '%add_customer_coordinates%'
+       WHERE migration_name LIKE '%delivery_courier%'
        ORDER BY started_at DESC`
     );
 
     if (afterResult.rows.length === 0) {
-      console.log('✅ Aucune migration add_customer_coordinates (nettoyage réussi)');
+      console.log('✅ Aucune migration delivery_courier (nettoyage réussi)');
     } else {
       console.table(afterResult.rows);
     }
@@ -99,7 +99,7 @@ async function fixFailedMigration() {
     console.log('\n📌 Prochaine étape :');
     console.log('   1. Allez sur le dashboard Render');
     console.log('   2. Cliquez sur "Manual Deploy" > "Deploy latest commit"');
-    console.log('   3. La migration 20251210133000_add_customer_coordinates s\'appliquera correctement');
+    console.log('   3. La migration 20251218000000_add_delivery_courier_system s\'appliquera correctement');
 
   } catch (error) {
     console.error('\n❌ Erreur lors du nettoyage :', error.message);

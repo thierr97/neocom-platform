@@ -78,7 +78,7 @@ export const initializeChartOfAccounts = async (req: AuthRequest, res: Response)
     res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'initialisation du plan comptable',
-      error: error.message,
+
     });
   }
 };
@@ -112,7 +112,7 @@ export const getAccounts = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des comptes',
-      error: error.message,
+
     });
   }
 };
@@ -199,7 +199,7 @@ export const createAccountingEntry = async (req: AuthRequest, res: Response) => 
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la création de l\'écriture',
-      error: error.message,
+
     });
   }
 };
@@ -249,7 +249,7 @@ export const getAccountingEntries = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des écritures',
-      error: error.message,
+
     });
   }
 };
@@ -319,7 +319,7 @@ export const getGeneralLedger = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la génération du grand livre',
-      error: error.message,
+
     });
   }
 };
@@ -381,7 +381,7 @@ export const getTrialBalance = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la génération de la balance',
-      error: error.message,
+
     });
   }
 };
@@ -467,7 +467,7 @@ export const getIncomeStatement = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la génération du compte de résultat',
-      error: error.message,
+
     });
   }
 };
@@ -499,7 +499,7 @@ export const validateEntry = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la validation de l\'écriture',
-      error: error.message,
+
     });
   }
 };
@@ -589,7 +589,7 @@ export const getBalanceSheet = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la génération du bilan',
-      error: error.message,
+
     });
   }
 };
@@ -671,7 +671,7 @@ export const getAccountingStats = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des statistiques',
-      error: error.message,
+
     });
   }
 };

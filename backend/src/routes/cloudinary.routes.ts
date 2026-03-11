@@ -65,7 +65,7 @@ router.post(
             return res.status(500).json({
               success: false,
               message: 'Erreur lors de l\'upload vers Cloudinary',
-              error: error.message,
+        
             });
           }
 
@@ -91,7 +91,7 @@ router.post(
       res.status(500).json({
         success: false,
         message: 'Erreur lors de l\'upload de l\'image',
-        error: error.message,
+  
       });
     }
   }
@@ -167,7 +167,7 @@ router.post(
       res.status(500).json({
         success: false,
         message: 'Erreur lors de l\'upload des images',
-        error: error.message,
+  
       });
     }
   }
@@ -203,7 +203,7 @@ router.delete(
       res.status(500).json({
         success: false,
         message: 'Erreur lors de la suppression de l\'image',
-        error: error.message,
+  
       });
     }
   }
@@ -269,7 +269,7 @@ router.post(
           results.failed++;
           results.errors.push({
             sku,
-            error: error.message,
+      
           });
         }
       }
@@ -292,7 +292,7 @@ router.post(
       res.status(500).json({
         success: false,
         message: 'Erreur lors de la synchronisation des images',
-        error: error.message,
+  
       });
     }
   }

@@ -58,7 +58,7 @@ export const exportOrders = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'export',
-      error: error.message,
+
     });
   }
 };
@@ -99,7 +99,7 @@ export const exportOrderDetails = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'export',
-      error: error.message,
+
     });
   }
 };
@@ -146,7 +146,7 @@ export const exportCustomers = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'export',
-      error: error.message,
+
     });
   }
 };
@@ -182,7 +182,7 @@ export const exportProducts = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'export',
-      error: error.message,
+
     });
   }
 };
@@ -241,7 +241,7 @@ export const exportInvoices = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'export',
-      error: error.message,
+
     });
   }
 };
@@ -295,7 +295,7 @@ export const exportQuotes = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'export',
-      error: error.message,
+
     });
   }
 };

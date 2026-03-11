@@ -197,7 +197,7 @@ export const getVatReport = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la génération du rapport de TVA',
-      error: error.message,
+
     });
   }
 };
@@ -275,7 +275,7 @@ export const getYearVatSummary = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la génération du résumé annuel de TVA',
-      error: error.message,
+
     });
   }
 };

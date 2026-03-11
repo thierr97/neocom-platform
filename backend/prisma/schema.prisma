@@ -2864,3 +2864,38 @@ model DeliveryProof {
 
   @@map("delivery_proofs")
 }
+
+// ========================================
+// PROMO BANNERS (SHOP)
+// ========================================
+
+model PromoBanner {
+  id String @id @default(uuid())
+
+  // Contenu de la bannière
+  title           String  // Ex: "Cyber Monday", "Soldes d'Été"
+  subtitle        String? // Ex: "Jusqu'à"
+  discountText    String  // Ex: "-70%", "-50€"
+  emoji           String  @default("🎁") // Emoji à afficher
+  endDate         DateTime? // Date de fin de la promo
+  endDateText     String?   // Ex: "FIN DE LA PROMO : 31 DÉCEMBRE, 23:59"
+
+  // Style et apparence
+  bgGradientFrom  String  @default("bg-gradient-to-r from-blue-600") // Classes Tailwind
+  bgGradientTo    String  @default("to-pink-600")
+  badgeColor      String  @default("bg-red-500") // Couleur du badge de réduction
+  textColor       String  @default("text-white")
+
+  // Activation
+  isActive        Boolean @default(false) // Une seule bannière active à la fois
+  priority        Int     @default(0) // Plus haute priorité = affichée en premier
+
+  // Métadonnées
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String? // ID de l'admin qui a créé
+
+  @@index([isActive])
+  @@index([priority])
+  @@map("promo_banners")
+}

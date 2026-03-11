@@ -80,7 +80,7 @@ export const startTrip = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors du démarrage du trajet',
-      error: error.message,
+
     });
   }
 };
@@ -181,7 +181,7 @@ export const endTrip = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la fin du trajet',
-      error: error.message,
+
     });
   }
 };
@@ -252,7 +252,7 @@ export const getTrips = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des trajets',
-      error: error.message,
+
     });
   }
 };
@@ -324,7 +324,7 @@ export const getTripById = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération du trajet',
-      error: error.message,
+
     });
   }
 };
@@ -379,7 +379,7 @@ export const updateTrip = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la mise à jour du trajet',
-      error: error.message,
+
     });
   }
 };
@@ -440,7 +440,7 @@ export const getActiveTrip = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération du trajet actif',
-      error: error.message,
+
     });
   }
 };
@@ -505,7 +505,7 @@ export const addCheckpoint = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'ajout du point GPS',
-      error: error.message,
+
     });
   }
 };
@@ -577,7 +577,7 @@ export const createVisit = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la création de la visite',
-      error: error.message,
+
     });
   }
 };
@@ -641,7 +641,7 @@ export const checkInVisit = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors du check-in',
-      error: error.message,
+
     });
   }
 };
@@ -726,7 +726,7 @@ export const checkOutVisit = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors du check-out',
-      error: error.message,
+
     });
   }
 };
@@ -785,7 +785,7 @@ export const getVisits = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des visites',
-      error: error.message,
+
     });
   }
 };
@@ -841,7 +841,7 @@ export const validateTrip = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la validation du trajet',
-      error: error.message,
+
     });
   }
 };
@@ -897,7 +897,7 @@ export const reimburseTrip = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors du remboursement du trajet',
-      error: error.message,
+
     });
   }
 };

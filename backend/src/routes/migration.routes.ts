@@ -88,7 +88,7 @@ router.post('/update-emails-to-neoserv', async (req, res) => {
     console.error('❌ Erreur:', error);
     res.status(500).json({
       error: 'Erreur lors de la mise à jour',
-      details: error.message
+
     });
   }
 });
@@ -159,7 +159,7 @@ router.post('/add-availability-status', async (req, res) => {
     console.error('❌ Erreur:', error);
     res.status(500).json({
       error: 'Erreur lors de la migration',
-      details: error.message
+
     });
   }
 });
@@ -198,7 +198,7 @@ router.post('/add-search-terms', async (req, res) => {
     console.error('❌ Erreur:', error);
     res.status(500).json({
       error: 'Erreur lors de la migration',
-      details: error.message
+
     });
   }
 });
@@ -297,7 +297,7 @@ router.post('/generate-search-terms', async (req, res) => {
     console.error('❌ Erreur:', error);
     res.status(500).json({
       error: 'Erreur lors de la génération des termes',
-      details: error.message
+
     });
   }
 });
@@ -544,7 +544,7 @@ router.post('/add-free-stock-images', async (req, res) => {
     console.error('❌ Erreur:', error);
     res.status(500).json({
       error: 'Erreur lors de l\'ajout des images',
-      details: error.message
+
     });
   }
 });
@@ -626,7 +626,7 @@ router.post('/init-company-settings', async (req, res) => {
     console.error('❌ Erreur:', error);
     res.status(500).json({
       error: 'Erreur lors de l\'initialisation',
-      details: error.message
+
     });
   }
 });
@@ -677,7 +677,7 @@ router.get('/check-last-products', async (req, res) => {
     console.error('❌ Erreur:', error);
     res.status(500).json({
       error: 'Erreur lors de la récupération des produits',
-      details: error.message
+
     });
   }
 });

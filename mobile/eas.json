@@ -1,25 +1,37 @@
 {
   "cli": {
-    "version": ">= 5.9.1"
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
   },
   "build": {
     "preview": {
-      "android": {
-        "buildType": "apk"
-      }
-    },
-    "preview2": {
-      "android": {
-        "gradleCommand": ":app:assembleRelease"
+      "distribution": "store",
+      "ios": {
+        "simulator": false,
+        "autoIncrement": true
       }
     },
     "production": {
-      "android": {
-        "buildType": "app-bundle"
+      "distribution": "store",
+      "ios": {
+        "autoIncrement": true
       }
     }
   },
   "submit": {
-    "production": {}
+    "preview": {
+      "ios": {
+        "appleId": "tcyrille.ba@gmail.com",
+        "ascAppId": "6758482566",
+        "appleTeamId": "H3L67XQWYM"
+      }
+    },
+    "production": {
+      "ios": {
+        "appleId": "tcyrille.ba@gmail.com",
+        "ascAppId": "6758482566",
+        "appleTeamId": "H3L67XQWYM"
+      }
+    }
   }
 }

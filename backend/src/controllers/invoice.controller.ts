@@ -498,7 +498,7 @@ export const createInvoiceFromCart = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la création de la facture',
-      error: error.message,
+
     });
   }
 };

@@ -60,7 +60,7 @@ export const createStripePaymentIntent = async (req: Request, res: Response) => 
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la création du paiement',
-      error: error.message,
+
     });
   }
 };
@@ -139,7 +139,7 @@ export const confirmStripePayment = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la confirmation du paiement',
-      error: error.message,
+
     });
   }
 };
@@ -258,7 +258,7 @@ export const createPayPalOrder = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la création du paiement PayPal',
-      error: error.message,
+
     });
   }
 };
@@ -329,7 +329,7 @@ export const capturePayPalPayment = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la capture du paiement PayPal',
-      error: error.message,
+
     });
   }
 };
@@ -370,7 +370,7 @@ export const getPaymentMethods = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des moyens de paiement',
-      error: error.message,
+
     });
   }
 };

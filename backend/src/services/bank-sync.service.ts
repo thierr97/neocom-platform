@@ -61,7 +61,7 @@ export class BankSyncService {
         results.push({
           connectionId: connection.id,
           status: 'ERROR',
-          error: error.message,
+    
         });
       }
     }

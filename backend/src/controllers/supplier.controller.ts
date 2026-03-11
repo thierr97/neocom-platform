@@ -39,7 +39,7 @@ export const getSuppliers = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des fournisseurs',
-      error: error.message,
+
     });
   }
 };
@@ -79,7 +79,7 @@ export const getSupplierById = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération du fournisseur',
-      error: error.message,
+
     });
   }
 };
@@ -160,7 +160,7 @@ export const createSupplier = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la création du fournisseur',
-      error: error.message,
+
     });
   }
 };
@@ -249,7 +249,7 @@ export const updateSupplier = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la mise à jour du fournisseur',
-      error: error.message,
+
     });
   }
 };
@@ -298,7 +298,7 @@ export const deleteSupplier = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la suppression du fournisseur',
-      error: error.message,
+
     });
   }
 };

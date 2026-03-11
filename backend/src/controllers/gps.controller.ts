@@ -93,7 +93,7 @@ export const createGpsTracking = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'enregistrement du point GPS',
-      error: error.message,
+
     });
   }
 };
@@ -156,7 +156,7 @@ export const getAllGpsTracking = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des points GPS',
-      error: error.message,
+
     });
   }
 };
@@ -196,7 +196,7 @@ export const getGpsTrackingById = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération du point GPS',
-      error: error.message,
+
     });
   }
 };
@@ -231,7 +231,7 @@ export const getCustomerGpsTracking = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des points GPS du client',
-      error: error.message,
+
     });
   }
 };
@@ -268,7 +268,7 @@ export const getTodayTracking = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des points GPS du jour',
-      error: error.message,
+
     });
   }
 };
@@ -324,7 +324,7 @@ export const getGpsStatistics = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des statistiques GPS',
-      error: error.message,
+
     });
   }
 };
@@ -356,7 +356,7 @@ export const deleteGpsTracking = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la suppression du point GPS',
-      error: error.message,
+
     });
   }
 };
@@ -401,7 +401,7 @@ export const batchCreateGpsTracking = async (req: Request, res: Response) => {
       } catch (error: any) {
         errors.push({
           index: i,
-          error: error.message,
+    
           data: point,
         });
       }
@@ -418,7 +418,7 @@ export const batchCreateGpsTracking = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'enregistrement en lot',
-      error: error.message,
+
     });
   }
 };

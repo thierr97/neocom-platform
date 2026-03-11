@@ -62,7 +62,7 @@ export const getProducts = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des produits',
-      error: error.message,
+
     });
   }
 };
@@ -170,7 +170,7 @@ export const getProductById = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération du produit',
-      error: error.message,
+
     });
   }
 };
@@ -206,7 +206,7 @@ export const createProduct = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la création du produit',
-      error: error.message,
+
     });
   }
 };
@@ -244,7 +244,7 @@ export const updateProduct = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la mise à jour du produit',
-      error: error.message,
+
     });
   }
 };
@@ -295,7 +295,7 @@ export const patchProduct = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la mise à jour du produit',
-      error: error.message,
+
     });
   }
 };
@@ -315,7 +315,7 @@ export const deleteProduct = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la suppression du produit',
-      error: error.message,
+
     });
   }
 };
@@ -342,7 +342,7 @@ export const getCategories = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des catégories',
-      error: error.message,
+
     });
   }
 };
@@ -365,7 +365,7 @@ export const createCategory = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la création de la catégorie',
-      error: error.message,
+
     });
   }
 };
@@ -399,7 +399,7 @@ export const updateCategory = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la modification de la catégorie',
-      error: error.message,
+
     });
   }
 };
@@ -455,7 +455,7 @@ export const deleteCategory = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la suppression de la catégorie',
-      error: error.message,
+
     });
   }
 };
@@ -508,7 +508,7 @@ export const toggleProductVisibility = async (req: AuthRequest, res: Response) =
     res.status(500).json({
       success: false,
       message: 'Erreur lors du changement de visibilité',
-      error: error.message,
+
     });
   }
 };

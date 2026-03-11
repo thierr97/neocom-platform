@@ -83,7 +83,7 @@ export const getProductMargins = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors du calcul des marges',
-      error: error.message,
+
     });
   }
 };
@@ -144,7 +144,7 @@ export const getMarginsByCategory = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'analyse des marges par catégorie',
-      error: error.message,
+
     });
   }
 };
@@ -276,7 +276,7 @@ export const suggestPrice = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la suggestion de prix',
-      error: error.message,
+
     });
   }
 };
@@ -315,7 +315,7 @@ export const updateProductPrice = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la mise à jour du prix',
-      error: error.message,
+
     });
   }
 };
@@ -367,7 +367,7 @@ export const bulkUpdatePrices = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la mise à jour en masse',
-      error: error.message,
+
     });
   }
 };

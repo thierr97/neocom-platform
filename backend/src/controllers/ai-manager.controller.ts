@@ -20,7 +20,7 @@ export class AIManagerController {
       console.error('Error getting AI status:', error);
       res.status(500).json({
         success: false,
-        error: error.message,
+  
       });
     }
   }
@@ -41,7 +41,7 @@ export class AIManagerController {
       console.error('Error analyzing content:', error);
       res.status(500).json({
         success: false,
-        error: error.message,
+  
       });
     }
   }
@@ -62,7 +62,7 @@ export class AIManagerController {
       console.error('Error analyzing inventory:', error);
       res.status(500).json({
         success: false,
-        error: error.message,
+  
       });
     }
   }
@@ -83,7 +83,7 @@ export class AIManagerController {
       console.error('Error analyzing customers:', error);
       res.status(500).json({
         success: false,
-        error: error.message,
+  
       });
     }
   }
@@ -104,7 +104,7 @@ export class AIManagerController {
       console.error('Error analyzing performance:', error);
       res.status(500).json({
         success: false,
-        error: error.message,
+  
       });
     }
   }
@@ -124,7 +124,7 @@ export class AIManagerController {
       console.error('Error generating recommendations:', error);
       res.status(500).json({
         success: false,
-        error: error.message,
+  
       });
     }
   }
@@ -147,7 +147,7 @@ export class AIManagerController {
       console.error('Error generating product description:', error);
       res.status(500).json({
         success: false,
-        error: error.message,
+  
       });
     }
   }
@@ -167,7 +167,7 @@ export class AIManagerController {
       console.error('Error executing safe tasks:', error);
       res.status(500).json({
         success: false,
-        error: error.message,
+  
       });
     }
   }
@@ -224,7 +224,7 @@ export class AIManagerController {
       console.error('Error running full analysis:', error);
       res.status(500).json({
         success: false,
-        error: error.message,
+  
       });
     }
   }

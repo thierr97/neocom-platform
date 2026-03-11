@@ -56,7 +56,7 @@ export const getCustomers = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des clients',
-      error: error.message,
+
     });
   }
 };
@@ -121,7 +121,7 @@ export const getCustomerById = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération du client',
-      error: error.message,
+
     });
   }
 };
@@ -226,7 +226,7 @@ export const createCustomer = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({
         success: false,
         message: `Un client avec cet ${field} existe déjà`,
-        error: error.message,
+  
       });
     }
 
@@ -235,14 +235,14 @@ export const createCustomer = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({
         success: false,
         message: 'Référence invalide (userId)',
-        error: error.message,
+  
       });
     }
 
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la création du client',
-      error: error.message,
+
     });
   }
 };
@@ -359,7 +359,7 @@ export const updateCustomer = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la mise à jour du client',
-      error: error.message,
+
     });
   }
 };
@@ -394,7 +394,7 @@ export const deleteCustomer = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la suppression du client',
-      error: error.message,
+
     });
   }
 };

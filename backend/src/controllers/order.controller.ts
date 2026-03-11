@@ -56,7 +56,7 @@ export const getOrders = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des commandes',
-      error: error.message,
+
     });
   }
 };
@@ -111,7 +111,7 @@ export const getOrderById = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération de la commande',
-      error: error.message,
+
     });
   }
 };
@@ -222,7 +222,7 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la création de la commande',
-      error: error.message,
+
     });
   }
 };
@@ -283,7 +283,7 @@ export const updateOrderStatus = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la mise à jour du statut',
-      error: error.message,
+
     });
   }
 };
@@ -329,7 +329,7 @@ export const generateDeliveryNotePDF = async (req: AuthRequest, res: Response) =
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la génération du bon de livraison',
-      error: error.message,
+
     });
   }
 };

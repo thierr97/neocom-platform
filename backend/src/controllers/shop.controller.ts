@@ -117,7 +117,7 @@ export const getPublicProducts = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des produits',
-      error: error.message,
+
     });
   }
 };
@@ -162,7 +162,7 @@ export const getPublicProduct = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération du produit',
-      error: error.message,
+
     });
   }
 };
@@ -233,7 +233,7 @@ export const getPublicCategories = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des catégories',
-      error: error.message,
+
     });
   }
 };
@@ -443,7 +443,7 @@ export const createPublicOrder = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la création de la commande',
-      error: error.message,
+
     });
   }
 };
@@ -479,7 +479,7 @@ export const getFeaturedProducts = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des produits en vedette',
-      error: error.message,
+
     });
   }
 };
@@ -528,7 +528,7 @@ export const searchProducts = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la recherche',
-      error: error.message,
+
     });
   }
 };
@@ -607,7 +607,7 @@ export const addMissingSubcategories = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'ajout des sous-catégories',
-      error: error.message,
+
     });
   }
 };
@@ -655,7 +655,7 @@ export const toggleProductVisibility = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la mise à jour de la visibilité',
-      error: error.message,
+
     });
   }
 };
@@ -699,7 +699,7 @@ export const toggleCategoryVisibility = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la mise à jour de la visibilité',
-      error: error.message,
+
     });
   }
 };

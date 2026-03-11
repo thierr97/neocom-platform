@@ -133,7 +133,7 @@ export const importCustomers = async (req: Request, res: Response) => {
         results.errors.push({
           line: i + 2,
           data: row,
-          error: error.message,
+    
         });
       }
     }
@@ -162,7 +162,7 @@ export const importCustomers = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'import',
-      error: error.message,
+
     });
   }
 };
@@ -311,7 +311,7 @@ export const importProducts = async (req: Request, res: Response) => {
         results.errors.push({
           line: i + 2,
           data: row,
-          error: error.message,
+    
         });
       }
     }
@@ -340,7 +340,7 @@ export const importProducts = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'import',
-      error: error.message,
+
     });
   }
 };

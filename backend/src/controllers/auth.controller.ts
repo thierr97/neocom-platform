@@ -135,7 +135,6 @@ export const login = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la connexion',
-      error: error.message,
     });
   }
 };
@@ -174,7 +173,6 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération du profil',
-      error: error.message,
     });
   }
 };
@@ -213,7 +211,6 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la mise à jour du profil',
-      error: error.message,
     });
   }
 };
@@ -268,7 +265,6 @@ export const logout = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la déconnexion',
-      error: error.message,
     });
   }
 };
@@ -319,7 +315,6 @@ export const refreshToken = async (req: Request, res: Response) => {
     return res.status(401).json({
       success: false,
       message: 'Refresh token invalide ou expiré',
-      error: error.message,
     });
   }
 };

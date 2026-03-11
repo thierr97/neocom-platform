@@ -103,7 +103,7 @@ export const getAllActivities = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des activités',
-      error: error.message,
+
     });
   }
 };
@@ -153,7 +153,7 @@ export const getActivityById = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération de l\'activité',
-      error: error.message,
+
     });
   }
 };
@@ -188,7 +188,7 @@ export const getCustomerActivities = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des activités client',
-      error: error.message,
+
     });
   }
 };
@@ -287,7 +287,7 @@ export const getActivityStatistics = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des statistiques',
-      error: error.message,
+
     });
   }
 };
@@ -311,7 +311,7 @@ export const getActivityTypes = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des types d\'activité',
-      error: error.message,
+
     });
   }
 };
@@ -343,7 +343,7 @@ export const deleteActivity = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la suppression de l\'activité',
-      error: error.message,
+
     });
   }
 };
@@ -399,7 +399,7 @@ export const createActivity = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la création de l\'activité',
-      error: error.message,
+
     });
   }
 };
@@ -482,7 +482,7 @@ export const exportActivities = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'export',
-      error: error.message,
+
     });
   }
 };

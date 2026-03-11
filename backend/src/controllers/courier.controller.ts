@@ -86,7 +86,7 @@ export const applyCourier = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'envoi de la candidature',
-      error: error.message,
+
     });
   }
 };
@@ -233,7 +233,7 @@ export const getCourierProfile = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération du profil',
-      error: error.message,
+
     });
   }
 };
@@ -318,7 +318,7 @@ export const updateCourierProfile = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la mise à jour du profil',
-      error: error.message,
+
     });
   }
 };
@@ -400,7 +400,7 @@ export const uploadDocument = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'upload du document',
-      error: error.message,
+
     });
   }
 };
@@ -451,7 +451,7 @@ export const getMyDocuments = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des documents',
-      error: error.message,
+
     });
   }
 };
@@ -573,7 +573,7 @@ export const validateDocument = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la validation du document',
-      error: error.message,
+
     });
   }
 };
@@ -626,7 +626,7 @@ export const getPendingCouriers = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des coursiers en attente',
-      error: error.message,
+
     });
   }
 };
@@ -693,7 +693,7 @@ export const getAllCouriers = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des coursiers',
-      error: error.message,
+
     });
   }
 };

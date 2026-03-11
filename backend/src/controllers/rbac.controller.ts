@@ -56,7 +56,7 @@ export const getAllUsers = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des utilisateurs',
-      error: error.message,
+
     });
   }
 };
@@ -105,7 +105,7 @@ export const getUserById = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération de l\'utilisateur',
-      error: error.message,
+
     });
   }
 };
@@ -182,7 +182,7 @@ export const createUser = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la création de l\'utilisateur',
-      error: error.message,
+
     });
   }
 };
@@ -261,7 +261,7 @@ export const updateUser = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la modification de l\'utilisateur',
-      error: error.message,
+
     });
   }
 };
@@ -316,7 +316,7 @@ export const updateUserPassword = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la modification du mot de passe',
-      error: error.message,
+
     });
   }
 };
@@ -368,7 +368,7 @@ export const deleteUser = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la suppression de l\'utilisateur',
-      error: error.message,
+
     });
   }
 };
@@ -394,7 +394,7 @@ export const getRolesAndPermissions = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des rôles',
-      error: error.message,
+
     });
   }
 };
@@ -433,7 +433,7 @@ export const getUserStatistics = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des statistiques',
-      error: error.message,
+
     });
   }
 };

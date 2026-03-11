@@ -42,7 +42,7 @@ export const getPurchaseInvoices = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des factures d\'achat',
-      error: error.message,
+
     });
   }
 };
@@ -80,7 +80,7 @@ export const getPurchaseInvoiceById = async (req: AuthRequest, res: Response) =>
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération de la facture',
-      error: error.message,
+
     });
   }
 };
@@ -162,7 +162,7 @@ export const createPurchaseInvoice = async (req: AuthRequest, res: Response) => 
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la création de la facture',
-      error: error.message,
+
     });
   }
 };
@@ -260,7 +260,7 @@ export const updatePurchaseInvoice = async (req: AuthRequest, res: Response) => 
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la mise à jour de la facture',
-      error: error.message,
+
     });
   }
 };
@@ -346,7 +346,7 @@ export const validatePurchaseInvoice = async (req: AuthRequest, res: Response) =
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la validation de la facture',
-      error: error.message,
+
     });
   }
 };
@@ -407,7 +407,7 @@ export const markAsPaid = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors du paiement de la facture',
-      error: error.message,
+
     });
   }
 };
@@ -448,7 +448,7 @@ export const deletePurchaseInvoice = async (req: AuthRequest, res: Response) => 
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la suppression de la facture',
-      error: error.message,
+
     });
   }
 };
@@ -486,7 +486,7 @@ export const getStockMovements = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des mouvements de stock',
-      error: error.message,
+
     });
   }
 };

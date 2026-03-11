@@ -84,7 +84,7 @@ export const getProductReviews = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des avis',
-      error: error.message,
+
     });
   }
 };
@@ -182,7 +182,7 @@ export const createReview = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la création de l\'avis',
-      error: error.message,
+
     });
   }
 };
@@ -246,7 +246,7 @@ export const getAllReviews = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des avis',
-      error: error.message,
+
     });
   }
 };
@@ -284,7 +284,7 @@ export const updateReviewStatus = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la mise à jour du statut',
-      error: error.message,
+
     });
   }
 };
@@ -309,7 +309,7 @@ export const deleteReview = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la suppression de l\'avis',
-      error: error.message,
+
     });
   }
 };
@@ -381,7 +381,7 @@ export const getReviewStatistics = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des statistiques',
-      error: error.message,
+
     });
   }
 };
