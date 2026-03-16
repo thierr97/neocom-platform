@@ -59,7 +59,7 @@ async function main() {
 
   // Get supplier HJK
   const supplier = await prisma.supplier.findFirst({
-    where: { name: { contains: 'HJK', mode: 'insensitive' } }
+    where: { companyName: { contains: 'HJK', mode: 'insensitive' } }
   });
   console.log('Supplier:', supplier ? supplier.name : 'none');
 
