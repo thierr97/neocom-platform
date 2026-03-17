@@ -401,7 +401,7 @@ export const generateInvoicePDF = async (req: Request, res: Response) => {
 // Create invoice from cart (B2B)
 export const createInvoiceFromCart = async (req: Request, res: Response) => {
   try {
-    const { customerId, items } = req.body;
+    const { customerId, items, discountPercent } = req.body;
     const userId = (req as any).user.userId;
 
     if (!customerId) {
@@ -447,8 +447,10 @@ export const createInvoiceFromCart = async (req: Request, res: Response) => {
       });
     }
 
-    const taxAmount = subtotal * (getDefaultTaxRate() / 100);
-    const total = subtotal + taxAmount;
+    const discount = discountPercent > 0 ? subtotal * (discountPercent / 100) : 0;
+    const discountedSubtotal = subtotal - discount;
+    const taxAmount = discountedSubtotal * (getDefaultTaxRate() / 100);
+    const total = discountedSubtotal + taxAmount;
 
     // Generate invoice number
     const invoiceNumber = await generateInvoiceNumber();
@@ -461,6 +463,7 @@ export const createInvoiceFromCart = async (req: Request, res: Response) => {
         userId,
         status: 'DRAFT',
         subtotal,
+        discount,
         taxAmount,
         total,
         dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days

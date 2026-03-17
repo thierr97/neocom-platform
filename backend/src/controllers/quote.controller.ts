@@ -390,7 +390,7 @@ export const generateQuotePDF = async (req: Request, res: Response) => {
 // Create quote from cart (B2B)
 export const createQuoteFromCart = async (req: Request, res: Response) => {
   try {
-    const { customerId, items } = req.body;
+    const { customerId, items, discountPercent } = req.body;
     const userId = (req as any).user.userId;
 
     if (!customerId) {
@@ -436,8 +436,10 @@ export const createQuoteFromCart = async (req: Request, res: Response) => {
       });
     }
 
-    const taxAmount = subtotal * (getDefaultTaxRate() / 100);
-    const total = subtotal + taxAmount;
+    const discount = discountPercent > 0 ? subtotal * (discountPercent / 100) : 0;
+    const discountedSubtotal = subtotal - discount;
+    const taxAmount = discountedSubtotal * (getDefaultTaxRate() / 100);
+    const total = discountedSubtotal + taxAmount;
 
     // Generate quote number
     const quoteNumber = await generateQuoteNumber();
@@ -450,6 +452,7 @@ export const createQuoteFromCart = async (req: Request, res: Response) => {
         userId,
         status: 'DRAFT',
         subtotal,
+        discount,
         taxAmount,
         total,
         validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
