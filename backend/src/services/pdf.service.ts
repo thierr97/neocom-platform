@@ -330,10 +330,11 @@ export class PDFService {
     yPosition: number
   ): number {
     const tableTop = yPosition;
-    const tableHeaders = ['Désignation', 'TVA', 'P.U. HT', 'Remise', 'Qté', 'Unité', 'Total HT'];
-    const colWidths = [200, 35, 55, 40, 30, 25, 85];
+    const tableHeaders = ['Désignation', 'TVA', 'P.U. HT', 'Remise', 'Qté', 'U.', 'Total HT'];
+    const colWidths = [195, 35, 58, 38, 28, 28, 88];
     const tableWidth = colWidths.reduce((a, b) => a + b, 0); // 470
     const startX = 50;
+    const desigColW = colWidths[0] - 6;
 
     // En-têtes de tableau
     let xPos = startX;
@@ -353,6 +354,7 @@ export class PDFService {
       doc.text(header, xPos + 3, tableTop + 5, {
         width: colWidths[i] - 6,
         align: align as any,
+        lineBreak: false,
       });
       xPos += colWidths[i];
     });
@@ -368,12 +370,17 @@ export class PDFService {
     yPosition += 5;
 
     items.forEach((item, index) => {
-      // Calcul hauteur dynamique selon sous-infos présentes
       const hasSku = !!item.product.sku;
       const hasBarcode = !!(item.product as any).barcode;
-      const rowHeight = 18 + (hasSku ? 10 : 0) + (hasBarcode ? 9 : 0);
 
-      if (yPosition > 700) {
+      // Mesure la hauteur réelle du nom (peut wrapper sur plusieurs lignes)
+      doc.fontSize(9).font('Helvetica');
+      const nameHeight = doc.heightOfString(item.product.name, { width: desigColW });
+      const skuHeight = hasSku ? 10 : 0;
+      const barcodeHeight = hasBarcode ? 9 : 0;
+      const rowHeight = Math.max(22, nameHeight + skuHeight + barcodeHeight + 6);
+
+      if (yPosition + rowHeight > 720) {
         doc.addPage();
         yPosition = 50;
       }
@@ -381,34 +388,36 @@ export class PDFService {
       // Alternance de couleurs
       const rowColor = index % 2 === 0 ? '#FFFFFF' : '#F5F5F5';
       doc
-        .rect(startX, yPosition - 3, tableWidth, rowHeight + 4)
+        .rect(startX, yPosition - 2, tableWidth, rowHeight + 2)
         .fill(rowColor);
 
       doc.fontSize(9).font('Helvetica').fillColor('#000000');
 
       xPos = startX;
-      const textMiddle = yPosition + (rowHeight - 11) / 2;
+      const colCenterY = yPosition + (rowHeight - 11) / 2;
 
-      // Désignation (nom + SKU + code-barres en sous-texte)
+      // Désignation : nom (peut wrapper) + Réf + EAN
       doc.font('Helvetica').fontSize(9).fillColor('#000000')
-        .text(item.product.name, xPos + 3, yPosition, {
-          width: colWidths[0] - 6,
+        .text(item.product.name, xPos + 3, yPosition + 2, {
+          width: desigColW,
           align: 'left',
         });
-      let subY = yPosition + 11;
+      let subY = yPosition + 2 + nameHeight;
       if (hasSku) {
-        doc.font('Helvetica').fontSize(7).fillColor('#666666')
+        doc.font('Helvetica').fontSize(7).fillColor('#555555')
           .text(`Réf: ${item.product.sku}`, xPos + 3, subY, {
-            width: colWidths[0] - 6,
+            width: desigColW,
             align: 'left',
+            lineBreak: false,
           });
-        subY += 9;
+        subY += 10;
       }
       if (hasBarcode) {
-        doc.font('Helvetica').fontSize(7).fillColor('#888888')
+        doc.font('Helvetica').fontSize(7).fillColor('#777777')
           .text(`EAN: ${(item.product as any).barcode}`, xPos + 3, subY, {
-            width: colWidths[0] - 6,
+            width: desigColW,
             align: 'left',
+            lineBreak: false,
           });
       }
       xPos += colWidths[0];
@@ -416,14 +425,14 @@ export class PDFService {
       doc.font('Helvetica').fontSize(9).fillColor('#000000');
 
       // TVA
-      doc.text(`${item.taxRate}%`, xPos + 3, textMiddle, {
+      doc.text(`${item.taxRate}%`, xPos + 3, colCenterY, {
         width: colWidths[1] - 6,
         align: 'center',
       });
       xPos += colWidths[1];
 
       // P.U. HT
-      doc.text(this.formatCurrency(item.unitPrice), xPos + 3, textMiddle, {
+      doc.text(this.formatCurrency(item.unitPrice), xPos + 3, colCenterY, {
         width: colWidths[2] - 6,
         align: 'right',
       });
@@ -435,13 +444,13 @@ export class PDFService {
         : 0;
       if (discountPct > 0) {
         doc.font('Helvetica-Bold').fillColor('#E53E3E')
-          .text(`-${discountPct}%`, xPos + 3, textMiddle, {
+          .text(`-${discountPct}%`, xPos + 3, colCenterY, {
             width: colWidths[3] - 6,
             align: 'center',
           });
         doc.font('Helvetica').fillColor('#000000');
       } else {
-        doc.text('-', xPos + 3, textMiddle, {
+        doc.text('-', xPos + 3, colCenterY, {
           width: colWidths[3] - 6,
           align: 'center',
         });
@@ -449,32 +458,33 @@ export class PDFService {
       xPos += colWidths[3];
 
       // Qté
-      doc.text(item.quantity.toString(), xPos + 3, textMiddle, {
+      doc.text(item.quantity.toString(), xPos + 3, colCenterY, {
         width: colWidths[4] - 6,
         align: 'center',
       });
       xPos += colWidths[4];
 
       // Unité
-      doc.text('u.', xPos + 3, textMiddle, {
+      doc.text('u.', xPos + 3, colCenterY, {
         width: colWidths[5] - 6,
         align: 'center',
       });
       xPos += colWidths[5];
 
       // Total HT
-      doc.text(this.formatCurrency(item.total), xPos + 3, textMiddle, {
+      doc.text(this.formatCurrency(item.total), xPos + 3, colCenterY, {
         width: colWidths[6] - 6,
         align: 'right',
       });
 
       yPosition += rowHeight + 4;
 
-      // Ligne horizontale
+      // Ligne horizontale de séparation
       doc
-        .moveTo(startX, yPosition - 1)
-        .lineTo(startX + tableWidth, yPosition - 1)
-        .stroke('#CCCCCC');
+        .moveTo(startX, yPosition - 2)
+        .lineTo(startX + tableWidth, yPosition - 2)
+        .strokeColor('#CCCCCC')
+        .stroke();
     });
 
     return yPosition + 10;
