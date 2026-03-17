@@ -179,6 +179,21 @@ export const createProduct = async (req: AuthRequest, res: Response) => {
   try {
     const data = req.body;
 
+    // Generate slug from name + sku if not provided
+    if (!data.slug) {
+      const base = `${data.name || ''}-${data.sku || ''}`.toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+      // Ensure uniqueness with random suffix
+      data.slug = `${base}-${Math.random().toString(36).substring(2, 7)}`;
+    }
+
+    // Sanitize supplierId: empty string → undefined
+    if (data.supplierId === '' || data.supplierId === null) {
+      delete data.supplierId;
+    }
+
     const product = await prisma.product.create({
       data,
       include: {
