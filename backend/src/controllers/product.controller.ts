@@ -177,22 +177,44 @@ export const getProductById = async (req: AuthRequest, res: Response) => {
 
 export const createProduct = async (req: AuthRequest, res: Response) => {
   try {
-    const data = req.body;
+    const raw = req.body;
 
-    // Generate slug from name + sku if not provided
-    if (!data.slug) {
-      const base = `${data.name || ''}-${data.sku || ''}`.toLowerCase()
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '');
-      // Ensure uniqueness with random suffix
-      data.slug = `${base}-${Math.random().toString(36).substring(2, 7)}`;
-    }
+    // Validate required fields
+    if (!raw.name) return res.status(400).json({ success: false, message: 'Le nom est requis' });
+    if (!raw.sku) return res.status(400).json({ success: false, message: 'Le SKU est requis' });
+    if (!raw.categoryId) return res.status(400).json({ success: false, message: 'La catégorie est requise' });
 
-    // Sanitize supplierId: empty string → undefined
-    if (data.supplierId === '' || data.supplierId === null) {
-      delete data.supplierId;
-    }
+    // Build clean data object with only known fields
+    const data: any = {
+      name: raw.name,
+      sku: raw.sku,
+      status: raw.status || 'AVAILABLE',
+      availabilityStatus: raw.availabilityStatus || 'AVAILABLE',
+      categoryId: raw.categoryId,
+      price: parseFloat(raw.price) || 0,
+      stock: parseInt(raw.stock) || 0,
+      minStock: parseInt(raw.minStock) || 5,
+      maxStock: parseInt(raw.maxStock) || 100,
+    };
+
+    // Optional fields
+    if (raw.barcode) data.barcode = raw.barcode;
+    if (raw.description) data.description = raw.description;
+    if (raw.supplierId && raw.supplierId !== '') data.supplierId = raw.supplierId;
+    if (raw.tags) data.tags = raw.tags;
+    if (raw.images) data.images = raw.images;
+    if (raw.thumbnail) data.thumbnail = raw.thumbnail;
+    if (raw.compareAtPrice) data.compareAtPrice = parseFloat(raw.compareAtPrice);
+    if (raw.weight) data.weight = parseFloat(raw.weight);
+    if (raw.packSize) data.packSize = parseInt(raw.packSize);
+    if (raw.packUnit) data.packUnit = raw.packUnit;
+
+    // Generate slug from name + sku
+    const base = `${data.name}-${data.sku}`.toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+    data.slug = `${base}-${Math.random().toString(36).substring(2, 7)}`;
 
     const product = await prisma.product.create({
       data,
