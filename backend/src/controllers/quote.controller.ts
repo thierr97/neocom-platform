@@ -390,7 +390,7 @@ export const generateQuotePDF = async (req: Request, res: Response) => {
 // Create quote from cart (B2B)
 export const createQuoteFromCart = async (req: Request, res: Response) => {
   try {
-    const { customerId, items, discountPercent } = req.body;
+    const { customerId, items } = req.body;
     const userId = (req as any).user.userId;
 
     if (!customerId) {
@@ -423,21 +423,23 @@ export const createQuoteFromCart = async (req: Request, res: Response) => {
         });
       }
 
-      const itemTotal = product.price * item.quantity;
-      subtotal += itemTotal;
+      const itemDiscountPct = item.discountPercent || 0;
+      const itemDiscount = product.price * item.quantity * (itemDiscountPct / 100);
+      const itemTotal = product.price * item.quantity - itemDiscount;
+      subtotal += product.price * item.quantity;
 
       quoteItems.push({
         productId: product.id,
         quantity: item.quantity,
         unitPrice: product.price,
         taxRate: getDefaultTaxRate(),
-        discount: 0,
+        discount: itemDiscount,
         total: itemTotal,
       });
     }
 
-    const discount = discountPercent > 0 ? subtotal * (discountPercent / 100) : 0;
-    const discountedSubtotal = subtotal - discount;
+    const totalDiscount = quoteItems.reduce((sum: number, i: any) => sum + i.discount, 0);
+    const discountedSubtotal = subtotal - totalDiscount;
     const taxAmount = discountedSubtotal * (getDefaultTaxRate() / 100);
     const total = discountedSubtotal + taxAmount;
 
@@ -452,7 +454,7 @@ export const createQuoteFromCart = async (req: Request, res: Response) => {
         userId,
         status: 'DRAFT',
         subtotal,
-        discount,
+        discount: totalDiscount,
         taxAmount,
         total,
         validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
