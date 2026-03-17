@@ -8,11 +8,6 @@ export const getCustomers = async (req: AuthRequest, res: Response) => {
 
     const where: any = {};
 
-    // Admin voir tous, commercial voir seulement les siens
-    if (req.user!.role === 'COMMERCIAL') {
-      where.userId = req.user!.userId;
-    }
-
     if (status) where.status = status;
     if (type) where.type = type;
 
