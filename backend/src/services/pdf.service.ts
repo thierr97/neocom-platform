@@ -36,6 +36,7 @@ interface QuoteItem {
   product: {
     name: string;
     sku: string;
+    barcode?: string;
   };
   quantity: number;
   unitPrice: number;
@@ -62,6 +63,7 @@ interface OrderItem {
   product: {
     name: string;
     sku: string;
+    barcode?: string;
   };
   quantity: number;
   unitPrice: number;
@@ -91,6 +93,7 @@ interface InvoiceItem {
   product: {
     name: string;
     sku: string;
+    barcode?: string;
   };
   quantity: number;
   unitPrice: number;
@@ -319,7 +322,7 @@ export class PDFService {
 
   /**
    * Nouveau tableau des articles selon spécifications
-   * Colonnes : Désignation | TVA | P.U. HT | Qté | Unité | Montants exprimés en Euros | Total HT
+   * Colonnes : Désignation (+ SKU + code-barres) | TVA | P.U. HT | Remise | Qté | Unité | Total HT
    */
   private static addNewItemsTable(
     doc: PDFKit.PDFDocument,
@@ -327,8 +330,9 @@ export class PDFService {
     yPosition: number
   ): number {
     const tableTop = yPosition;
-    const tableHeaders = ['Désignation', 'TVA', 'P.U. HT', 'Qté', 'Unité', 'Total HT'];
-    const colWidths = [240, 40, 60, 30, 30, 70];
+    const tableHeaders = ['Désignation', 'TVA', 'P.U. HT', 'Remise', 'Qté', 'Unité', 'Total HT'];
+    const colWidths = [200, 35, 55, 40, 30, 25, 85];
+    const tableWidth = colWidths.reduce((a, b) => a + b, 0); // 470
     const startX = 50;
 
     // En-têtes de tableau
@@ -341,11 +345,11 @@ export class PDFService {
     // Ligne d'en-tête
     doc
       .moveTo(startX, tableTop)
-      .lineTo(startX + colWidths.reduce((a, b) => a + b, 0), tableTop)
+      .lineTo(startX + tableWidth, tableTop)
       .stroke('#000000');
 
     tableHeaders.forEach((header, i) => {
-      const align = (i === 1 || i === 3) ? 'center' : (i >= 2 ? 'right' : 'left');
+      const align = i === 0 ? 'left' : (i === 4 || i === 5 ? 'center' : 'right');
       doc.text(header, xPos + 3, tableTop + 5, {
         width: colWidths[i] - 6,
         align: align as any,
@@ -357,75 +361,119 @@ export class PDFService {
     yPosition = tableTop + 20;
     doc
       .moveTo(startX, yPosition)
-      .lineTo(startX + colWidths.reduce((a, b) => a + b, 0), yPosition)
+      .lineTo(startX + tableWidth, yPosition)
       .stroke('#000000');
 
     // Lignes du tableau
     yPosition += 5;
 
     items.forEach((item, index) => {
+      // Calcul hauteur dynamique selon sous-infos présentes
+      const hasSku = !!item.product.sku;
+      const hasBarcode = !!(item.product as any).barcode;
+      const rowHeight = 18 + (hasSku ? 10 : 0) + (hasBarcode ? 9 : 0);
+
       if (yPosition > 700) {
         doc.addPage();
         yPosition = 50;
       }
 
-      // Alternance de couleurs (blanc / gris très clair)
+      // Alternance de couleurs
       const rowColor = index % 2 === 0 ? '#FFFFFF' : '#F5F5F5';
       doc
-        .rect(startX, yPosition - 3, colWidths.reduce((a, b) => a + b, 0), 20)
+        .rect(startX, yPosition - 3, tableWidth, rowHeight + 4)
         .fill(rowColor);
 
       doc.fontSize(9).font('Helvetica').fillColor('#000000');
 
       xPos = startX;
+      const textMiddle = yPosition + (rowHeight - 11) / 2;
 
-      // Désignation
-      doc.text(item.product.name, xPos + 3, yPosition, {
-        width: colWidths[0] - 6,
-        align: 'left',
-      });
+      // Désignation (nom + SKU + code-barres en sous-texte)
+      doc.font('Helvetica').fontSize(9).fillColor('#000000')
+        .text(item.product.name, xPos + 3, yPosition, {
+          width: colWidths[0] - 6,
+          align: 'left',
+        });
+      let subY = yPosition + 11;
+      if (hasSku) {
+        doc.font('Helvetica').fontSize(7).fillColor('#666666')
+          .text(`Réf: ${item.product.sku}`, xPos + 3, subY, {
+            width: colWidths[0] - 6,
+            align: 'left',
+          });
+        subY += 9;
+      }
+      if (hasBarcode) {
+        doc.font('Helvetica').fontSize(7).fillColor('#888888')
+          .text(`EAN: ${(item.product as any).barcode}`, xPos + 3, subY, {
+            width: colWidths[0] - 6,
+            align: 'left',
+          });
+      }
       xPos += colWidths[0];
 
-      // TVA (centré)
-      doc.text(`${item.taxRate}%`, xPos + 3, yPosition, {
+      doc.font('Helvetica').fontSize(9).fillColor('#000000');
+
+      // TVA
+      doc.text(`${item.taxRate}%`, xPos + 3, textMiddle, {
         width: colWidths[1] - 6,
         align: 'center',
       });
       xPos += colWidths[1];
 
-      // P.U. HT (droite)
-      doc.text(this.formatCurrency(item.unitPrice), xPos + 3, yPosition, {
+      // P.U. HT
+      doc.text(this.formatCurrency(item.unitPrice), xPos + 3, textMiddle, {
         width: colWidths[2] - 6,
         align: 'right',
       });
       xPos += colWidths[2];
 
-      // Qté (centré)
-      doc.text(item.quantity.toString(), xPos + 3, yPosition, {
-        width: colWidths[3] - 6,
-        align: 'center',
-      });
+      // Remise %
+      const discountPct = item.unitPrice > 0 && item.quantity > 0
+        ? Math.round((item.discount / (item.unitPrice * item.quantity)) * 100)
+        : 0;
+      if (discountPct > 0) {
+        doc.font('Helvetica-Bold').fillColor('#E53E3E')
+          .text(`-${discountPct}%`, xPos + 3, textMiddle, {
+            width: colWidths[3] - 6,
+            align: 'center',
+          });
+        doc.font('Helvetica').fillColor('#000000');
+      } else {
+        doc.text('-', xPos + 3, textMiddle, {
+          width: colWidths[3] - 6,
+          align: 'center',
+        });
+      }
       xPos += colWidths[3];
 
-      // Unité (centré)
-      doc.text('u.', xPos + 3, yPosition, {
+      // Qté
+      doc.text(item.quantity.toString(), xPos + 3, textMiddle, {
         width: colWidths[4] - 6,
         align: 'center',
       });
       xPos += colWidths[4];
 
-      // Total HT (droite)
-      doc.text(this.formatCurrency(item.total), xPos + 3, yPosition, {
+      // Unité
+      doc.text('u.', xPos + 3, textMiddle, {
         width: colWidths[5] - 6,
+        align: 'center',
+      });
+      xPos += colWidths[5];
+
+      // Total HT
+      doc.text(this.formatCurrency(item.total), xPos + 3, textMiddle, {
+        width: colWidths[6] - 6,
         align: 'right',
       });
 
-      yPosition += 20;
+      yPosition += rowHeight + 4;
 
-      // Ligne horizontale entre les produits
+      // Ligne horizontale
       doc
-        .moveTo(startX, yPosition - 3)
-        .lineTo(startX + colWidths.reduce((a, b) => a + b, 0), yPosition - 3)
+        .moveTo(startX, yPosition - 1)
+        .lineTo(startX + tableWidth, yPosition - 1)
         .stroke('#CCCCCC');
     });
 
