@@ -9,10 +9,10 @@ router.use(authenticateToken);
 // Products
 router.get('/', productController.getProducts);
 router.get('/:id', productController.getProductById);
-router.post('/', requireRole('ADMIN'), productController.createProduct);
-router.put('/:id', requireRole('ADMIN'), productController.updateProduct);
-router.patch('/:id/toggle-visibility', requireRole('ADMIN'), productController.toggleProductVisibility);
-router.patch('/:id', requireRole('ADMIN'), productController.patchProduct);
+router.post('/', requireRole('ADMIN', 'COMMERCIAL'), productController.createProduct);
+router.put('/:id', requireRole('ADMIN', 'COMMERCIAL'), productController.updateProduct);
+router.patch('/:id/toggle-visibility', requireRole('ADMIN', 'COMMERCIAL'), productController.toggleProductVisibility);
+router.patch('/:id', requireRole('ADMIN', 'COMMERCIAL'), productController.patchProduct);
 router.delete('/:id', requireRole('ADMIN'), productController.deleteProduct);
 
 // AI Description Generation
