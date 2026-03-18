@@ -37,6 +37,20 @@ export async function applyHjkImages() {
     return;
   }
 
+  // Nettoyer d'abord les URLs invalides (non http/https)
+  try {
+    const cleaned = await prisma.$executeRaw`
+      UPDATE "products"
+      SET images = '{}'
+      WHERE array_length(images, 1) > 0
+        AND images[1] != ''
+        AND images[1] NOT LIKE 'http%'
+    `;
+    if (cleaned > 0) {
+      console.log(`🧹 [HJK Migration] ${cleaned} produits avec URLs invalides nettoyés`);
+    }
+  } catch {}
+
   console.log('🖼️  [HJK Migration] Application des images produits HJK...');
 
   const mapping: ImageMapping = JSON.parse(fs.readFileSync(mappingPath, 'utf-8'));
