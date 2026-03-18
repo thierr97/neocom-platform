@@ -124,6 +124,9 @@ export const createBanner = async (req: Request, res: Response) => {
       bannerData.endDate = new Date(bannerData.endDate);
     }
 
+    // Ne pas passer l'id (laisse Prisma générer l'UUID)
+    delete bannerData.id;
+
     const banner = await prisma.shopBanner.create({
       data: {
         ...bannerData,
