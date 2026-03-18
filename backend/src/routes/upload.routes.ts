@@ -1,97 +1,70 @@
 import express from 'express';
-import { upload } from '../middleware/upload';
+import multer from 'multer';
 import { authMiddleware } from '../middleware/auth';
-import fs from 'fs';
-import path from 'path';
+import cloudinary from '../config/cloudinary';
+import { Readable } from 'stream';
 
 const router = express.Router();
 
-/**
- * Convertit une image en Base64 avec son type MIME
- */
-function imageToBase64(file: Express.Multer.File): string {
-  try {
-    // Lire le fichier
-    const imageBuffer = fs.readFileSync(file.path);
+// Memory storage — no disk needed (works on Render)
+const memUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) cb(null, true);
+    else cb(new Error('Seulement les images sont autorisées'));
+  },
+});
 
-    // Convertir en Base64
-    const base64Image = imageBuffer.toString('base64');
+async function uploadToCloudinary(buffer: Buffer, sku?: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const publicId = sku
+      ? `neoserv/products/${sku.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}`
+      : `neoserv/products/img_${Date.now()}`;
 
-    // Créer la data URL complète avec le type MIME
-    const mimeType = file.mimetype;
-    const dataUrl = `data:${mimeType};base64,${base64Image}`;
-
-    // Supprimer le fichier temporaire après conversion
-    try {
-      fs.unlinkSync(file.path);
-    } catch (unlinkError) {
-      console.warn('Could not delete temporary file:', file.path);
-    }
-
-    return dataUrl;
-  } catch (error) {
-    console.error('Error converting image to Base64:', error);
-    throw new Error('Erreur lors de la conversion de l\'image');
-  }
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        public_id: publicId,
+        overwrite: true,
+        transformation: [{ width: 1200, height: 1200, crop: 'limit', quality: 'auto' }],
+      },
+      (err, result) => {
+        if (err || !result) reject(err || new Error('Upload failed'));
+        else resolve(result.secure_url);
+      }
+    );
+    Readable.from(buffer).pipe(stream);
+  });
 }
 
 // Upload single image
-router.post('/image', authMiddleware, upload.single('image'), (req, res) => {
+router.post('/image', authMiddleware, memUpload.single('image'), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: 'Aucun fichier uploadé'
-      });
-    }
-
-    // Convertir l'image en Base64
-    const base64Image = imageToBase64(req.file);
-
-    return res.json({
-      success: true,
-      message: 'Image uploadée avec succès',
-      data: {
-        url: base64Image,
-        filename: req.file.originalname
-      }
-    });
+    if (!req.file) return res.status(400).json({ success: false, message: 'Aucun fichier uploadé' });
+    const url = await uploadToCloudinary(req.file.buffer, req.body.sku);
+    return res.json({ success: true, message: 'Image uploadée avec succès', data: { url, filename: req.file.originalname } });
   } catch (error: any) {
     console.error('Error uploading image:', error);
-    return res.status(500).json({
-      success: false,
-      message: error.message || 'Erreur lors de l\'upload de l\'image'
-    });
+    return res.status(500).json({ success: false, message: error.message || 'Erreur upload image' });
   }
 });
 
 // Upload multiple images
-router.post('/images', authMiddleware, upload.array('images', 5), (req, res) => {
+router.post('/images', authMiddleware, memUpload.array('images', 5), async (req, res) => {
   try {
-    if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Aucun fichier uploadé'
-      });
-    }
-
-    // Convertir toutes les images en Base64
-    const imageUrls = req.files.map((file: Express.Multer.File) => ({
-      url: imageToBase64(file),
-      filename: file.originalname
-    }));
-
-    return res.json({
-      success: true,
-      message: 'Images uploadées avec succès',
-      data: imageUrls
-    });
+    const files = req.files as Express.Multer.File[];
+    if (!files || files.length === 0) return res.status(400).json({ success: false, message: 'Aucun fichier uploadé' });
+    const sku = req.body.sku;
+    const results = await Promise.all(
+      files.map(async (file, i) => ({
+        url: await uploadToCloudinary(file.buffer, sku ? `${sku}_${i}` : undefined),
+        filename: file.originalname,
+      }))
+    );
+    return res.json({ success: true, message: 'Images uploadées avec succès', data: results });
   } catch (error: any) {
     console.error('Error uploading images:', error);
-    return res.status(500).json({
-      success: false,
-      message: error.message || 'Erreur lors de l\'upload des images'
-    });
+    return res.status(500).json({ success: false, message: error.message || 'Erreur upload images' });
   }
 });
 

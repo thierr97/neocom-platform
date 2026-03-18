@@ -514,14 +514,14 @@ export class PDFService {
       .text('Total HT', labelX, yPosition, { width: labelWidth, align: 'right' })
       .text(this.formatCurrency(subtotal), valueX, yPosition, { width: valueWidth, align: 'right' });
 
-    yPosition += 15;
+    yPosition += 13;
 
     // Total TVA 8,5%
     doc
       .text('Total TVA 8,5%', labelX, yPosition, { width: labelWidth, align: 'right' })
       .text(this.formatCurrency(taxAmount), valueX, yPosition, { width: valueWidth, align: 'right' });
 
-    yPosition += 15;
+    yPosition += 13;
 
     // Total TTC
     doc
@@ -529,7 +529,7 @@ export class PDFService {
       .text('Total TTC', labelX, yPosition, { width: labelWidth, align: 'right' })
       .text(this.formatCurrency(total), valueX, yPosition, { width: valueWidth, align: 'right' });
 
-    yPosition += 20;
+    yPosition += 16;
 
     // Ligne de séparation
     doc
@@ -537,7 +537,7 @@ export class PDFService {
       .lineTo(valueX + valueWidth, yPosition)
       .stroke('#CCCCCC');
 
-    yPosition += 10;
+    yPosition += 8;
 
     // Payé et Reste à payer (si applicable - factures)
     if (paidAmount !== undefined && paidAmount > 0) {
@@ -546,7 +546,7 @@ export class PDFService {
         .text('Payé', labelX, yPosition, { width: labelWidth, align: 'right' })
         .text(this.formatCurrency(paidAmount), valueX, yPosition, { width: valueWidth, align: 'right' });
 
-      yPosition += 15;
+      yPosition += 13;
 
       const remaining = total - paidAmount;
       doc
@@ -554,10 +554,10 @@ export class PDFService {
         .text('Reste à payer', labelX, yPosition, { width: labelWidth, align: 'right' })
         .text(this.formatCurrency(remaining), valueX, yPosition, { width: valueWidth, align: 'right' });
 
-      yPosition += 15;
+      yPosition += 13;
     }
 
-    return yPosition + 20;
+    return yPosition + 12;
   }
 
   /**
@@ -570,113 +570,105 @@ export class PDFService {
       .fillColor('#000000')
       .text('Conditions de règlement: À réception', 50, yPosition);
 
-    return yPosition + 20;
+    return yPosition + 12;
   }
 
   /**
    * RIB (Relevé d'Identité Bancaire) en bas du document
    */
   private static addBankDetails(doc: PDFKit.PDFDocument, companySettings: CompanySettings, bankInfo: BankInfo, yPosition: number): number {
+    const PAGE_BOTTOM = 792; // A4 = 842, margin = 50
+    const SECTION_HEIGHT = 130; // Hauteur totale estimée de la section
+
+    // Si le contenu risque de déborder, ajouter une nouvelle page
+    if (yPosition + SECTION_HEIGHT > PAGE_BOTTOM) {
+      doc.addPage();
+      yPosition = 50;
+    }
+
     doc
-      .fontSize(10)
+      .fontSize(9)
       .font('Helvetica-Bold')
       .fillColor('#000000')
       .text('Règlement par virement sur le compte bancaire suivant:', 50, yPosition);
 
-    yPosition += 20;
+    yPosition += 15;
 
-    // Encadré avec fond gris clair pour les informations bancaires
+    // Encadré compact avec fond gris clair
+    const boxHeight = 38;
     doc
       .fillColor('#F5F5F5')
-      .rect(50, yPosition, 500, 55)
+      .rect(50, yPosition, 500, boxHeight)
       .fill();
 
     doc
       .strokeColor('#CCCCCC')
-      .rect(50, yPosition, 500, 55)
+      .rect(50, yPosition, 500, boxHeight)
       .stroke();
 
     // IBAN
     doc
-      .fontSize(9)
+      .fontSize(8)
       .font('Helvetica-Bold')
       .fillColor('#000000')
-      .text('IBAN:', 60, yPosition + 10);
+      .text('IBAN:', 60, yPosition + 7);
 
     doc
-      .fontSize(10)
+      .fontSize(9)
       .font('Helvetica')
       .fillColor('#000000')
-      .text(bankInfo.iban || 'Non renseigné', 110, yPosition + 10);
+      .text(bankInfo.iban || 'Non renseigné', 100, yPosition + 7);
 
     // BIC / SWIFT
-    doc
-      .fontSize(9)
-      .font('Helvetica-Bold')
-      .fillColor('#000000')
-      .text('BIC / SWIFT:', 60, yPosition + 28);
-
-    doc
-      .fontSize(10)
-      .font('Helvetica')
-      .fillColor('#000000')
-      .text(bankInfo.bic || 'Non renseigné', 130, yPosition + 28);
-
-    yPosition += 70;
-
-    // Mentions légales - Section plus structurée
-    const companyType = process.env.COMPANY_TYPE || '';
-    const companyTypeLong = process.env.COMPANY_TYPE_LONG || '';
-    const companyCapital = process.env.COMPANY_CAPITAL || '';
-    const companyNaf = process.env.COMPANY_NAF || '';
-
     doc
       .fontSize(8)
       .font('Helvetica-Bold')
       .fillColor('#000000')
-      .text('Titulaire du compte:', 50, yPosition);
+      .text('BIC:', 60, yPosition + 22);
+
+    doc
+      .fontSize(9)
+      .font('Helvetica')
+      .fillColor('#000000')
+      .text(bankInfo.bic || 'Non renseigné', 100, yPosition + 22);
+
+    // Titulaire à droite du box
+    doc
+      .fontSize(8)
+      .font('Helvetica-Bold')
+      .fillColor('#000000')
+      .text('Titulaire:', 350, yPosition + 7);
 
     doc
       .fontSize(8)
       .font('Helvetica')
       .fillColor('#333333')
-      .text(bankInfo.accountHolder || companySettings.name, 50, yPosition + 12);
+      .text(bankInfo.accountHolder || companySettings.name, 390, yPosition + 7, { width: 155 });
 
-    yPosition += 30;
+    yPosition += boxHeight + 10;
 
-    // Informations légales de l'entreprise
-    doc
-      .fontSize(7)
-      .font('Helvetica')
-      .fillColor('#666666');
+    // Mentions légales sur une seule ligne
+    const companyType = process.env.COMPANY_TYPE || '';
+    const companyTypeLong = process.env.COMPANY_TYPE_LONG || '';
+    const companyCapital = process.env.COMPANY_CAPITAL || '';
+    const companyNaf = process.env.COMPANY_NAF || '';
 
-    let legalY = yPosition;
+    const legalParts: string[] = [];
+    if (companySettings.siret) legalParts.push(`SIRET ${companySettings.siret}`);
+    if (companySettings.vatNumber) legalParts.push(`TVA: ${companySettings.vatNumber}`);
+    if (companyNaf) legalParts.push(`NAF: ${companyNaf}`);
+    if (companyTypeLong && companyCapital) legalParts.push(`${companyTypeLong} (${companyType}) - Capital ${companyCapital}`);
 
-    // SIRET
-    if (companySettings.siret) {
-      doc.text(`SIRET ${companySettings.siret}`, 50, legalY);
-      legalY += 10;
+    if (legalParts.length > 0) {
+      doc
+        .fontSize(7)
+        .font('Helvetica')
+        .fillColor('#666666')
+        .text(legalParts.join('  |  '), 50, yPosition, { width: 500, align: 'center' });
+      yPosition += 12;
     }
 
-    // TVA
-    if (companySettings.vatNumber) {
-      doc.text(`Numéro TVA: ${companySettings.vatNumber}`, 50, legalY);
-      legalY += 10;
-    }
-
-    // NAF-APE
-    if (companyNaf) {
-      doc.text(`NAF-APE: ${companyNaf}`, 50, legalY);
-      legalY += 10;
-    }
-
-    // Type de société et capital
-    if (companyTypeLong && companyCapital) {
-      doc.text(`${companyTypeLong} (${companyType}) - Capital de ${companyCapital}`, 50, legalY);
-      legalY += 10;
-    }
-
-    return legalY + 10;
+    return yPosition;
   }
 
   static generateQuotePDF(quote: Quote, companySettings: CompanySettings, bankInfo: BankInfo, res: Response) {

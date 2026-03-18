@@ -46,6 +46,7 @@ import taskRoutes from './routes/task.routes';
 import logisticsRoutes from './routes/logistics.routes';
 import supplierAuthRoutes from './routes/supplierAuth.routes';
 import promoBannerRoutes from './routes/promo-banner.routes';
+import { applyHjkImages } from './migrations/applyHjkImages';
 
 // Load environment variables
 dotenv.config();
@@ -228,6 +229,9 @@ const startServer = async () => {
     console.log('🔌 Connexion à la base de données...');
     await prisma.$connect();
     console.log('✅ Base de données connectée');
+
+    // One-time migration: images HJK
+    await applyHjkImages();
 
     // Start server
     const server = app.listen(PORT, '0.0.0.0', () => {
