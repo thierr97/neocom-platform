@@ -48,6 +48,7 @@ import supplierAuthRoutes from './routes/supplierAuth.routes';
 import promoBannerRoutes from './routes/promo-banner.routes';
 import { applyHjkImages } from './migrations/applyHjkImages';
 import { fixBannerIds } from './migrations/fixBannerIds';
+import { linkProductsToHjk } from './migrations/linkProductsToHjk';
 
 // Load environment variables
 dotenv.config();
@@ -233,6 +234,8 @@ const startServer = async () => {
 
     // Fix: bannières avec ID vide
     await fixBannerIds();
+    // Fix: lier les produits sans supplierId à HJK
+    await linkProductsToHjk();
     // One-time migration: images HJK
     await applyHjkImages();
 
