@@ -240,10 +240,19 @@ export const createProduct = async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error in createProduct:', error);
+    // Duplicate SKU
+    if (error.code === 'P2002') {
+      const field = error.meta?.target?.[0] || 'champ';
+      return res.status(400).json({
+        success: false,
+        message: `Ce ${field === 'sku' ? 'SKU' : field === 'barcode' ? 'code-barres' : field} existe déjà`,
+      });
+    }
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de la création du produit',
-
+      message: process.env.NODE_ENV === 'development'
+        ? error.message
+        : 'Erreur lors de la création du produit',
     });
   }
 };
