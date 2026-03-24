@@ -188,7 +188,7 @@ export const createProduct = async (req: AuthRequest, res: Response) => {
     const data: any = {
       name: raw.name,
       sku: raw.sku,
-      status: raw.status || 'AVAILABLE',
+      status: raw.status || 'ACTIVE',
       availabilityStatus: raw.availabilityStatus || 'AVAILABLE',
       categoryId: raw.categoryId,
       price: parseFloat(raw.price) || 0,
@@ -250,9 +250,9 @@ export const createProduct = async (req: AuthRequest, res: Response) => {
     }
     res.status(500).json({
       success: false,
-      message: process.env.NODE_ENV === 'development'
-        ? error.message
-        : 'Erreur lors de la création du produit',
+      message: error.message || 'Erreur lors de la création du produit',
+      code: error.code,
+      meta: error.meta,
     });
   }
 };
