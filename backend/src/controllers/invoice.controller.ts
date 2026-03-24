@@ -434,15 +434,16 @@ export const createInvoiceFromCart = async (req: Request, res: Response) => {
         });
       }
 
+      const unitPrice = item.unitPrice && item.unitPrice > 0 ? item.unitPrice : product.price;
       const itemDiscountPct = item.discountPercent || 0;
-      const itemDiscount = product.price * item.quantity * (itemDiscountPct / 100);
-      const itemTotal = product.price * item.quantity - itemDiscount;
-      subtotal += product.price * item.quantity;
+      const itemDiscount = unitPrice * item.quantity * (itemDiscountPct / 100);
+      const itemTotal = unitPrice * item.quantity - itemDiscount;
+      subtotal += unitPrice * item.quantity;
 
       invoiceItems.push({
         productId: product.id,
         quantity: item.quantity,
-        unitPrice: product.price,
+        unitPrice,
         taxRate: getDefaultTaxRate(),
         discount: itemDiscount,
         total: itemTotal,
