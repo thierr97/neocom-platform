@@ -281,8 +281,7 @@ export const editQuote = async (req: Request, res: Response) => {
         } : undefined,
       },
       include: {
-        customer: true,
-        items: { include: { product: true } },
+        items: { include: { product: { select: { id: true, name: true, sku: true, price: true } } } },
       },
     });
 
