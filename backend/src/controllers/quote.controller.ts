@@ -236,6 +236,63 @@ export const updateQuoteStatus = async (req: Request, res: Response) => {
   }
 };
 
+// Edit any quote (ADMIN/COMMERCIAL/SUB_ADMIN — bypasses isValidated lock)
+export const editQuote = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { customerId, items, notes, validUntil } = req.body;
+    const userRole = (req as any).user?.role;
+
+    if (!['ADMIN', 'COMMERCIAL', 'SUB_ADMIN'].includes(userRole)) {
+      return res.status(403).json({ success: false, message: 'Accès refusé' });
+    }
+
+    const existingQuote = await prisma.quote.findUnique({ where: { id } });
+    if (!existingQuote) {
+      return res.status(404).json({ success: false, message: 'Devis non trouvé' });
+    }
+
+    let subtotal = 0;
+    if (items && items.length > 0) {
+      items.forEach((item: any) => { subtotal += item.quantity * item.unitPrice; });
+    }
+    const taxAmount = subtotal * (getDefaultTaxRate() / 100);
+    const total = subtotal + taxAmount;
+
+    const updatedQuote = await prisma.quote.update({
+      where: { id },
+      data: {
+        customerId: customerId || existingQuote.customerId,
+        subtotal,
+        taxAmount,
+        total,
+        validUntil: validUntil ? new Date(validUntil) : existingQuote.validUntil,
+        notes: notes !== undefined ? notes : existingQuote.notes,
+        items: items ? {
+          deleteMany: {},
+          create: items.map((item: any) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            taxRate: getDefaultTaxRate(),
+            discount: item.discount || 0,
+            total: item.quantity * item.unitPrice,
+          })),
+        } : undefined,
+      },
+      include: {
+        customer: true,
+        items: { include: { product: true } },
+      },
+    });
+
+    return res.json({ success: true, message: 'Devis modifié', data: updatedQuote });
+  } catch (error: any) {
+    console.error('Error editing quote:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // Convert quote to order
 export const convertQuoteToOrder = async (req: Request, res: Response) => {
   try {
