@@ -638,3 +638,216 @@ export async function generateOrderSummary(orderId: string): Promise<string> {
     doc.end();
   });
 }
+
+// ============================================================
+// CHANTIER 2+3 — BON DE COMMANDE HJK ANONYMISÉ AVEC PHOTOS
+// ============================================================
+
+import { getWarehouseAddress } from '../utils/getCompanySettings';
+import https from 'https';
+import http from 'http';
+
+/**
+ * Télécharge une image depuis une URL et retourne un Buffer
+ */
+async function fetchImageBuffer(url: string): Promise<Buffer | null> {
+  return new Promise((resolve) => {
+    try {
+      const client = url.startsWith('https') ? https : http;
+      client.get(url, (res) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk) => chunks.push(chunk));
+        res.on('end', () => resolve(Buffer.concat(chunks)));
+        res.on('error', () => resolve(null));
+      }).on('error', () => resolve(null));
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+/**
+ * Génère un bon de commande HJK :
+ * - ANONYMISÉ : seul le clientRef (CLI-XXXXXX) est affiché
+ * - AVEC PHOTOS produits (Cloudinary thumbnail)
+ * - SANS aucun montant, prix, total
+ * - Adresse de livraison = entrepôt NEOSERV uniquement
+ *
+ * Ce document est destiné à HJK uniquement.
+ */
+export async function generateHJKPurchaseOrderPDF(orderId: string): Promise<Buffer> {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: {
+      customer: {
+        select: {
+          clientRef: true,
+          // PAS de nom, email, adresse réelle
+        },
+      },
+      items: {
+        include: {
+          product: {
+            select: {
+              name: true,
+              sku: true,
+              thumbnail: true,
+              images: true,
+              // Pas de prix
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!order) throw new Error('Commande non trouvée');
+
+  const warehouseAddress = getWarehouseAddress();
+  const clientRef = order.customer?.clientRef || 'CLI-INCONNU';
+
+  return new Promise(async (resolve, reject) => {
+    const doc = new PDFDocument({ size: 'A4', margin: 40, autoFirstPage: true });
+    const chunks: Buffer[] = [];
+    doc.on('data', (chunk) => chunks.push(chunk));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+
+    const PAGE_W = 595 - 80; // A4 width - margins
+    const COL_IMG = 70;
+    const COL_REF = 110;
+    const COL_NAME = PAGE_W - COL_IMG - COL_REF - 60;
+    const COL_QTY = 40;
+    const COL_UNIT = 50;
+
+    // ── EN-TÊTE ──────────────────────────────────────────────
+    doc.fontSize(18).font('Helvetica-Bold').text('BON DE COMMANDE', 40, 40, { align: 'left' });
+    doc.fontSize(10).font('Helvetica').fillColor('#555')
+      .text('Document réservé à un usage interne — NEOSERV / HJK', 40, 62);
+
+    // Bloc info document (droite)
+    const today = new Date().toLocaleDateString('fr-FR');
+    doc.fillColor('#000');
+    doc.fontSize(9).font('Helvetica-Bold')
+      .text(`Commande N° : ${order.number}`, 350, 40, { align: 'right', width: 200 })
+      .font('Helvetica')
+      .text(`Date : ${today}`, 350, 54, { align: 'right', width: 200 })
+      .text(`Réf. client : ${clientRef}`, 350, 68, { align: 'right', width: 200 });
+
+    doc.moveTo(40, 88).lineTo(555, 88).strokeColor('#1a1a2e').lineWidth(2).stroke();
+
+    // ── BLOC LIVRAISON ────────────────────────────────────────
+    doc.lineWidth(1);
+    doc.rect(40, 96, 250, 60).fillColor('#f5f5f5').fill().strokeColor('#ddd').stroke();
+    doc.fillColor('#000').fontSize(8).font('Helvetica-Bold').text('LIVRAISON À', 48, 102);
+    doc.font('Helvetica').fontSize(9)
+      .text(warehouseAddress.replace(/ — /g, '\n'), 48, 114, { width: 235 });
+
+    // ── BLOC RÉFÉRENCE CLIENT (anonyme) ──────────────────────
+    doc.rect(310, 96, 245, 60).fillColor('#f5f5f5').fill().strokeColor('#ddd').stroke();
+    doc.fillColor('#000').fontSize(8).font('Helvetica-Bold').text('RÉFÉRENCE CLIENT', 318, 102);
+    doc.fontSize(20).font('Helvetica-Bold').fillColor('#1a1a2e')
+      .text(clientRef, 318, 114);
+    doc.fillColor('#888').fontSize(7).font('Helvetica')
+      .text('Identifiant anonymisé — Ne pas diffuser d\'information client.', 318, 140, { width: 235 });
+
+    // ── EN-TÊTE TABLEAU ──────────────────────────────────────
+    let y = 175;
+    doc.fillColor('#1a1a2e').rect(40, y, 515, 20).fill();
+    doc.fillColor('#fff').fontSize(8).font('Helvetica-Bold');
+    doc.text('Photo', 42, y + 6, { width: COL_IMG });
+    doc.text('Réf. HJK', 42 + COL_IMG, y + 6, { width: COL_REF });
+    doc.text('Désignation', 42 + COL_IMG + COL_REF, y + 6, { width: COL_NAME });
+    doc.text('Qté', 42 + COL_IMG + COL_REF + COL_NAME, y + 6, { width: COL_QTY });
+    doc.text('Unité', 42 + COL_IMG + COL_REF + COL_NAME + COL_QTY, y + 6, { width: COL_UNIT });
+    y += 20;
+
+    // ── LIGNES PRODUITS ──────────────────────────────────────
+    for (let i = 0; i < order.items.length; i++) {
+      const item = order.items[i];
+      const product = item.product;
+      const ROW_H = 70;
+
+      // Vérifier saut de page
+      if (y + ROW_H > 780) {
+        doc.addPage();
+        y = 40;
+      }
+
+      const bgColor = i % 2 === 0 ? '#ffffff' : '#f9f9f9';
+      doc.fillColor(bgColor).rect(40, y, 515, ROW_H).fill();
+      doc.strokeColor('#e0e0e0').rect(40, y, 515, ROW_H).stroke();
+
+      // Photo produit (Cloudinary)
+      const imageUrl = product.thumbnail || (product.images && product.images[0]);
+      if (imageUrl) {
+        const imgBuffer = await fetchImageBuffer(
+          // Transformer l'URL Cloudinary pour avoir 60x60 avec crop
+          imageUrl.replace('/upload/', '/upload/w_60,h_60,c_fill,q_auto,f_auto/')
+        );
+        if (imgBuffer) {
+          try {
+            doc.image(imgBuffer, 43, y + 5, { width: 60, height: 60 });
+          } catch {
+            // Placeholder si image invalide
+            doc.fillColor('#eee').rect(43, y + 5, 60, 60).fill();
+            doc.fillColor('#bbb').fontSize(7).text('No img', 43, y + 30, { width: 60, align: 'center' });
+          }
+        } else {
+          doc.fillColor('#eee').rect(43, y + 5, 60, 60).fill();
+          doc.fillColor('#bbb').fontSize(7).text('No img', 43, y + 30, { width: 60, align: 'center' });
+        }
+      } else {
+        doc.fillColor('#eee').rect(43, y + 5, 60, 60).fill();
+        doc.fillColor('#bbb').fontSize(7).text('No img', 43, y + 30, { width: 60, align: 'center' });
+      }
+
+      // Référence HJK (SKU)
+      doc.fillColor('#000').fontSize(8).font('Helvetica-Bold')
+        .text(product.sku || '—', 42 + COL_IMG, y + 10, { width: COL_REF });
+
+      // Désignation
+      doc.font('Helvetica').fontSize(9)
+        .text(product.name, 42 + COL_IMG + COL_REF, y + 10, { width: COL_NAME });
+
+      // Quantité
+      doc.fontSize(10).font('Helvetica-Bold')
+        .text(item.quantity.toString(), 42 + COL_IMG + COL_REF + COL_NAME, y + 10, {
+          width: COL_QTY,
+          align: 'center',
+        });
+
+      // Unité
+      doc.fontSize(8).font('Helvetica').fillColor('#555')
+        .text('unité', 42 + COL_IMG + COL_REF + COL_NAME + COL_QTY, y + 10, { width: COL_UNIT });
+
+      doc.fillColor('#000');
+      y += ROW_H;
+    }
+
+    // ── PIED DE PAGE ─────────────────────────────────────────
+    const footerY = 800;
+    doc.moveTo(40, footerY).lineTo(555, footerY).strokeColor('#ddd').lineWidth(1).stroke();
+    doc.fillColor('#888').fontSize(7).font('Helvetica')
+      .text(
+        'NEOSERV — ' +
+        (process.env.COMPANY_EMAIL || 'contact@neoserv.fr') + ' — ' +
+        (process.env.COMPANY_PHONE || '') +
+        '   |   Document confidentiel — Aucun prix, aucune donnée client.',
+        40, footerY + 6,
+        { align: 'center', width: 515 }
+      );
+
+    doc.end();
+  });
+}
+
+/**
+ * Route handler : génère et télécharge le bon de commande HJK
+ */
+export async function serveHJKOrderPDF(orderId: string, res: any): Promise<void> {
+  const pdfBuffer = await generateHJKPurchaseOrderPDF(orderId);
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename=BC-HJK-${orderId}.pdf`);
+  res.end(pdfBuffer);
+}

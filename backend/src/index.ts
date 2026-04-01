@@ -46,6 +46,7 @@ import taskRoutes from './routes/task.routes';
 import logisticsRoutes from './routes/logistics.routes';
 import supplierAuthRoutes from './routes/supplierAuth.routes';
 import promoBannerRoutes from './routes/promo-banner.routes';
+import clientAccountRoutes from './routes/clientAccount.routes';
 import { applyHjkImages } from './migrations/applyHjkImages';
 import { fixBannerIds } from './migrations/fixBannerIds';
 import { linkProductsToHjk } from './migrations/linkProductsToHjk';
@@ -195,6 +196,7 @@ app.use('/api/activities', activityRoutes);
 app.use('/api/shop', shopRoutes);
 app.use('/api/shop/banners', shopBannerRoutes);
 app.use('/api/client', clientRoutes);
+app.use('/api/client-accounts', clientAccountRoutes);
 app.use('/api/payments', paymentRoutes);
 // app.use('/api/ai', aiRoutes);  // Temporairement désactivé
 app.use('/api/reviews', reviewRoutes);

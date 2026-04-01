@@ -186,13 +186,34 @@ export const stripeWebhook = async (req: Request, res: Response) => {
             },
           });
 
-          // Update order
-          await prisma.order.update({
+          // CHANTIER 4 — Passer commande en CONFIRMED (Payée) + PROCESSING
+          const order = await prisma.order.update({
             where: { id: orderId },
-            data: { paymentStatus: 'PAID' },
+            data: {
+              paymentStatus: 'PAID',
+              status: 'CONFIRMED',  // Payée → En cours de traitement
+            },
+            include: {
+              customer: true,
+              items: { include: { product: true } },
+            },
           });
 
-          console.log(`Payment succeeded for order ${orderId}`);
+          // Envoyer reçu au client
+          try {
+            const { sendClientPaymentReceipt } = await import('../services/notification.service');
+            await sendClientPaymentReceipt(order.customer, order);
+          } catch (emailErr) {
+            console.error('Erreur envoi reçu client:', emailErr);
+          }
+
+          // Passer automatiquement en PROCESSING (transmis à HJK)
+          await prisma.order.update({
+            where: { id: orderId },
+            data: { status: 'PROCESSING' },
+          });
+
+          console.log(`Payment succeeded for order ${orderId} — statut: PROCESSING`);
         }
         break;
 

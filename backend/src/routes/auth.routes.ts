@@ -13,7 +13,13 @@ router.get('/profile', authenticateToken, authController.getProfile);
 router.put('/profile', authenticateToken, authController.updateProfile);
 
 // Routes pour les clients
-router.post('/customer/register', authController.registerCustomer);
+// ❌ Inscription publique DÉSACTIVÉE — seul un commercial peut créer un compte client
+router.post('/customer/register', (_req, res) => {
+  res.status(403).json({
+    success: false,
+    message: "L'inscription en ligne n'est pas disponible. Contactez votre commercial NEOSERV pour obtenir un accès.",
+  });
+});
 router.post('/customer/login', authController.loginCustomer);
 
 // TEMPORARY - Route pour réinitialiser le mot de passe admin

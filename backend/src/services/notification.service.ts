@@ -483,6 +483,112 @@ export async function notifyInvoiceDueReminder(invoiceId: string) {
   );
 }
 
+/**
+ * CHANTIER 1 — Email de bienvenue client créé par un commercial
+ * Contient : référence CLI, identifiants de connexion, lien portail
+ */
+export async function sendClientWelcomeEmail(customer: any, tempPassword: string) {
+  const loginUrl = process.env.CLIENT_PORTAL_URL || `${process.env.FRONTEND_URL || 'https://neoserv.fr'}/client/login`;
+  const name = customer.companyName || `${customer.firstName || ''} ${customer.lastName || ''}`.trim();
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1a1a2e;">
+      <div style="background: #1a1a2e; padding: 24px; text-align: center;">
+        <h1 style="color: #fff; margin: 0; font-size: 24px;">NEOSERV</h1>
+        <p style="color: #aaa; margin: 4px 0 0;">Votre accès a été créé</p>
+      </div>
+
+      <div style="padding: 32px; background: #f9f9f9;">
+        <p style="font-size: 16px;">Bonjour <strong>${name}</strong>,</p>
+        <p>Votre compte client NEOSERV a été créé. Vous pouvez dès à présent vous connecter et passer vos commandes en autonomie.</p>
+
+        <div style="background: #fff; border: 2px solid #1a1a2e; border-radius: 8px; padding: 20px; margin: 24px 0;">
+          <p style="margin: 0 0 8px; font-size: 14px; color: #666;">Votre référence client</p>
+          <p style="margin: 0; font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #1a1a2e;">${customer.clientRef}</p>
+          <p style="margin: 8px 0 0; font-size: 12px; color: #999;">Cette référence est unique et non modifiable. Conservez-la.</p>
+        </div>
+
+        <div style="background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin: 16px 0;">
+          <p style="margin: 0 0 12px; font-weight: bold;">Vos identifiants de connexion</p>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 6px 0; color: #666; width: 120px;">Email</td>
+              <td style="padding: 6px 0; font-weight: bold;">${customer.email}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #666;">Mot de passe</td>
+              <td style="padding: 6px 0; font-weight: bold; font-family: monospace; font-size: 16px;">${tempPassword}</td>
+            </tr>
+          </table>
+          <p style="margin: 12px 0 0; font-size: 12px; color: #e74c3c;">
+            ⚠️ Mot de passe temporaire — vous devrez le changer à votre première connexion.
+          </p>
+        </div>
+
+        <div style="text-align: center; margin: 24px 0;">
+          <a href="${loginUrl}" style="background: #1a1a2e; color: #fff; padding: 14px 32px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">
+            Accéder à mon espace client
+          </a>
+        </div>
+      </div>
+
+      <div style="padding: 16px 32px; background: #eee; font-size: 12px; color: #666; text-align: center;">
+        NEOSERV — ${process.env.COMPANY_EMAIL || 'contact@neoserv.fr'} — ${process.env.COMPANY_PHONE || ''}<br>
+        Cet email est confidentiel. Ne le transmettez pas à des tiers.
+      </div>
+    </div>
+  `;
+
+  await sendEmail(customer.email, `Bienvenue chez NEOSERV — Votre compte ${customer.clientRef}`, html);
+}
+
+/**
+ * CHANTIER 4 — Reçu de paiement client
+ */
+export async function sendClientPaymentReceipt(customer: any, order: any, pdfBuffer?: Buffer) {
+  const name = customer.companyName || `${customer.firstName || ''} ${customer.lastName || ''}`.trim();
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1a1a2e;">
+      <div style="background: #1a1a2e; padding: 24px; text-align: center;">
+        <h1 style="color: #fff; margin: 0;">NEOSERV</h1>
+        <p style="color: #aaa; margin: 4px 0 0;">Confirmation de paiement</p>
+      </div>
+      <div style="padding: 32px;">
+        <p>Bonjour <strong>${name}</strong>,</p>
+        <p>Nous avons bien reçu votre paiement. Votre commande est maintenant en cours de traitement.</p>
+
+        <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 20px; margin: 24px 0;">
+          <p style="margin: 0 0 8px; color: #15803d; font-weight: bold;">✅ Paiement confirmé</p>
+          <table style="width: 100%;">
+            <tr><td style="color: #666;">Commande</td><td style="font-weight: bold;">${order.number}</td></tr>
+            <tr><td style="color: #666;">Référence</td><td style="font-weight: bold;">${customer.clientRef}</td></tr>
+            <tr><td style="color: #666;">Montant</td><td style="font-weight: bold; font-size: 18px;">€${order.total?.toFixed(2)}</td></tr>
+            <tr><td style="color: #666;">Date</td><td>${new Date().toLocaleDateString('fr-FR')}</td></tr>
+          </table>
+        </div>
+
+        <p style="color: #666; font-size: 14px;">
+          Votre bon de commande est en cours de traitement. Vous recevrez une notification dès l'expédition.
+        </p>
+      </div>
+      <div style="padding: 16px 32px; background: #eee; font-size: 12px; color: #666; text-align: center;">
+        NEOSERV — ${process.env.COMPANY_EMAIL || 'contact@neoserv.fr'}
+      </div>
+    </div>
+  `;
+
+  const attachments = pdfBuffer
+    ? [{ filename: `recu-${order.number}.pdf`, content: pdfBuffer, contentType: 'application/pdf' }]
+    : [];
+
+  await sendEmail(customer.email, `Reçu de paiement — Commande ${order.number}`, html);
+}
+
+export {
+  sendEmail,
+};
+
 export default {
   notifyProCustomerRegistration,
   notifyProCustomerApproved,
@@ -492,4 +598,6 @@ export default {
   notifyDeliveryComplete,
   notifyInvoiceGenerated,
   notifyInvoiceDueReminder,
+  sendClientWelcomeEmail,
+  sendClientPaymentReceipt,
 };

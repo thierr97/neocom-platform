@@ -135,8 +135,15 @@ model Customer {
   siret       String?
   vatNumber   String?
 
+  // Référence client unique NEOSERV (CLI-XXXXXX) — générée à la création, non modifiable
+  clientRef String? @unique
+
+  // Paiement différé accordé par le commercial
+  allowDeferredPayment Boolean @default(false)
+
   // Authentication
-  password String? // Mot de passe hashé (nullable pour compatibilité avec clients existants)
+  password           String? // Mot de passe hashé (nullable pour compatibilité avec clients existants)
+  mustChangePassword Boolean @default(false) // Forcer changement au 1er login
 
   // Contact
   email    String  @unique

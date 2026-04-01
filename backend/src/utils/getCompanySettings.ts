@@ -137,3 +137,14 @@ export async function getBankInfo(): Promise<BankInfo> {
     };
   }
 }
+
+/**
+ * Adresse de l'entrepôt NEOSERV — seule adresse visible par HJK
+ * Configurée via env ou settings DB
+ */
+export function getWarehouseAddress(): string {
+  return (
+    process.env.NEOSERV_WAREHOUSE_ADDRESS ||
+    'Entrepôt NEOSERV — ZI de Jarry, 97122 Baie-Mahault, Guadeloupe'
+  );
+}
