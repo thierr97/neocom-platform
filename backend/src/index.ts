@@ -86,12 +86,18 @@ const authLimiter = rateLimit({
 });
 
 app.use('/api/', limiter);
-app.use('/api/auth/login', authLimiter);
-app.use('/api/auth/register', authLimiter);
-app.use('/api/client/login', authLimiter);
-app.use('/api/client/register', authLimiter);
-app.use('/api/client/google-auth', authLimiter);
-app.use('/api/suppliers/auth/login', authLimiter);
+
+// Rate limiting auth - skip OPTIONS preflight (CORS)
+const authRateLimit = (req: any, res: any, next: any) => {
+  if (req.method === 'OPTIONS') return next();
+  return authLimiter(req, res, next);
+};
+app.use('/api/auth/login', authRateLimit);
+app.use('/api/auth/register', authRateLimit);
+app.use('/api/client/login', authRateLimit);
+app.use('/api/client/register', authRateLimit);
+app.use('/api/client/google-auth', authRateLimit);
+app.use('/api/suppliers/auth/login', authRateLimit);
 
 // CORS configuration
 const corsOptions = {
