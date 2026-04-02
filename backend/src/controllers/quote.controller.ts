@@ -200,6 +200,7 @@ export const updateQuoteStatus = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
+    const userId = (req as any).user.userId;
 
     const updateData: any = { status };
 
@@ -214,13 +215,57 @@ export const updateQuoteStatus = async (req: Request, res: Response) => {
       data: updateData,
       include: {
         customer: true,
-        items: {
-          include: {
-            product: true,
-          },
-        },
+        items: true,
       },
     });
+
+    // Auto-création de la commande quand le devis est accepté
+    if (status === 'ACCEPTED') {
+      const { generateOrderNumber } = require('../utils/generateNumber');
+      const orderNumber = await generateOrderNumber();
+
+      const order = await prisma.order.create({
+        data: {
+          number: orderNumber,
+          customerId: quote.customerId,
+          userId,
+          status: 'PENDING',
+          paymentStatus: 'PENDING',
+          subtotal: quote.subtotal,
+          taxAmount: quote.taxAmount,
+          discount: (quote as any).discount,
+          total: quote.total,
+          notes: `Converti du devis ${quote.number}`,
+          items: {
+            create: quote.items.map((item: any) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              total: item.total,
+            })),
+          },
+        },
+        include: {
+          customer: true,
+          items: { include: { product: true } },
+        },
+      });
+
+      // Décrémenter le stock
+      for (const item of quote.items) {
+        await prisma.product.update({
+          where: { id: item.productId },
+          data: { stock: { decrement: item.quantity } },
+        });
+      }
+
+      return res.json({
+        success: true,
+        message: 'Devis accepté — commande créée automatiquement',
+        data: quote,
+        order,
+      });
+    }
 
     return res.json({
       success: true,
