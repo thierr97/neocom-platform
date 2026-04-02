@@ -24,17 +24,16 @@ export const createClientAccount = async (req: Request, res: Response) => {
       allowDeferredPayment,
     } = req.body;
 
-    if (!email) {
-      return res.status(400).json({ success: false, message: 'Email requis' });
-    }
     if (!companyName && !contactFirstName) {
       return res.status(400).json({ success: false, message: 'Raison sociale ou nom du contact requis' });
     }
 
-    // Vérifier doublon email
-    const existing = await prisma.customer.findUnique({ where: { email } });
-    if (existing) {
-      return res.status(409).json({ success: false, message: 'Un client avec cet email existe déjà' });
+    // Vérifier doublon email (seulement si email fourni)
+    if (email) {
+      const existing = await prisma.customer.findUnique({ where: { email } });
+      if (existing) {
+        return res.status(409).json({ success: false, message: 'Un client avec cet email existe déjà' });
+      }
     }
 
     // Générer mot de passe temporaire

@@ -146,7 +146,7 @@ model Customer {
   mustChangePassword Boolean @default(false) // Forcer changement au 1er login
 
   // Contact
-  email    String  @unique
+  email    String?  @unique
   phone    String?
   mobile   String?
   phone2   String? // Téléphone secondaire
