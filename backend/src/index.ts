@@ -47,6 +47,7 @@ import logisticsRoutes from './routes/logistics.routes';
 import supplierAuthRoutes from './routes/supplierAuth.routes';
 import promoBannerRoutes from './routes/promo-banner.routes';
 import clientAccountRoutes from './routes/clientAccount.routes';
+import aiImportRoutes from './routes/ai-import.routes';
 import { applyHjkImages } from './migrations/applyHjkImages';
 import { fixBannerIds } from './migrations/fixBannerIds';
 import { linkProductsToHjk } from './migrations/linkProductsToHjk';
@@ -210,6 +211,7 @@ app.use('/api/migration', migrationRoutes);
 app.use('/api/cloudinary', cloudinaryRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/ai-manager', aiManagerRoutes);
+app.use('/api/ai-import', aiImportRoutes); // Import IA dropshipping (admin)
 app.use('/api/tasks', taskRoutes);
 app.use('/api/logistics', logisticsRoutes);
 app.use('/api/promo-banners', promoBannerRoutes);
