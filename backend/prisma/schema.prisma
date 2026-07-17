@@ -486,6 +486,9 @@ model Product {
   // Champ lexical pour recherche intelligente
   searchTerms String[] @default([])
 
+  // Dropshipping (module Sourcing)
+  dropshipSource DropshipSource?
+
   // Metadata
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2905,4 +2908,198 @@ model PromoBanner {
   @@index([isActive])
   @@index([priority])
   @@map("promo_banners")
+}
+
+// ========================================
+// MODULE SOURCING & DROPSHIPPING (IA)
+// ========================================
+
+enum DropshipPlatform {
+  ALIEXPRESS
+  CJDROPSHIPPING
+  TEMU
+  SHEIN
+  AUTRE
+}
+
+enum ImportJobStatus {
+  QUEUED      // en attente de traitement
+  ANALYZING   // acquisition + IA en cours
+  DRAFT       // proposition IA prête, produit brouillon créé (masqué)
+  APPROVED    // validé par un admin, publié sur la boutique
+  REJECTED    // rejeté par un admin
+  FAILED      // erreur technique (voir error)
+}
+
+enum SupplierOrderStatus {
+  PENDING          // commande client payée, en attente de placement fournisseur
+  PLACED           // commande passée chez le fournisseur (API)
+  MANUAL_REQUIRED  // plateforme sans API (Temu/Shein) : à passer manuellement
+  SHIPPED          // expédiée (tracking disponible)
+  DELIVERED
+  CANCELLED
+  FAILED           // échec de placement (voir lastError)
+}
+
+// Lien produit NeoServ <-> produit fournisseur (source dropshipping)
+model DropshipSource {
+  id         String           @id @default(uuid())
+  platform   DropshipPlatform
+  externalId String? // id produit chez le fournisseur (AliExpress productId, CJ pid…)
+  sourceUrl  String?
+  variantKey String? // sku/variante fournisseur sélectionnée
+
+  // Coûts & délais fournisseur (mis à jour par la synchro)
+  costPrice       Float?
+  shippingCost    Float?
+  currency        String  @default("EUR")
+  stockQty        Int?
+  deliveryDaysMin Int?
+  deliveryDaysMax Int?
+
+  // Synchronisation
+  syncEnabled Boolean   @default(true)
+  lastSyncAt  DateTime?
+  syncError   String?
+
+  productId String  @unique
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([platform])
+  @@index([syncEnabled])
+  @@map("dropship_sources")
+}
+
+// File d'import IA (chaque produit importé passe par un job)
+model ImportJob {
+  id         String           @id @default(uuid())
+  platform   DropshipPlatform
+  sourceUrl  String?
+  externalId String?
+  rawText    String? // description collée manuellement (source prioritaire)
+
+  status     ImportJobStatus @default(QUEUED)
+  proposal   Json? // ProductProposal générée par l'IA
+  confidence Int? // score qualité 0-100 calculé serveur
+  error      String?
+
+  productId   String? // produit brouillon créé
+  createdById String? // admin à l'origine de l'import
+  reviewedBy  String? // admin qui a validé/rejeté
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([platform])
+  @@index([createdAt])
+  @@map("import_jobs")
+}
+
+// Règles de calcul du prix de vente dropshipping
+model DropshipPricingRule {
+  id   String @id @default(uuid())
+  name String
+
+  // Ciblage (null = s'applique à tout) — la règle la plus prioritaire gagne
+  platform   DropshipPlatform?
+  categoryId String?
+
+  // Formule : prix = (coût + shippingEstimate + fixedFee) × (1 + marginPct/100), arrondi à roundEnding
+  marginPct        Float @default(120)
+  fixedFee         Float @default(0)
+  shippingEstimate Float @default(0)
+  roundEnding      Float @default(0.90) // arrondi psychologique (x,90)
+  minPrice         Float?
+  minMarginPct     Float @default(30) // en dessous → alerte à la synchro
+
+  priority Int     @default(0)
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, priority])
+  @@map("dropship_pricing_rules")
+}
+
+// Commandes fournisseurs (auto-fulfillment)
+model SupplierOrder {
+  id          String              @id @default(uuid())
+  orderId     String // commande client NeoServ
+  orderItemId String              @unique // 1 ligne client = 1 suivi fournisseur
+  platform    DropshipPlatform
+  status      SupplierOrderStatus @default(PENDING)
+
+  externalOrderId String? // n° de commande chez le fournisseur
+  trackingNumber  String?
+  trackingUrl     String?
+  carrier         String?
+  costTotal       Float?
+
+  attempts  Int       @default(0)
+  lastError String?
+  notes     String?
+  placedAt  DateTime?
+  shippedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([status])
+  @@map("supplier_orders")
+}
+
+// Assistant client IA (chatbot boutique)
+model ChatConversation {
+  id            String        @id @default(uuid())
+  sessionId     String        @unique
+  customerEmail String?
+  messages      ChatMessage[]
+  resolved      Boolean?
+  rating        Int? // 1-5 donné par le client
+  escalated     Boolean       @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdAt])
+  @@map("chat_conversations")
+}
+
+model ChatMessage {
+  id             String           @id @default(uuid())
+  conversationId String
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String // "user" | "assistant"
+  content        String
+
+  createdAt DateTime @default(now())
+
+  @@index([conversationId])
+  @@map("chat_messages")
+}
+
+// Suivi du chantier d'assainissement IA du catalogue existant
+model CatalogCleanupRun {
+  id             String    @id @default(uuid())
+  status         String    @default("RUNNING") // RUNNING | PAUSED | DONE | FAILED
+  dryRun         Boolean   @default(true)
+  totalProducts  Int       @default(0)
+  processed      Int       @default(0)
+  updated        Int       @default(0)
+  failed         Int       @default(0)
+  lastProductId  String?
+  error          String?
+  startedById    String?
+  finishedAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("catalog_cleanup_runs")
 }
