@@ -48,6 +48,10 @@ import supplierAuthRoutes from './routes/supplierAuth.routes';
 import promoBannerRoutes from './routes/promo-banner.routes';
 import clientAccountRoutes from './routes/clientAccount.routes';
 import aiImportRoutes from './routes/ai-import.routes';
+import sourcingRoutes from './routes/sourcing.routes';
+import chatbotRoutes from './routes/chatbot.routes';
+import { scheduleDropshipSync } from './services/dropship-sync.service';
+import { scheduleFulfillment } from './services/supplier-order.service';
 import { applyHjkImages } from './migrations/applyHjkImages';
 import { fixBannerIds } from './migrations/fixBannerIds';
 import { linkProductsToHjk } from './migrations/linkProductsToHjk';
@@ -212,6 +216,8 @@ app.use('/api/cloudinary', cloudinaryRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/ai-manager', aiManagerRoutes);
 app.use('/api/ai-import', aiImportRoutes); // Import IA dropshipping (admin)
+app.use('/api/sourcing', sourcingRoutes); // Module Sourcing & Dropshipping IA (admin)
+app.use('/api/chatbot', chatbotRoutes); // Assistant client IA (public, rate-limité)
 app.use('/api/tasks', taskRoutes);
 app.use('/api/logistics', logisticsRoutes);
 app.use('/api/promo-banners', promoBannerRoutes);
@@ -260,6 +266,10 @@ const startServer = async () => {
     // Initialize WebSocket server for real-time GPS tracking
     initializeWebSocket(server);
     console.log('🔌 WebSocket server initialized for real-time tracking');
+
+    // Module Sourcing & Dropshipping : planificateurs (activés par variables d'env)
+    scheduleDropshipSync();
+    scheduleFulfillment();
 
     // Handle server errors
     server.on('error', (error: any) => {
