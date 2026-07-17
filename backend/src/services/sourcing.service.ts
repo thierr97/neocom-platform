@@ -125,12 +125,64 @@ export async function processJob(jobId: string): Promise<void> {
   await prisma.importJob.update({ where: { id: jobId }, data: { status: 'ANALYZING' } });
 
   try {
-    // 1. Acquisition
+    // 1. Acquisition — avec replis pour le mode réel sans clés API :
+    //    connecteur officiel → extraction de la page (URL) → description collée.
     const connector = getConnector(job.platform as PlatformKey);
-    const supplierProduct = await connector.fetchProduct({
-      externalId: job.externalId,
-      url: job.sourceUrl,
-    });
+    let supplierProduct: NormalizedSupplierProduct;
+    try {
+      supplierProduct = await connector.fetchProduct({
+        externalId: job.externalId,
+        url: job.sourceUrl,
+      });
+    } catch (acquisitionError: any) {
+      if (job.sourceUrl && !connector.isConfigured()) {
+        // Clés API absentes (AliExpress/CJ) : extraction générique de la page
+        try {
+          supplierProduct = await getConnector('AUTRE').fetchProduct({ url: job.sourceUrl });
+          supplierProduct.platform = job.platform as PlatformKey;
+        } catch {
+          if (!job.rawText) throw acquisitionError;
+          supplierProduct = {
+            platform: job.platform as PlatformKey,
+            externalId: job.externalId,
+            sourceUrl: job.sourceUrl,
+            title: null,
+            description: null,
+            images: [],
+            costPrice: null,
+            shippingCost: null,
+            currency: 'EUR',
+            stockQty: null,
+            deliveryDaysMin: null,
+            deliveryDaysMax: null,
+            attributes: {},
+            variants: [],
+            rawText: job.rawText,
+          };
+        }
+      } else if (job.rawText) {
+        // Dernier recours : l'admin a collé la description, l'IA travaille dessus
+        supplierProduct = {
+          platform: job.platform as PlatformKey,
+          externalId: job.externalId,
+          sourceUrl: job.sourceUrl,
+          title: null,
+          description: null,
+          images: [],
+          costPrice: null,
+          shippingCost: null,
+          currency: 'EUR',
+          stockQty: null,
+          deliveryDaysMin: null,
+          deliveryDaysMax: null,
+          attributes: {},
+          variants: [],
+          rawText: job.rawText,
+        };
+      } else {
+        throw acquisitionError;
+      }
+    }
 
     // 2. Enrichissement IA (avec repli sans IA si clé absente)
     const categories = await prisma.category.findMany({

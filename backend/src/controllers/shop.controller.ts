@@ -64,6 +64,22 @@ export const getPublicProducts = async (req: Request, res: Response) => {
       where.isFeatured = true;
     }
 
+    // Filtre origine : "local" = stock NeoServ, "import" = dropshipping
+    // (produits importés = tag 'dropshipping' posé par les modules d'import IA,
+    //  ou lien DropshipSource pour ceux du module Sourcing)
+    const origin = String(req.query.origin || '');
+    if (origin === 'import') {
+      where.AND = [
+        ...(where.AND || []),
+        { OR: [{ tags: { has: 'dropshipping' } }, { dropshipSource: { isNot: null } }] },
+      ];
+    } else if (origin === 'local') {
+      where.AND = [
+        ...(where.AND || []),
+        { NOT: { tags: { has: 'dropshipping' } }, dropshipSource: { is: null } },
+      ];
+    }
+
     // Search
     if (search) {
       where.OR = [
