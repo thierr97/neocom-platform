@@ -48,7 +48,13 @@ export const postFeedback = async (req: Request, res: Response) => {
 
 // GET /api/chatbot/widget.js — script embarquable sur n'importe quelle page
 export const getWidget = async (_req: Request, res: Response) => {
-  res.type('application/javascript').send(WIDGET_JS);
+  // helmet met CORP à same-origin par défaut, ce qui empêche la boutique
+  // (autre origine) de charger le script — on l'autorise pour cette route.
+  res
+    .set('Cross-Origin-Resource-Policy', 'cross-origin')
+    .set('Cache-Control', 'public, max-age=3600')
+    .type('application/javascript')
+    .send(WIDGET_JS);
 };
 
 /**
