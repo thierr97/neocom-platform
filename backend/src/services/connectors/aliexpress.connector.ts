@@ -4,6 +4,7 @@ import {
   SupplierConnector, NormalizedSupplierProduct, SupplierOrderRequest,
   SupplierOrderResult, TrackingInfo, isMockMode,
 } from './types';
+import { getAliExpressSession } from './aliexpress-token.service';
 
 /**
  * Connecteur AliExpress — API officielle dropshipping (AliExpress Open Platform).
@@ -12,6 +13,9 @@ import {
  *   ALIEXPRESS_APP_KEY      — clé d'application (console open.aliexpress.com)
  *   ALIEXPRESS_APP_SECRET   — secret d'application
  *   ALIEXPRESS_ACCESS_TOKEN — token de session obtenu via le flux OAuth de la console
+ *                             (graine initiale ; ensuite auto-refresh + persistance en base,
+ *                              voir aliexpress-token.service.ts)
+ *   ALIEXPRESS_REFRESH_TOKEN — refresh token du même flux OAuth (48 h)
  *   ALIEXPRESS_API_URL      — optionnel (défaut: https://api-sg.aliexpress.com/sync)
  *
  * Sans clés : si SOURCING_MOCK=1, renvoie des données simulées (tests bout en bout) ;
@@ -39,7 +43,7 @@ function signParams(params: Record<string, string>, secret: string): string {
 async function callAliExpress(method: string, bizParams: Record<string, any>): Promise<any> {
   const appKey = process.env.ALIEXPRESS_APP_KEY!;
   const appSecret = process.env.ALIEXPRESS_APP_SECRET!;
-  const session = process.env.ALIEXPRESS_ACCESS_TOKEN!;
+  const session = await getAliExpressSession(); // auto-refresh 24 h géré par aliexpress-token.service
 
   const params: Record<string, string> = {
     app_key: appKey,

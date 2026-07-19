@@ -52,6 +52,7 @@ import sourcingRoutes from './routes/sourcing.routes';
 import chatbotRoutes from './routes/chatbot.routes';
 import { scheduleDropshipSync } from './services/dropship-sync.service';
 import { scheduleFulfillment } from './services/supplier-order.service';
+import { scheduleAliExpressTokenRefresh } from './services/connectors/aliexpress-token.service';
 import { applyHjkImages } from './migrations/applyHjkImages';
 import { fixBannerIds } from './migrations/fixBannerIds';
 import { linkProductsToHjk } from './migrations/linkProductsToHjk';
@@ -270,6 +271,7 @@ const startServer = async () => {
     // Module Sourcing & Dropshipping : planificateurs (activés par variables d'env)
     scheduleDropshipSync();
     scheduleFulfillment();
+    scheduleAliExpressTokenRefresh();
 
     // Handle server errors
     server.on('error', (error: any) => {
