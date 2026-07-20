@@ -53,6 +53,7 @@ import chatbotRoutes from './routes/chatbot.routes';
 import { scheduleDropshipSync } from './services/dropship-sync.service';
 import { scheduleFulfillment } from './services/supplier-order.service';
 import { scheduleAliExpressTokenRefresh } from './services/connectors/aliexpress-token.service';
+import { scheduleAutoSourcing } from './services/auto-sourcing.service';
 import { applyHjkImages } from './migrations/applyHjkImages';
 import { fixBannerIds } from './migrations/fixBannerIds';
 import { linkProductsToHjk } from './migrations/linkProductsToHjk';
@@ -272,6 +273,7 @@ const startServer = async () => {
     scheduleDropshipSync();
     scheduleFulfillment();
     scheduleAliExpressTokenRefresh();
+    scheduleAutoSourcing();
 
     // Handle server errors
     server.on('error', (error: any) => {

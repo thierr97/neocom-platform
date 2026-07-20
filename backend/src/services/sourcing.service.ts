@@ -30,6 +30,33 @@ async function fallbackCategoryId(): Promise<string> {
   return created.id;
 }
 
+function slugifyCategory(name: string): string {
+  return name.toLowerCase().normalize('NFD')
+    .replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+}
+
+/**
+ * Trouve ou crée une catégorie visible à partir du nom proposé par l'IA.
+ * Permet aux catégories de s'auto-inscrire quand l'IA propose une catégorie
+ * qui n'existe pas encore dans la boutique.
+ */
+export async function ensureCategoryFromName(name?: string | null): Promise<string | null> {
+  const clean = (name || '').trim();
+  if (clean.length < 3 || clean.length > 60) return null;
+  const slug = slugifyCategory(clean);
+  if (!slug) return null;
+  const existing = await prisma.category.findFirst({
+    where: { OR: [{ slug }, { name: { equals: clean, mode: 'insensitive' } }] },
+    select: { id: true },
+  });
+  if (existing) return existing.id;
+  const created = await prisma.category.create({
+    data: { name: clean, slug, isVisible: true },
+  });
+  console.log(`[sourcing] catégorie auto-créée : "${clean}" (${slug})`);
+  return created.id;
+}
+
 /** Convertit un produit fournisseur normalisé vers le format attendu par l'IA. */
 function toExtractedSource(p: NormalizedSupplierProduct): ExtractedSource {
   const attrText = Object.entries(p.attributes).map(([k, v]) => `${k}: ${v}`).join(' | ');
@@ -212,7 +239,11 @@ export async function processJob(jobId: string): Promise<void> {
     const finalPrice = pricing.price ?? proposal.suggestedPrice;
 
     // 4. Produit brouillon (masqué) + source dropshipping
-    const categoryId = proposal.categoryId || (await fallbackCategoryId());
+    // Catégorie : existante choisie par l'IA → sinon auto-création depuis son
+    // nom proposé → sinon « À CATÉGORISER ».
+    const categoryId = proposal.categoryId
+      || (await ensureCategoryFromName(proposal.categoryName))
+      || (await fallbackCategoryId());
     const { sku, slug } = makeSkuSlug(proposal.name, job.platform);
 
     const product = await prisma.product.create({

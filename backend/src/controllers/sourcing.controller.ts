@@ -6,6 +6,7 @@ import { getConnector, platformFromUrl, PlatformKey } from '../services/connecto
 import { runSyncOnce, getSyncStatus } from '../services/dropship-sync.service';
 import { runFulfillmentOnce, getFulfillmentStatus } from '../services/supplier-order.service';
 import { startCleanup, getCleanupStatus, requestStop } from '../services/catalog-cleanup.service';
+import { runAutoSourcingOnce, autoSourcingStatus, getAutoSourcingConfig, saveAutoSourcingConfig } from '../services/auto-sourcing.service';
 
 /**
  * Back-office "Sourcing & Imports" — endpoints admin du module dropshipping.
@@ -286,6 +287,32 @@ export const syncRun = async (_req: AuthRequest, res: Response) => {
   } catch (e: any) {
     res.status(409).json({ success: false, message: e.message });
   }
+};
+
+// ===== AUTO-SOURCING (le catalogue se remplit tout seul) =====
+
+export const autoStatus = async (_req: AuthRequest, res: Response) => {
+  res.json({ success: true, ...autoSourcingStatus(), config: await getAutoSourcingConfig() });
+};
+
+export const autoUpdate = async (req: AuthRequest, res: Response) => {
+  try {
+    const allowed = ['enabled', 'dailyLimit', 'batchSize', 'minConfidence', 'minItemScore', 'minPriceEur', 'maxPriceEur', 'keywords'];
+    const patch: any = {};
+    for (const k of allowed) if (req.body[k] !== undefined) patch[k] = req.body[k];
+    if (patch.keywords && (!Array.isArray(patch.keywords) || patch.keywords.some((k: any) => typeof k !== 'string'))) {
+      return res.status(400).json({ success: false, message: 'keywords doit être une liste de chaînes' });
+    }
+    const config = await saveAutoSourcingConfig(patch);
+    res.json({ success: true, config });
+  } catch (e: any) {
+    res.status(400).json({ success: false, message: 'Mise à jour impossible' });
+  }
+};
+
+export const autoRun = async (_req: AuthRequest, res: Response) => {
+  setImmediate(() => runAutoSourcingOnce().catch((e) => console.error('[auto-sourcing]', e.message)));
+  res.status(202).json({ success: true, message: 'Auto-sourcing lancé en arrière-plan' });
 };
 
 // ===== COMMANDES FOURNISSEURS =====

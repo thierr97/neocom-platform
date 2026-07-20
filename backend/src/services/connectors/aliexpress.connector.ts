@@ -71,6 +71,49 @@ async function callAliExpress(method: string, bizParams: Record<string, any>): P
   return r.data;
 }
 
+/** Résultat de recherche catalogue (aliexpress.ds.text.search). */
+export interface AliExpressSearchItem {
+  itemId: string;
+  title: string;
+  salePriceEur: number | null;
+  score: number | null;
+  imageUrl: string | null;
+  orders: number | null;
+}
+
+/**
+ * Recherche de produits dans le catalogue dropshipping AliExpress.
+ * Utilisée par l'auto-sourcing pour découvrir des produits sans URL.
+ */
+export async function searchAliExpressProducts(
+  keyword: string,
+  pageIndex = 1,
+  pageSize = 20,
+): Promise<AliExpressSearchItem[]> {
+  if (!hasKeys()) return [];
+  const data = await callAliExpress('aliexpress.ds.text.search', {
+    keyWord: keyword,
+    countryCode: process.env.ALIEXPRESS_SHIP_TO || 'FR',
+    currency: 'EUR',
+    local: 'fr_FR',
+    pageSize: String(pageSize),
+    pageIndex: String(pageIndex),
+    sortBy: 'orders,desc',
+  });
+  const resp = data?.aliexpress_ds_text_search_response;
+  const items: any[] = resp?.data?.products?.selection_search_product || [];
+  return items
+    .filter((i) => i?.itemId)
+    .map((i) => ({
+      itemId: String(i.itemId),
+      title: String(i.title || ''),
+      salePriceEur: Number(i.targetSalePrice) || null,
+      score: Number(i.score) || null,
+      imageUrl: i.itemMainPic ? String(i.itemMainPic) : null,
+      orders: Number(i.orders ?? i.soldCount) || null,
+    }));
+}
+
 /** Extrait l'id produit d'une URL AliExpress (…/item/1005001234567890.html). */
 export function aliexpressIdFromUrl(url: string): string | null {
   const m = url.match(/item\/(\d{6,20})(?:\.html)?/) || url.match(/[?&]productId=(\d{6,20})/);

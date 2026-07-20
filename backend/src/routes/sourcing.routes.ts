@@ -35,6 +35,11 @@ router.delete('/pricing-rules/:id', sourcing.deletePricingRule);
 router.get('/sync/status', sourcing.syncStatus);
 router.post('/sync/run', sourcing.syncRun);
 
+// Auto-sourcing (découverte + import + publication automatiques)
+router.get('/auto/status', sourcing.autoStatus);
+router.put('/auto/config', sourcing.autoUpdate);
+router.post('/auto/run', sourcing.autoRun);
+
 // Commandes fournisseurs (auto-fulfillment)
 router.get('/supplier-orders', sourcing.getSupplierOrders);
 router.patch('/supplier-orders/:id', sourcing.updateSupplierOrder);
