@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import prisma from '../config/database';
 import { searchAliExpressProducts } from './connectors/aliexpress.connector';
 import { processJob, approveJob } from './sourcing.service';
+import { isBrandBlocked } from './brand-blocklist';
 
 /**
  * Auto-sourcing : le catalogue se remplit tout seul.
@@ -169,7 +170,8 @@ export async function runAutoSourcingOnce(): Promise<{ searched: number; importe
 
       const candidates = items.filter((i) =>
         (i.score === null || i.score >= config.minItemScore)
-        && (i.salePriceEur === null || (i.salePriceEur >= config.minPriceEur && i.salePriceEur <= config.maxPriceEur)),
+        && (i.salePriceEur === null || (i.salePriceEur >= config.minPriceEur && i.salePriceEur <= config.maxPriceEur))
+        && !isBrandBlocked(i.title), // écarte marques/IP protégées (contrefaçon)
       );
 
       for (const item of candidates) {
