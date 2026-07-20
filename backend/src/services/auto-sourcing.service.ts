@@ -226,8 +226,9 @@ export function scheduleAutoSourcing() {
     console.log('[auto-sourcing] planification désactivée (AUTO_SOURCING_ENABLED=0)');
     return;
   }
-  // 4 lots par jour → ~50 produits/jour avec batchSize 15 et limite journalière 50
-  const expr = process.env.AUTO_SOURCING_CRON || '40 2,8,14,20 * * *';
+  // Toutes les heures → remplissage rapide (batchSize 60 × 24 h, plafonné par
+  // dailyLimit). Ajustable via AUTO_SOURCING_CRON.
+  const expr = process.env.AUTO_SOURCING_CRON || '20 * * * *';
   cron.schedule(expr, () => {
     runAutoSourcingOnce().catch((e) => console.error('[auto-sourcing]', e.message));
   });
