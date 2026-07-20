@@ -63,6 +63,7 @@ export function extractBrand(attributes: Record<string, string>): string | null 
     const raw = (attributes[k] || '').trim();
     if (!raw) continue;
     if (/^(none|no brand|sans marque|oem|generic|n\/?a|aucun|other|others|no|yes)$/i.test(raw)) continue;
+    if (/noenname|noname|no.?name|null|factory/i.test(raw) || /^\d+$/.test(raw)) continue; // marques poubelle
     if (raw.length < 2 || raw.length > 40) continue;
     // Titre propre : Majuscule initiale conservée telle quelle
     return raw;
