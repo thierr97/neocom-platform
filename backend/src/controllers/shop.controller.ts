@@ -183,6 +183,28 @@ export const getPublicProduct = async (req: Request, res: Response) => {
   }
 };
 
+// Marques d'une catégorie (pour le méga-menu « Acheter par marque »)
+export const getCategoryBrands = async (req: Request, res: Response) => {
+  try {
+    const { slug } = req.params;
+    const category = await prisma.category.findUnique({ where: { slug }, select: { id: true } });
+    if (!category) return res.json({ success: true, brands: [] });
+
+    const rows = await prisma.product.groupBy({
+      by: ['brand'],
+      where: { categoryId: category.id, isVisible: true, status: 'ACTIVE', brand: { not: null } },
+      _count: { brand: true },
+      orderBy: { _count: { brand: 'desc' } },
+      take: 8,
+    });
+    // Ne garde que les marques présentes sur ≥2 produits (marques réelles)
+    const brands = rows.filter((r) => (r._count.brand || 0) >= 2 && r.brand).map((r) => r.brand);
+    return res.json({ success: true, brands });
+  } catch (e: any) {
+    return res.json({ success: true, brands: [] });
+  }
+};
+
 // Get all public categories (no auth required)
 export const getPublicCategories = async (req: Request, res: Response) => {
   try {

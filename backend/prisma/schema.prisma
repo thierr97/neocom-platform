@@ -415,6 +415,7 @@ model Product {
   id               String  @id @default(uuid())
   sku              String  @unique
   barcode          String? @unique
+  brand            String? // marque (ex: AliExpress « Nom de marque »)
   name             String
   slug             String  @unique
   description      String?

@@ -56,6 +56,20 @@ function guessCategoryName(title: string): string | null {
   return guessCategory(title); // retourne toujours un nom réel (repli « Bazar »)
 }
 
+/** Extrait une marque exploitable des attributs (sinon null si générique/absente). */
+export function extractBrand(attributes: Record<string, string>): string | null {
+  const keys = ['Nom de marque', 'Marque', 'Brand Name', 'Brand', 'brand'];
+  for (const k of keys) {
+    const raw = (attributes[k] || '').trim();
+    if (!raw) continue;
+    if (/^(none|no brand|sans marque|oem|generic|n\/?a|aucun|other|others|no|yes)$/i.test(raw)) continue;
+    if (raw.length < 2 || raw.length > 40) continue;
+    // Titre propre : Majuscule initiale conservée telle quelle
+    return raw;
+  }
+  return null;
+}
+
 /**
  * Génère une fiche produit COMPLÈTE sans IA (coût zéro), à partir des données
  * déjà traduites en français par l'API AliExpress (titre + caractéristiques +
@@ -313,11 +327,13 @@ export async function processJob(jobId: string): Promise<void> {
       || (await ensureCategoryFromName(proposal.categoryName))
       || (await fallbackCategoryId());
     const { sku, slug } = makeSkuSlug(proposal.name, job.platform);
+    const brand = extractBrand(supplierProduct.attributes);
 
     const product = await prisma.product.create({
       data: {
         sku,
         slug,
+        brand,
         name: proposal.name,
         description: proposal.descriptionHtml,
         shortDescription: proposal.shortDescription || null,

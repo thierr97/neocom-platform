@@ -10,6 +10,7 @@ router.get('/products/featured', shopController.getFeaturedProducts);
 router.get('/products/search', shopController.searchProducts);
 router.get('/products/:id', shopController.getPublicProduct);
 router.get('/categories', shopController.getPublicCategories);
+router.get('/categories/:slug/brands', shopController.getCategoryBrands);
 router.post('/orders', shopController.createPublicOrder);
 
 // Admin routes (authentication required)
