@@ -433,18 +433,27 @@ export async function approveJob(params: {
   const proposal: any = job.proposal || {};
   const sourceImages: string[] = Array.isArray(proposal.sourceImages) ? proposal.sourceImages.slice(0, 6) : [];
 
-  // Import des images distantes vers Cloudinary (best effort)
+  // Deux modes pour les images :
+  //   - 'source' (défaut) : on garde les URLs AliExpress directement → gratuit,
+  //     illimité, instantané (pas de quota Cloudinary). Idéal import massif.
+  //   - 'cloudinary' : recopie sur Cloudinary (héberge chez nous, plus robuste
+  //     mais quota/coût). Activer avec DROPSHIP_IMAGES_MODE=cloudinary.
   const images: string[] = [];
-  for (const imgUrl of sourceImages) {
-    try {
-      const up = await cloudinary.uploader.upload(imgUrl, {
-        folder: 'neoserv/products/dropshipping',
-        resource_type: 'image',
-        timeout: 30000,
-      });
-      images.push(up.secure_url);
-    } catch {
-      console.warn('[sourcing] image ignorée (upload échoué):', String(imgUrl).slice(0, 80));
+  if (process.env.DROPSHIP_IMAGES_MODE === 'cloudinary') {
+    for (const imgUrl of sourceImages) {
+      try {
+        const up = await cloudinary.uploader.upload(imgUrl, {
+          folder: 'neoserv/products/dropshipping', resource_type: 'image', timeout: 30000,
+        });
+        images.push(up.secure_url);
+      } catch {
+        console.warn('[sourcing] image ignorée (upload échoué):', String(imgUrl).slice(0, 80));
+      }
+    }
+  } else {
+    // Mode source : on garde les URLs valides telles quelles.
+    for (const imgUrl of sourceImages) {
+      if (typeof imgUrl === 'string' && /^https?:\/\//.test(imgUrl)) images.push(imgUrl);
     }
   }
 

@@ -41,6 +41,19 @@ const DEFAULT_KEYWORDS = [
   'rouleau jade visage', 'brosse nettoyante visage', 'accessoire manucure', 'masseur cervical',
   'pistolet massage musculaire', 'elastique fitness', 'bouteille sport infuseur', 'lampe luminotherapie',
   'organisateur maquillage', 'huile essentielle aromatherapie',
+  // Élargissement (plus de couverture = plus de produits uniques)
+  'coque samsung', 'coque xiaomi', 'protection ecran verre trempe', 'anneau maintien telephone',
+  'trepied telephone', 'micro cravate', 'stabilisateur telephone', 'lampe annulaire selfie',
+  'hub usb c', 'adaptateur hdmi', 'ventilateur usb portable', 'humidificateur air',
+  'veilleuse enfant', 'reveil numerique', 'balance cuisine', 'thermometre cuisine',
+  'set couteaux cuisine', 'planche decouper', 'gourde isotherme', 'sac isotherme',
+  'tapis yoga', 'corde a sauter', 'gants musculation', 'brassard telephone sport',
+  'porte cle cuir', 'chaussettes homme', 'bonnet hiver', 'gants tactiles',
+  'trousse maquillage', 'miroir grossissant led', 'tondeuse nez', 'lime electrique',
+  'jouet chien', 'gamelle chat', 'harnais chien', 'brosse poil animaux',
+  'outil multifonction', 'lampe torche led', 'metre laser', 'organiseur voiture',
+  'support tablette', 'stylet tablette', 'coque airpods', 'chargeur induction',
+  'guirlande solaire jardin', 'arrosoir automatique', 'gants jardinage', 'sac rangement sous vide',
 ];
 
 export interface AutoSourcingConfig {
@@ -58,12 +71,12 @@ export interface AutoSourcingConfig {
 
 const DEFAULTS: AutoSourcingConfig = {
   enabled: true,
-  dailyLimit: 50,
-  batchSize: 15,
+  dailyLimit: 1000,   // remplissage rapide du catalogue (images en mode source = gratuit)
+  batchSize: 60,      // par exécution du cron
   minConfidence: 70,
-  minItemScore: 4.4,
+  minItemScore: 4.3,
   minPriceEur: 1.5,
-  maxPriceEur: 80,
+  maxPriceEur: 120,
   keywords: DEFAULT_KEYWORDS,
   cursor: 0,
   page: 1,
@@ -142,7 +155,7 @@ export async function runAutoSourcingOnce(): Promise<{ searched: number; importe
     for (let tried = 0; tried < keywords.length && result.imported < budget; tried++) {
       const keyword = keywords[cursor % keywords.length];
       cursor++;
-      if (cursor % keywords.length === 0) page = page >= 5 ? 1 : page + 1; // tour complet → page suivante
+      if (cursor % keywords.length === 0) page = page >= 20 ? 1 : page + 1; // tour complet → page suivante (jusqu'à 20 pages de profondeur)
 
       let items;
       try {
