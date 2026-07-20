@@ -177,8 +177,18 @@ export async function runAutoSourcingOnce(): Promise<{ searched: number; importe
 
           const done = await prisma.importJob.findUnique({ where: { id: job.id } });
           if (done?.status === 'DRAFT' && (done.confidence ?? 0) >= config.minConfidence) {
-            await approveJob({ jobId: job.id, reviewedBy: REVIEWER, publishNow: true });
-            result.published++;
+            const approved = await approveJob({ jobId: job.id, reviewedBy: REVIEWER, publishNow: true });
+            if (approved.imagesImported === 0) {
+              // Jamais de produit visible sans photo : retour en validation manuelle
+              await prisma.product.update({
+                where: { id: approved.product.id },
+                data: { isVisible: false, status: 'DRAFT' },
+              });
+              await prisma.importJob.update({ where: { id: job.id }, data: { status: 'DRAFT' } });
+              console.warn(`[auto-sourcing] ${item.itemId} : aucune image importée → laissé en brouillon`);
+            } else {
+              result.published++;
+            }
           }
         } catch (e: any) {
           console.error(`[auto-sourcing] import ${item.itemId}:`, e.message);
