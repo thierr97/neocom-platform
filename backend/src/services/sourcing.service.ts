@@ -57,6 +57,76 @@ export async function ensureCategoryFromName(name?: string | null): Promise<stri
   return created.id;
 }
 
+/**
+ * Devine une catégorie française à partir de mots-clés du titre (gratuit, sans IA).
+ * Couvre les 4 niches de la boutique.
+ */
+const CATEGORY_KEYWORDS: Array<[string, RegExp]> = [
+  ['Téléphonie & Accessoires', /coque|chargeur|c[âa]ble|[ée]couteur|batterie externe|support t[ée]l[ée]phone|magsafe|powerbank|protection [ée]cran/i],
+  ['High-Tech & Gadgets', /projecteur|clavier|souris|enceinte|bluetooth|montre connect|cam[ée]ra|led|usb|casque|webcam|disque|manette/i],
+  ['Maison & Déco', /rangement|cuisine|lampe|guirlande|[ée]tag[èe]re|diffuseur|tapis|rideau|horloge|d[ée]co|plaid|organisateur|bo[îi]te/i],
+  ['Mode & Bijoux', /collier|bracelet|montre|sac|lunettes|boucles|bague|casquette|portefeuille|[ée]charpe|ceinture|bijou/i],
+  ['Beauté & Bien-être', /visage|maquillage|beaut[ée]|massage|manucure|soin|cheveux|fitness|sport|luminoth[ée]rapie|aromath[ée]rapie|huile/i],
+];
+
+function guessCategoryName(title: string): string | null {
+  for (const [name, rx] of CATEGORY_KEYWORDS) if (rx.test(title)) return name;
+  return null;
+}
+
+/**
+ * Génère une fiche produit COMPLÈTE sans IA (coût zéro), à partir des données
+ * déjà traduites en français par l'API AliExpress (titre + caractéristiques +
+ * variantes). Description HTML structurée, catégorie devinée, tags et SEO.
+ * C'est le mode par défaut : pas d'appel Anthropic, donc gratuit.
+ */
+export function templateProposal(p: NormalizedSupplierProduct): ProductProposal {
+  const title = (p.title || 'Produit importé').trim();
+  const shortName = title.length > 118 ? title.slice(0, 115) + '…' : title;
+
+  // Regroupe les caractéristiques (ex: plusieurs "Caractéristiques" → une liste)
+  const grouped = new Map<string, string[]>();
+  for (const [k, v] of Object.entries(p.attributes)) {
+    if (!k || !v) continue;
+    if (/origine|preoccup|chimique/i.test(k)) continue; // bruit
+    const arr = grouped.get(k) || [];
+    if (!arr.includes(String(v))) arr.push(String(v));
+    grouped.set(k, arr);
+  }
+  const specItems: string[] = [];
+  for (const [k, vals] of grouped) specItems.push(`<li><strong>${k} :</strong> ${vals.join(', ')}</li>`);
+
+  const colors = p.variants.map((v) => v.label).filter(Boolean).slice(0, 12);
+  const deliv = p.deliveryDaysMin && p.deliveryDaysMax ? `<p>Livraison estimée : ${p.deliveryDaysMin} à ${p.deliveryDaysMax} jours.</p>` : '';
+
+  const descriptionHtml = [
+    `<p>${shortName}.</p>`,
+    specItems.length ? `<h3>Caractéristiques</h3><ul>${specItems.join('')}</ul>` : '',
+    colors.length ? `<p><strong>Modèles / coloris disponibles :</strong> ${colors.join(', ')}.</p>` : '',
+    deliv,
+  ].filter(Boolean).join('\n');
+
+  const words = title.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .split(/[^a-z0-9]+/).filter((w) => w.length > 2);
+  const tags = Array.from(new Set(words)).slice(0, 6);
+
+  return {
+    name: shortName,
+    shortDescription: shortName.slice(0, 160),
+    descriptionHtml,
+    categoryId: null,
+    categoryName: guessCategoryName(title),
+    tags: ['dropshipping', p.platform.toLowerCase(), ...tags].slice(0, 8),
+    searchTerms: Array.from(new Set(words)).slice(0, 15),
+    metaTitle: shortName.slice(0, 70),
+    metaDescription: shortName.slice(0, 160),
+    costPrice: p.costPrice,
+    suggestedPrice: null,
+    images: p.images,
+    notes: 'Fiche générée automatiquement (sans IA) depuis les données AliExpress',
+  };
+}
+
 /** Convertit un produit fournisseur normalisé vers le format attendu par l'IA. */
 function toExtractedSource(p: NormalizedSupplierProduct): ExtractedSource {
   const attrText = Object.entries(p.attributes).map(([k, v]) => `${k}: ${v}`).join(' | ');
@@ -215,9 +285,12 @@ export async function processJob(jobId: string): Promise<void> {
     const categories = await prisma.category.findMany({
       select: { id: true, name: true }, orderBy: { name: 'asc' },
     });
+    // Mode par défaut : GRATUIT (fiche générée depuis les données AliExpress
+    // déjà traduites en FR, aucun appel Anthropic). L'IA n'est utilisée que si
+    // AI_IMPORT_ENABLED=1 (rédaction marketing plus soignée, mais payante).
     let proposal: ProductProposal;
     let aiFailed = false;
-    if (process.env.ANTHROPIC_API_KEY) {
+    if (process.env.AI_IMPORT_ENABLED === '1' && process.env.ANTHROPIC_API_KEY) {
       try {
         proposal = await analyzeWithAI({
           url: job.sourceUrl || '',
@@ -228,16 +301,18 @@ export async function processJob(jobId: string): Promise<void> {
         });
         if (proposal.costPrice === null) proposal.costPrice = supplierProduct.costPrice;
       } catch (aiError: any) {
-        // L'IA a échoué (crédit épuisé, rate limit, panne) : on ne perd pas le
-        // produit — fiche brute en brouillon, jamais auto-publiée (aiFailed).
-        aiFailed = true;
-        proposal = fallbackProposal(supplierProduct);
-        proposal.notes = `IA indisponible (${String(aiError.response?.data?.error?.message || aiError.message).slice(0, 120)}) — fiche à retravailler`;
-        console.warn(`[sourcing] job ${jobId} : IA échouée, repli fiche brute — ${proposal.notes}`);
+        // L'IA a échoué (crédit épuisé, rate limit) : repli sur la fiche gratuite.
+        proposal = templateProposal(supplierProduct);
+        proposal.notes = `IA indisponible (${String(aiError.response?.data?.error?.message || aiError.message).slice(0, 100)}) — fiche générée sans IA`;
+        console.warn(`[sourcing] job ${jobId} : IA échouée, repli fiche gratuite`);
       }
     } else {
-      aiFailed = true;
-      proposal = fallbackProposal(supplierProduct);
+      // Fiche gratuite : titre + specs FR + variantes, description structurée réelle.
+      proposal = templateProposal(supplierProduct);
+    }
+    // La catégorie devinée (gratuite) est créée si elle n'existe pas encore.
+    if (!proposal.categoryId && proposal.categoryName) {
+      proposal.categoryId = await ensureCategoryFromName(proposal.categoryName);
     }
 
     // 3. Prix (le moteur de règles a priorité sur la suggestion IA)
