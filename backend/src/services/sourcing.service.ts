@@ -216,16 +216,27 @@ export async function processJob(jobId: string): Promise<void> {
       select: { id: true, name: true }, orderBy: { name: 'asc' },
     });
     let proposal: ProductProposal;
+    let aiFailed = false;
     if (process.env.ANTHROPIC_API_KEY) {
-      proposal = await analyzeWithAI({
-        url: job.sourceUrl || '',
-        source: toExtractedSource(supplierProduct),
-        rawText: job.rawText || undefined,
-        marginPct: Number(process.env.DROPSHIP_DEFAULT_MARGIN_PCT) || 120,
-        categories,
-      });
-      if (proposal.costPrice === null) proposal.costPrice = supplierProduct.costPrice;
+      try {
+        proposal = await analyzeWithAI({
+          url: job.sourceUrl || '',
+          source: toExtractedSource(supplierProduct),
+          rawText: job.rawText || undefined,
+          marginPct: Number(process.env.DROPSHIP_DEFAULT_MARGIN_PCT) || 120,
+          categories,
+        });
+        if (proposal.costPrice === null) proposal.costPrice = supplierProduct.costPrice;
+      } catch (aiError: any) {
+        // L'IA a échoué (crédit épuisé, rate limit, panne) : on ne perd pas le
+        // produit — fiche brute en brouillon, jamais auto-publiée (aiFailed).
+        aiFailed = true;
+        proposal = fallbackProposal(supplierProduct);
+        proposal.notes = `IA indisponible (${String(aiError.response?.data?.error?.message || aiError.message).slice(0, 120)}) — fiche à retravailler`;
+        console.warn(`[sourcing] job ${jobId} : IA échouée, repli fiche brute — ${proposal.notes}`);
+      }
     } else {
+      aiFailed = true;
       proposal = fallbackProposal(supplierProduct);
     }
 
@@ -284,7 +295,9 @@ export async function processJob(jobId: string): Promise<void> {
       },
     });
 
-    const confidence = confidenceScore(proposal, finalPrice ?? null);
+    // Sans IA, la fiche est brute : on force un score faible pour qu'elle
+    // reste en validation manuelle (jamais auto-publiée par l'auto-sourcing).
+    const confidence = aiFailed ? Math.min(40, confidenceScore(proposal, finalPrice ?? null)) : confidenceScore(proposal, finalPrice ?? null);
 
     await prisma.importJob.update({
       where: { id: jobId },
@@ -294,6 +307,7 @@ export async function processJob(jobId: string): Promise<void> {
         confidence,
         proposal: {
           ...(proposal as any),
+          aiFailed,
           finalPrice,
           pricing: { rule: pricing.ruleName, details: pricing.details, belowMinMargin: pricing.belowMinMargin },
           sourceImages: proposal.images.length ? proposal.images : supplierProduct.images,
