@@ -3,6 +3,7 @@ import cloudinary from '../config/cloudinary';
 import { getConnector, platformFromUrl, PlatformKey, NormalizedSupplierProduct } from './connectors';
 import { analyzeWithAI, ExtractedSource, ProductProposal } from './ai-import.service';
 import { computeSalePrice } from './dropship-pricing.service';
+import { guessCategory, FALLBACK_CATEGORY } from './category-guess';
 
 /**
  * Orchestrateur du pipeline d'import IA :
@@ -17,17 +18,10 @@ import { computeSalePrice } from './dropship-pricing.service';
 
 const CONCURRENCY_DELAY_MS = 500; // espacement des jobs en traitement de masse
 
-/** Catégorie par défaut pour les brouillons sans catégorie IA. */
+/** Catégorie de repli = « Bazar » (catégorie réelle), plus jamais « À catégoriser ». */
 async function fallbackCategoryId(): Promise<string> {
-  const existing = await prisma.category.findFirst({
-    where: { OR: [{ slug: 'a-categoriser' }, { name: { contains: 'catégoriser', mode: 'insensitive' } }] },
-    select: { id: true },
-  });
-  if (existing) return existing.id;
-  const created = await prisma.category.create({
-    data: { name: 'À CATÉGORISER', slug: 'a-categoriser', isVisible: false },
-  });
-  return created.id;
+  const id = await ensureCategoryFromName(FALLBACK_CATEGORY);
+  return id!;
 }
 
 function slugifyCategory(name: string): string {
@@ -57,21 +51,9 @@ export async function ensureCategoryFromName(name?: string | null): Promise<stri
   return created.id;
 }
 
-/**
- * Devine une catégorie française à partir de mots-clés du titre (gratuit, sans IA).
- * Couvre les 4 niches de la boutique.
- */
-const CATEGORY_KEYWORDS: Array<[string, RegExp]> = [
-  ['Téléphonie & Accessoires', /coque|chargeur|c[âa]ble|[ée]couteur|batterie externe|support t[ée]l[ée]phone|magsafe|powerbank|protection [ée]cran/i],
-  ['High-Tech & Gadgets', /projecteur|clavier|souris|enceinte|bluetooth|montre connect|cam[ée]ra|led|usb|casque|webcam|disque|manette/i],
-  ['Maison & Déco', /rangement|cuisine|lampe|guirlande|[ée]tag[èe]re|diffuseur|tapis|rideau|horloge|d[ée]co|plaid|organisateur|bo[îi]te/i],
-  ['Mode & Bijoux', /collier|bracelet|montre|sac|lunettes|boucles|bague|casquette|portefeuille|[ée]charpe|ceinture|bijou/i],
-  ['Beauté & Bien-être', /visage|maquillage|beaut[ée]|massage|manucure|soin|cheveux|fitness|sport|luminoth[ée]rapie|aromath[ée]rapie|huile/i],
-];
-
+/** Devine une catégorie française (module partagé category-guess). */
 function guessCategoryName(title: string): string | null {
-  for (const [name, rx] of CATEGORY_KEYWORDS) if (rx.test(title)) return name;
-  return null;
+  return guessCategory(title); // retourne toujours un nom réel (repli « Bazar »)
 }
 
 /**
