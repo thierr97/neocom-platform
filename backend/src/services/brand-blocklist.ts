@@ -23,7 +23,8 @@ const BLOCKED = [
   'hello kitty', 'sanrio', 'harry potter', 'barbie', 'lego', 'stitch', 'naruto',
   'dragon ball', 'one piece', 'squid game', 'minecraft', 'roblox', 'fortnite',
   // Transport / logistique (logos souvent reproduits sur figurines/déco)
-  'dhl', 'fedex', 'ups ', 'hapag-lloyd', 'hapag lloyd', 'maersk', 'evergreen shipping',
+  // NB : « ups » retiré — trop large, attrapait les onduleurs (« UPS batterie de secours »).
+  'dhl', 'fedex', 'hapag-lloyd', 'hapag lloyd', 'maersk', 'evergreen shipping',
   'msc shipping', 'ocean network express', 'cma cgm',
   // Sport / clubs
   'real madrid', 'barcelona fc', 'psg', 'manchester united', 'fifa', 'nba', 'uefa',
