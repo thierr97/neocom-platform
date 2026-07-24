@@ -8,6 +8,7 @@ const router = Router();
 router.post('/register', clientController.clientRegister);
 router.post('/login', clientController.clientLogin);
 router.post('/google-auth', clientController.clientGoogleAuth);
+router.post('/facebook-auth', clientController.clientFacebookAuth);
 
 // Protected routes - require client authentication
 router.use(authenticateClient);

@@ -104,6 +104,7 @@ app.use('/api/auth/register', authRateLimit);
 app.use('/api/client/login', authRateLimit);
 app.use('/api/client/register', authRateLimit);
 app.use('/api/client/google-auth', authRateLimit);
+app.use('/api/client/facebook-auth', authRateLimit);
 app.use('/api/suppliers/auth/login', authRateLimit);
 
 // CORS configuration

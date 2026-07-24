@@ -2,8 +2,26 @@ import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import axios from 'axios';
 
 const prisma = new PrismaClient();
+
+/** Trouve (ou crée) l'utilisateur "public" auquel rattacher les clients auto-inscrits. */
+async function getPublicUser() {
+  let publicUser = await prisma.user.findFirst({ where: { email: 'public@neoserv.com' } });
+  if (!publicUser) {
+    publicUser = await prisma.user.create({
+      data: {
+        email: 'public@neoserv.com',
+        password: await bcrypt.hash('public123', 10),
+        role: 'CLIENT',
+        firstName: 'Public',
+        lastName: 'User',
+      },
+    });
+  }
+  return publicUser;
+}
 
 function getJwtSecret(): string {
   const secret = process.env.JWT_SECRET;
@@ -226,6 +244,89 @@ export const clientGoogleAuth = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'authentification Google',
+    });
+  }
+};
+
+// Client registration/login with Facebook
+export const clientFacebookAuth = async (req: Request, res: Response) => {
+  try {
+    const { accessToken, userID } = req.body;
+
+    if (!accessToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'accessToken Facebook requis',
+      });
+    }
+
+    // Vérifie le token côté serveur en interrogeant l'API Graph de Facebook.
+    // Un token invalide/expiré renvoie une erreur → on rejette la connexion.
+    let fb: { id?: string; email?: string; first_name?: string; last_name?: string; error?: any };
+    try {
+      const { data } = await axios.get('https://graph.facebook.com/me', {
+        params: { fields: 'id,email,first_name,last_name', access_token: accessToken },
+        timeout: 8000,
+      });
+      fb = data;
+    } catch {
+      return res.status(401).json({ success: false, message: 'Token Facebook invalide' });
+    }
+
+    if (!fb?.id || fb.error) {
+      return res.status(401).json({ success: false, message: 'Token Facebook invalide' });
+    }
+    // L'identité renvoyée par Graph doit correspondre à celle annoncée par le client
+    if (userID && fb.id !== userID) {
+      return res.status(401).json({ success: false, message: 'Token Facebook invalide' });
+    }
+
+    // Facebook ne renvoie pas toujours l'email (si l'utilisateur ne l'a pas partagé) :
+    // on retombe sur un identifiant stable dérivé de l'ID Facebook.
+    const email = fb.email || `fb_${fb.id}@facebook.neoserv`;
+    const firstName = fb.first_name || 'Client';
+    const lastName = fb.last_name || 'Facebook';
+
+    let customer = await prisma.customer.findUnique({ where: { email } });
+
+    if (!customer) {
+      const publicUser = await getPublicUser();
+      customer = await prisma.customer.create({
+        data: {
+          type: 'INDIVIDUAL',
+          email,
+          firstName,
+          lastName,
+          status: 'ACTIVE',
+          userId: publicUser.id,
+          notes: `Inscrit via Facebook (ID: ${fb.id})`,
+        },
+      });
+    }
+
+    const token = jwt.sign(
+      { customerId: customer.id, email: customer.email, type: 'customer' },
+      getJwtSecret(),
+      { expiresIn: '7d' }
+    );
+
+    return res.json({
+      success: true,
+      message: 'Connexion réussie',
+      token,
+      customer: {
+        id: customer.id,
+        email: customer.email,
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        companyName: customer.companyName,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error in Facebook auth:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de l\'authentification Facebook',
     });
   }
 };
